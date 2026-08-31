@@ -1,0 +1,25 @@
+# Local secrets and environment-specific configuration
+.env
+.env.*
+!.env.example
+.dev.vars
+*.local
+
+# Dependencies and generated output
+node_modules/
+dist/
+build/
+coverage/
+.wrangler/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# Editor and operating-system metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
