@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "roundcraft",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*",
+      "/",
+      "/today",
+      "/cases/*",
+      "/progress",
+      "/settings"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "roundcraft-prod",
+      "database_id": "84fbd2d6-e408-4c61-962f-a710379b264e",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "SESSION_RATE_LIMITER",
+      "namespace_id": "682401",
+      "simple": { "limit": 20, "period": 60 }
+    },
+    {
+      "name": "TODAY_RATE_LIMITER",
+      "namespace_id": "682402",
+      "simple": { "limit": 120, "period": 60 }
+    }
+  ],
+  "vars": {
+    "APP_ENV": "production"
+  },
+  "secrets": {
+    "required": ["IDENTITY_PEPPER"]
+  }
+}

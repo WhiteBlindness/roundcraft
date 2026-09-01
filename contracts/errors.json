@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "errors": [
+    {
+      "code": "INVALID_REQUEST",
+      "status": 400,
+      "message": "The request could not be processed."
+    },
+    {
+      "code": "SESSION_INVALID",
+      "status": 401,
+      "message": "The session is unavailable."
+    },
+    {
+      "code": "REQUEST_FORBIDDEN",
+      "status": 403,
+      "message": "The request was not accepted."
+    },
+    {
+      "code": "RATE_LIMITED",
+      "status": 429,
+      "message": "Too many requests. Please try again later."
+    },
+    {
+      "code": "NO_CURRENT_EDITION",
+      "status": 404,
+      "message": "No current edition is available."
+    },
+    {
+      "code": "SERVICE_UNAVAILABLE",
+      "status": 503,
+      "message": "The service is temporarily unavailable."
+    }
+  ]
+}

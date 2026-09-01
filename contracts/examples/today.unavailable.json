@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "data": {
+    "availability": "unavailable",
+    "edition": null,
+    "status": "unavailable",
+    "primary_action": "retry_later"
+  },
+  "error": null,
+  "meta": {
+    "request_id": "123e4567-e89b-42d3-a456-426614174000",
+    "api_version": "v1"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://roundcraft.app/contracts/session-response.json",
+  "title": "Session response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "data", "error", "meta"],
+  "properties": {
+    "ok": { "const": true },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["csrf_token", "identity_expires_at"],
+      "properties": {
+        "csrf_token": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "identity_expires_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        }
+      }
+    },
+    "error": { "type": "null" },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "api_version"],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "api_version": { "const": "v1" }
+      }
+    }
+  }
+}

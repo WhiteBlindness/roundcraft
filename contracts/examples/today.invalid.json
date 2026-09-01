@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "data": {
+    "availability": "available",
+    "edition": {
+      "edition_id": "edition_001",
+      "case_number": 1,
+      "edition_date_utc": "2026-09-01",
+      "estimated_minutes": 7,
+      "focus": "Information",
+      "status": "new",
+      "primary_action": "start_case",
+      "origin": "synthetic",
+      "origin_label": "Synthetic scenario — editorial tactical analysis.",
+      "rubric": { "preferred_action": "hold" }
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "123e4567-e89b-42d3-a456-426614174000",
+    "api_version": "v1"
+  }
+}

@@ -11,6 +11,11 @@ dist/
 build/
 coverage/
 .wrangler/
+playwright-report/
+test-results/
+
+# Generated Cloudflare types
+src/worker/worker-configuration.d.ts
 
 # Logs and temporary files
 *.log
