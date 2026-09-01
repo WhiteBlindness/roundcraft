@@ -6,14 +6,14 @@ describe('Roundcraft Worker', () => {
   it('returns a versioned health response with security headers', async () => {
     const response = await worker.fetch(
       new Request('https://roundcraft.test/api/v1/health'),
-      { APP_ENV: 'test' },
+      { APP_ENV: 'production' },
       {} as ExecutionContext,
     )
 
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       ok: true,
-      data: { status: 'ok', environment: 'test' },
+      data: { status: 'ok', environment: 'production' },
       error: null,
       meta: {
         api_version: 'v1',
@@ -42,6 +42,18 @@ describe('Roundcraft Worker', () => {
     )
     expect(response.headers.get('content-security-policy')).toContain(
       "style-src 'self' 'unsafe-inline'",
+    )
+  })
+
+  it('does not trust the request hostname to weaken production CSP', async () => {
+    const response = await worker.fetch(
+      new Request('http://127.0.0.1:4173/'),
+      { APP_ENV: 'production' },
+      {} as ExecutionContext,
+    )
+
+    expect(response.headers.get('content-security-policy')).not.toContain(
+      "'unsafe-inline'",
     )
   })
 })

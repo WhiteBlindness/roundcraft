@@ -23,12 +23,12 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "roundcraft-local",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "roundcraft-prod",
+      "database_id": "84fbd2d6-e408-4c61-962f-a710379b264e",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
-    "APP_ENV": "local"
+    "APP_ENV": "production"
   }
 }
