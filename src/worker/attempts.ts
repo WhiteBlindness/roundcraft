@@ -47,6 +47,7 @@ interface AttemptProjectionRecord extends EditionProjectionRecord {
   readonly issued_at: string
   readonly main_committed_at?: string | null
   readonly followup_committed_at?: string | null
+  readonly debrief_completed_at?: string | null
   readonly main_answer_json?: string | null
   readonly followup_json?: string | null
 }
@@ -119,6 +120,9 @@ function publicAttempt(record: AttemptProjectionRecord) {
       : {}),
     ...(record.followup_committed_at
       ? { followup_committed_at: record.followup_committed_at }
+      : {}),
+    ...(record.debrief_completed_at
+      ? { debrief_completed_at: record.debrief_completed_at }
       : {}),
   } as const
 }
@@ -289,6 +293,7 @@ async function loadOwnedAttempt(
          a.issued_at,
          a.main_committed_at,
          a.followup_committed_at,
+         a.debrief_completed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
@@ -329,6 +334,7 @@ async function loadOwnedAttemptForEdition(
          a.issued_at,
          a.main_committed_at,
          a.followup_committed_at,
+         a.debrief_completed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
@@ -388,6 +394,7 @@ async function issueOrLoadAttempt(
          a.issued_at,
          a.main_committed_at,
          a.followup_committed_at,
+         a.debrief_completed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,

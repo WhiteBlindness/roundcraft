@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { PublicBrief } from '../domain/public-brief'
-import type { MainCommitData } from './api'
+import type { FollowupCommitData, MainCommitData } from './api'
 import { FollowupExperience } from './FollowupExperience'
 
 const brief: PublicBrief = {
@@ -162,6 +162,8 @@ describe('FollowupExperience', () => {
         brief={brief}
         mainCommit={mainCommit}
         initialResult={null}
+        initialReviewCompleted={false}
+        onExit={vi.fn()}
         onStageChange={vi.fn()}
       />,
     )
@@ -183,6 +185,107 @@ describe('FollowupExperience', () => {
         level: 1,
       }),
     ).toHaveFocus()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(fetchMock.mock.calls[1]?.[1])
+  })
+
+  it('records review completion only when Finish review is activated', async () => {
+    const user = userEvent.setup()
+    const onExit = vi.fn()
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        ok: true,
+        data: {
+          attempt: {
+            attempt_id: 'b'.repeat(43),
+            state: 'debrief_complete',
+            sequence: 3,
+            debrief_completed_at: '2026-09-01T14:55:00.000Z',
+          },
+        },
+        error: null,
+        meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <FollowupExperience
+        attemptId={'b'.repeat(43)}
+        csrfToken={'a'.repeat(43)}
+        brief={brief}
+        mainCommit={mainCommit}
+        initialResult={resultResponse.data as unknown as FollowupCommitData}
+        initialReviewCompleted={false}
+        onExit={onExit}
+        onStageChange={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('Review complete')).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Finish review' }))
+
+    expect(await screen.findByText('Review complete')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/v1/attempts/${'b'.repeat(43)}/debrief-complete`,
+      expect.objectContaining({
+        method: 'POST',
+        body: '{}',
+        headers: expect.objectContaining({
+          'if-match': '"2"',
+          'x-csrf-token': 'a'.repeat(43),
+        }),
+      }),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Back to Today' }))
+    expect(onExit).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the explicit completion available after a lost acknowledgement', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+          data: {
+            attempt: {
+              attempt_id: 'b'.repeat(43),
+              state: 'debrief_complete',
+              sequence: 3,
+              debrief_completed_at: '2026-09-01T14:55:00.000Z',
+            },
+          },
+          error: null,
+          meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+        }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <FollowupExperience
+        attemptId={'b'.repeat(43)}
+        csrfToken={'a'.repeat(43)}
+        brief={brief}
+        mainCommit={mainCommit}
+        initialResult={resultResponse.data as unknown as FollowupCommitData}
+        initialReviewCompleted={false}
+        onExit={vi.fn()}
+        onStageChange={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Finish review' }))
+    expect(await screen.findByText('Completion pending')).toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', { name: 'Retry finish review' }),
+    )
+
+    expect(await screen.findByText('Review complete')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock.mock.calls[0]?.[1]).toEqual(fetchMock.mock.calls[1]?.[1])
   })

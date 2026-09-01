@@ -229,6 +229,20 @@ function followupCommitRequest(
   )
 }
 
+function debriefCompleteRequest(
+  identity: { cookie: string; csrf: string },
+  attemptId: string,
+  body: unknown = {},
+  ifMatch = '"2"',
+) {
+  return protectedRequest(
+    `/api/v1/attempts/${attemptId}/debrief-complete`,
+    identity,
+    body,
+    { 'if-match': ifMatch },
+  )
+}
+
 async function createMainLockedAttempt(identity: {
   cookie: string
   csrf: string
@@ -638,5 +652,191 @@ describe('follow-up commitment API', () => {
     expect(strangerResponse.status).toBe(404)
     expect(invalidId.status).toBe(404)
     expect(expired.status).toBe(410)
+  })
+
+  it('records explicit debrief completion and resumes the completed projection', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createMainLockedAttempt(identity)
+    await worker.fetch(followupCommitRequest(identity, attemptId), env, executionContext)
+
+    const completed = await worker.fetch(
+      debriefCompleteRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+    const completedPayload = await completed.json<{
+      data: {
+        attempt: {
+          attempt_id: string
+          state: string
+          sequence: number
+          debrief_completed_at: string
+        }
+      }
+    }>()
+    const stored = await env.DB.prepare(
+      `SELECT state, sequence, debrief_completed_at
+       FROM attempts WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{
+        state: string
+        sequence: number
+        debrief_completed_at: string
+      }>()
+    const resumed = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/attempts/${attemptId}`, {
+        headers: { cookie: identity.cookie },
+      }),
+      env,
+      executionContext,
+    )
+    const resumedPayload = await resumed.json<{
+      data: { attempt: Record<string, unknown> }
+    }>()
+
+    expect(completed.status).toBe(200)
+    expect(completed.headers.get('etag')).toBe('"3"')
+    expect(completedPayload.data.attempt).toMatchObject({
+      attempt_id: attemptId,
+      state: 'debrief_complete',
+      sequence: 3,
+      debrief_completed_at: expect.stringMatching(/Z$/),
+    })
+    expect(stored).toEqual({
+      state: 'debrief_complete',
+      sequence: 3,
+      debrief_completed_at:
+        completedPayload.data.attempt.debrief_completed_at,
+    })
+    expect(resumedPayload.data.attempt).toMatchObject(
+      completedPayload.data.attempt,
+    )
+  })
+
+  it('returns the stored completion after a lost response without incrementing twice', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createMainLockedAttempt(identity)
+    await worker.fetch(followupCommitRequest(identity, attemptId), env, executionContext)
+
+    const first = await worker.fetch(
+      debriefCompleteRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+    const firstPayload = await first.json<{
+      data: { attempt: Record<string, unknown> }
+    }>()
+    const retry = await worker.fetch(
+      debriefCompleteRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+    const retryPayload = await retry.json<{
+      data: { attempt: Record<string, unknown> }
+    }>()
+
+    expect(first.status).toBe(200)
+    expect(retry.status).toBe(200)
+    expect(retryPayload.data).toEqual(firstPayload.data)
+    expect(retryPayload.data.attempt).toMatchObject({ sequence: 3 })
+  })
+
+  it('allows an authorised review to finish after the commitment grace window', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createMainLockedAttempt(identity)
+    await worker.fetch(followupCommitRequest(identity, attemptId), env, executionContext)
+    await env.DB.prepare(
+      `UPDATE attempts SET grace_end_at = ? WHERE attempt_id = ?`,
+    )
+      .bind('2026-01-01T00:00:00.000Z', attemptId)
+      .run()
+
+    const response = await worker.fetch(
+      debriefCompleteRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      data: {
+        attempt: { state: 'debrief_complete', sequence: 3 },
+      },
+    })
+  })
+
+  it('rejects passive, stale, malformed and unauthorised completion requests', async () => {
+    const owner = await createIdentity()
+    const stranger = await createIdentity()
+    const issuedAttempt = await createMainLockedAttempt(owner)
+    const wrongState = await worker.fetch(
+      debriefCompleteRequest(owner, issuedAttempt),
+      env,
+      executionContext,
+    )
+    await worker.fetch(
+      followupCommitRequest(owner, issuedAttempt),
+      env,
+      executionContext,
+    )
+
+    const stale = await worker.fetch(
+      debriefCompleteRequest(owner, issuedAttempt, {}, '"1"'),
+      env,
+      executionContext,
+    )
+    const malformed = await worker.fetch(
+      debriefCompleteRequest(owner, issuedAttempt, { scrolled: true }),
+      env,
+      executionContext,
+    )
+    const forbidden = await worker.fetch(
+      debriefCompleteRequest(
+        { ...owner, csrf: 'x'.repeat(43) },
+        issuedAttempt,
+      ),
+      env,
+      executionContext,
+    )
+    const notOwned = await worker.fetch(
+      debriefCompleteRequest(stranger, issuedAttempt),
+      env,
+      executionContext,
+    )
+
+    expect(wrongState.status).toBe(409)
+    expect(stale.status).toBe(409)
+    expect(malformed.status).toBe(422)
+    expect(forbidden.status).toBe(403)
+    expect(notOwned.status).toBe(404)
+  })
+
+  it('rate-limits debrief completion before changing the attempt', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createMainLockedAttempt(identity)
+    await worker.fetch(followupCommitRequest(identity, attemptId), env, executionContext)
+    const limit = vi.fn().mockResolvedValue({ success: false })
+    const limitedEnv: Bindings = {
+      APP_ENV: env.APP_ENV,
+      DB: env.DB,
+      IDENTITY_PEPPER: env.IDENTITY_PEPPER,
+      ATTEMPT_RATE_LIMITER: { limit } as RateLimit,
+    }
+
+    const response = await worker.fetch(
+      debriefCompleteRequest(identity, attemptId),
+      limitedEnv,
+      executionContext,
+    )
+    const stored = await env.DB.prepare(
+      `SELECT state, sequence FROM attempts WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{ state: string; sequence: number }>()
+
+    expect(response.status).toBe(429)
+    expect(limit).toHaveBeenCalledOnce()
+    expect(stored).toEqual({ state: 'decision_complete', sequence: 2 })
   })
 })

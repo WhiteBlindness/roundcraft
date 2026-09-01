@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import type { PublicBrief } from '../domain/public-brief'
 import {
+  completeDebrief,
   commitFollowupAnswer,
   type FollowupAnswerDraft,
   type FollowupCommitData,
@@ -35,6 +36,8 @@ interface FollowupExperienceProps {
   readonly brief: PublicBrief
   readonly mainCommit: MainCommitData
   readonly initialResult: FollowupCommitData | null
+  readonly initialReviewCompleted: boolean
+  readonly onExit: () => void
   readonly onStageChange: (stage: 'followup' | 'debrief') => void
 }
 
@@ -46,6 +49,8 @@ export function FollowupExperience({
   brief,
   mainCommit,
   initialResult,
+  initialReviewCompleted,
+  onExit,
   onStageChange,
 }: FollowupExperienceProps) {
   const followup = mainCommit.followup
@@ -66,6 +71,12 @@ export function FollowupExperience({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionStarted, setSubmissionStarted] = useState(false)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const [reviewCompleted, setReviewCompleted] = useState(
+    initialReviewCompleted,
+  )
+  const [isCompletingReview, setIsCompletingReview] = useState(false)
+  const [completionStarted, setCompletionStarted] = useState(false)
+  const [completionError, setCompletionError] = useState<string | null>(null)
   const idempotencyKey = useRef(loadFollowupIdempotencyKey(attemptId))
   const answerHeading = useRef<HTMLHeadingElement>(null)
   const reviewHeading = useRef<HTMLHeadingElement>(null)
@@ -150,6 +161,23 @@ export function FollowupExperience({
       )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function finishReview(): Promise<void> {
+    setIsCompletingReview(true)
+    setCompletionStarted(true)
+    setCompletionError(null)
+
+    try {
+      await completeDebrief(attemptId, csrfToken)
+      setReviewCompleted(true)
+    } catch {
+      setCompletionError(
+        'The completion acknowledgement was not received. Retry the same action.',
+      )
+    } finally {
+      setIsCompletingReview(false)
     }
   }
 
@@ -428,6 +456,52 @@ export function FollowupExperience({
       <section className="principle-card" aria-labelledby="principle-title">
         <h2 id="principle-title">What to remember from this round</h2>
         <p>{result.reveal.principle}</p>
+      </section>
+
+      <section className="review-completion" aria-live="polite">
+        {reviewCompleted ? (
+          <>
+            <div>
+              <strong>Review complete</strong>
+              <p>The final principle is now recorded with this official attempt.</p>
+            </div>
+            <div className="completion-actions">
+              <button
+                className="back-action"
+                type="button"
+                onClick={() => debriefHeading.current?.focus()}
+              >
+                Review case
+              </button>
+              <button type="button" onClick={onExit}>
+                Back to Today
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <strong>
+                {completionError ? 'Completion pending' : 'Complete the review'}
+              </strong>
+              <p>
+                {completionError ??
+                  'Finish explicitly to record that you reached the transferable principle.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={isCompletingReview}
+              onClick={() => void finishReview()}
+            >
+              {isCompletingReview
+                ? 'Finishing…'
+                : completionStarted
+                  ? 'Retry finish review'
+                  : 'Finish review'}
+            </button>
+          </>
+        )}
       </section>
     </section>
   )

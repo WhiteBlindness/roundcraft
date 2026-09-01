@@ -495,6 +495,10 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
             brief={brief}
             mainCommit={mainCommit}
             initialResult={resumedResult}
+            initialReviewCompleted={
+              data.attempt.state === 'debrief_complete'
+            }
+            onExit={onExit}
             onStageChange={setStage}
           />
         ) : null}
