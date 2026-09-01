@@ -286,6 +286,61 @@
   line-height: 1.08;
 }
 
+.review-completion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 28px 0 8px;
+}
+
+.review-completion > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.review-completion strong {
+  color: #0c5048;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.review-completion p {
+  max-width: 58ch;
+  margin: 0;
+  color: #5a6865;
+  line-height: 1.5;
+}
+
+.completion-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.review-completion > button,
+.completion-actions > button:last-child {
+  min-height: 52px;
+  padding: 0 24px;
+  border: 0;
+  background: #ef6b3a;
+  color: #17201f;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.review-completion > button:hover,
+.completion-actions > button:last-child:hover {
+  background: #f27a4f;
+}
+
+.review-completion > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 @media (max-width: 760px) {
   .debrief-opening,
   .result-summary,
@@ -322,5 +377,11 @@
   .continuation-list li {
     gap: 12px;
     grid-template-columns: 1fr;
+  }
+
+  .review-completion,
+  .completion-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

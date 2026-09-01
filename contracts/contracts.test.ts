@@ -33,11 +33,12 @@ function contractValidator(schemaPath: string) {
 }
 
 describe('Roundcraft API contracts', () => {
-  it('publishes only the approved routes through the follow-up commitment', () => {
+  it('publishes only the approved routes through explicit review completion', () => {
     expect(openApi.openapi).toBe('3.1.0')
     expect(Object.keys(openApi.paths).sort()).toEqual([
       '/attempts',
       '/attempts/{attempt_id}',
+      '/attempts/{attempt_id}/debrief-complete',
       '/attempts/{attempt_id}/followup-commit',
       '/attempts/{attempt_id}/main-commit',
       '/session',
@@ -68,6 +69,7 @@ describe('Roundcraft API contracts', () => {
     ['schemas/attempt-response.json', 'examples/attempt.complete.json'],
     ['schemas/main-commit-response.json', 'examples/main-commit.success.json'],
     ['schemas/followup-commit-response.json', 'examples/followup-commit.success.json'],
+    ['schemas/debrief-complete-response.json', 'examples/debrief-complete.success.json'],
   ])('validates %s against %s', (schemaPath, examplePath) => {
     const { ajv, validator } = contractValidator(schemaPath)
 
@@ -82,6 +84,7 @@ describe('Roundcraft API contracts', () => {
     ['schemas/attempt-response.json', 'examples/attempt.invalid.json'],
     ['schemas/main-commit-response.json', 'examples/main-commit.invalid.json'],
     ['schemas/followup-commit-response.json', 'examples/followup-commit.invalid.json'],
+    ['schemas/debrief-complete-response.json', 'examples/debrief-complete.invalid.json'],
   ])('rejects invalid example %s against %s', (schemaPath, examplePath) => {
     const { validator } = contractValidator(schemaPath)
 

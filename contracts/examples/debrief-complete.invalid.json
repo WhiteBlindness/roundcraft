@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "debrief_complete",
+      "sequence": 2,
+      "debrief_completed_at": "2026-09-01T14:55:00.000Z"
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "9fd0debf-8f44-4a19-a4e8-a123a1132b24",
+    "api_version": "v1"
+  }
+}

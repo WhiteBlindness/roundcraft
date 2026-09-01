@@ -251,6 +251,26 @@ test('a released case opens its protected briefing and evidence step', async ({
     }),
   )
 
+  await page.route('**/api/v1/attempts/*/debrief-complete', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          attempt: {
+            attempt_id: 'b'.repeat(43),
+            state: 'debrief_complete',
+            sequence: 3,
+            debrief_completed_at: '2026-09-01T14:55:00.000Z',
+          },
+        },
+        error: null,
+        meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+      }),
+    }),
+  )
+
   await page.goto('/')
   await page.getByRole('button', { name: 'Start case' }).click()
 
@@ -323,4 +343,12 @@ test('a released case opens its protected briefing and evidence step', async ({
       fullPage: true,
     })
   }
+
+  await page.getByRole('button', { name: 'Finish review' }).click()
+  await expect(page.getByText('Review complete')).toBeVisible()
+  await expect(
+    page.locator('.review-completion').getByRole('button', {
+      name: 'Back to Today',
+    }),
+  ).toBeVisible()
 })

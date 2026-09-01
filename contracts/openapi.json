@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Roundcraft API",
-    "version": "0.2.0",
-    "description": "Public contract through the official follow-up commitment and authorised debrief."
+    "version": "0.3.0",
+    "description": "Public contract through the official decision and explicit review completion."
   },
   "servers": [{ "url": "/api/v1" }],
   "paths": {
@@ -321,6 +321,68 @@
           "404": { "$ref": "#/components/responses/SafeError" },
           "409": { "$ref": "#/components/responses/SafeError" },
           "410": { "$ref": "#/components/responses/SafeError" },
+          "422": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/attempts/{attempt_id}/debrief-complete": {
+      "post": {
+        "operationId": "completeDebrief",
+        "summary": "Record the player's explicit completion of the authorised review",
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": { "const": "\"2\"" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "maxProperties": 0,
+                "additionalProperties": false
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Persisted review-completion milestone",
+            "headers": {
+              "ETag": { "schema": { "const": "\"3\"" } }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/debrief-complete-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/debrief-complete.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
+          "404": { "$ref": "#/components/responses/SafeError" },
+          "409": { "$ref": "#/components/responses/SafeError" },
           "422": { "$ref": "#/components/responses/SafeError" },
           "429": { "$ref": "#/components/responses/SafeError" },
           "503": { "$ref": "#/components/responses/SafeError" }

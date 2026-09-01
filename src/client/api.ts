@@ -124,15 +124,27 @@ const lockedAttemptDataSchema = z
 
 const completedAttemptDataSchema = z
   .object({
-    attempt: z
-      .object({
-        ...attemptBase,
-        state: z.enum(['decision_complete', 'debrief_complete']),
-        sequence: z.number().int().min(2).max(3),
-        main_committed_at: z.iso.datetime(),
-        followup_committed_at: z.iso.datetime(),
-      })
-      .strict(),
+    attempt: z.discriminatedUnion('state', [
+      z
+        .object({
+          ...attemptBase,
+          state: z.literal('decision_complete'),
+          sequence: z.literal(2),
+          main_committed_at: z.iso.datetime(),
+          followup_committed_at: z.iso.datetime(),
+        })
+        .strict(),
+      z
+        .object({
+          ...attemptBase,
+          state: z.literal('debrief_complete'),
+          sequence: z.literal(3),
+          main_committed_at: z.iso.datetime(),
+          followup_committed_at: z.iso.datetime(),
+          debrief_completed_at: z.iso.datetime(),
+        })
+        .strict(),
+    ]),
     brief: publicBriefSchema,
     main_answer: mainAnswerSchema,
     followup: publicFollowupSchema,
@@ -209,6 +221,30 @@ const followupCommitResponseSchema = z
 
 export type FollowupCommitData = z.infer<
   typeof followupCommitResponseSchema
+>['data']
+
+const debriefCompleteResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        attempt: z
+          .object({
+            attempt_id: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+            state: z.literal('debrief_complete'),
+            sequence: z.literal(3),
+            debrief_completed_at: z.iso.datetime(),
+          })
+          .strict(),
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type DebriefCompleteData = z.infer<
+  typeof debriefCompleteResponseSchema
 >['data']
 
 export interface MainAnswerDraft {
@@ -319,6 +355,28 @@ export async function commitFollowupAnswer(
     body: JSON.stringify(answer),
   })
   const payload = await parseResponse(response, followupCommitResponseSchema)
+
+  return payload.data
+}
+
+export async function completeDebrief(
+  attemptId: string,
+  csrfToken: string,
+): Promise<DebriefCompleteData> {
+  const response = await fetch(
+    `/api/v1/attempts/${attemptId}/debrief-complete`,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'content-type': 'application/json',
+        'if-match': '"2"',
+        'x-csrf-token': csrfToken,
+      },
+      body: '{}',
+    },
+  )
+  const payload = await parseResponse(response, debriefCompleteResponseSchema)
 
   return payload.data
 }
