@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://roundcraft.local/schemas/followup-commit-response.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "data", "error", "meta"],
+  "properties": {
+    "ok": { "const": true },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt", "main_answer", "followup_answer", "result", "reveal"],
+      "properties": {
+        "attempt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attempt_id", "state", "sequence", "followup_committed_at"],
+          "properties": {
+            "attempt_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+            "state": { "const": "decision_complete" },
+            "sequence": { "const": 2 },
+            "followup_committed_at": { "$ref": "#/$defs/timestamp" }
+          }
+        },
+        "main_answer": { "$ref": "#/$defs/mainAnswer" },
+        "followup_answer": { "$ref": "#/$defs/followupAnswer" },
+        "result": { "$ref": "#/$defs/result" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+    "error": { "type": "null" },
+    "meta": { "$ref": "#/$defs/meta" }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "api_version"],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "api_version": { "const": "v1" }
+      }
+    },
+    "mainAnswer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "qualifier_id", "evidence_ids", "confidence_id"],
+      "properties": {
+        "action_id": { "$ref": "#/$defs/identifier" },
+        "qualifier_id": { "$ref": "#/$defs/identifier" },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "confidence_id": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "followupAnswer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["case_revision", "type", "response_id"],
+          "properties": {
+            "case_revision": { "$ref": "#/$defs/identifier" },
+            "type": { "const": "new_information" },
+            "response_id": { "$ref": "#/$defs/identifier" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["case_revision", "type", "posture_id", "priority_id"],
+          "properties": {
+            "case_revision": { "$ref": "#/$defs/identifier" },
+            "type": { "const": "economy_risk" },
+            "posture_id": { "$ref": "#/$defs/identifier" },
+            "priority_id": { "$ref": "#/$defs/identifier" }
+          }
+        }
+      ]
+    },
+    "band": {
+      "enum": [
+        "Best-supported",
+        "Equally strong",
+        "Defensible",
+        "Conditional / high-variance",
+        "Weak",
+        "Not feasible"
+      ]
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version", "total", "components", "main_band", "followup_band",
+        "confidence_id", "mode", "assisted", "participation"
+      ],
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "total": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "components": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["main", "evidence", "followup"],
+          "properties": {
+            "main": { "type": "integer", "minimum": 0, "maximum": 50 },
+            "evidence": { "type": "integer", "minimum": 0, "maximum": 20 },
+            "followup": { "type": "integer", "minimum": 0, "maximum": 30 }
+          }
+        },
+        "main_band": { "$ref": "#/$defs/band" },
+        "followup_band": { "$ref": "#/$defs/band" },
+        "confidence_id": { "$ref": "#/$defs/identifier" },
+        "mode": { "const": "official" },
+        "assisted": { "type": "boolean" },
+        "participation": { "const": "awarded" }
+      }
+    },
+    "prose": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "reveal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "caseRevision", "continuation", "comparison", "debrief", "principle"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "caseRevision": { "$ref": "#/$defs/identifier" },
+        "continuation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "events"],
+          "properties": {
+            "kind": { "enum": ["authored", "observed"] },
+            "events": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["timestamp", "action", "consequence", "state"],
+                "properties": {
+                  "timestamp": { "type": "string", "minLength": 1, "maxLength": 40 },
+                  "action": { "$ref": "#/$defs/prose" },
+                  "consequence": { "$ref": "#/$defs/prose" },
+                  "state": { "$ref": "#/$defs/prose" }
+                }
+              }
+            }
+          }
+        },
+        "comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["roundAction", "materialInformation", "roundFollowup"],
+          "properties": {
+            "roundAction": { "$ref": "#/$defs/prose" },
+            "materialInformation": { "$ref": "#/$defs/prose" },
+            "roundFollowup": { "$ref": "#/$defs/prose" }
+          }
+        },
+        "debrief": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "whyItWorks", "cost", "assumption", "breaksWhen", "evidenceReview",
+            "followupReview", "strongestAlternative", "counterfactual", "method", "sources"
+          ],
+          "properties": {
+            "whyItWorks": { "$ref": "#/$defs/prose" },
+            "cost": { "$ref": "#/$defs/prose" },
+            "assumption": { "$ref": "#/$defs/prose" },
+            "breaksWhen": { "$ref": "#/$defs/prose" },
+            "evidenceReview": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 5,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["evidenceId", "explanation"],
+                "properties": {
+                  "evidenceId": { "$ref": "#/$defs/identifier" },
+                  "explanation": { "$ref": "#/$defs/prose" }
+                }
+              }
+            },
+            "followupReview": { "$ref": "#/$defs/prose" },
+            "strongestAlternative": { "$ref": "#/$defs/prose" },
+            "counterfactual": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["changedFact", "effect"],
+              "properties": {
+                "changedFact": { "$ref": "#/$defs/prose" },
+                "effect": { "$ref": "#/$defs/prose" }
+              }
+            },
+            "method": { "$ref": "#/$defs/prose" },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["label", "detail"],
+                "properties": {
+                  "label": { "type": "string", "minLength": 1, "maxLength": 160 },
+                  "detail": { "type": "string", "minLength": 1, "maxLength": 500 }
+                }
+              }
+            }
+          }
+        },
+        "principle": { "type": "string", "minLength": 18, "maxLength": 320 }
+      }
+    }
+  }
+}

@@ -169,6 +169,87 @@ test('a released case opens its protected briefing and evidence step', async ({
       },
     }),
   )
+  await page.route('**/api/v1/attempts/*/followup-commit', (route) =>
+    route.fulfill({
+      json: {
+        ok: true,
+        data: {
+          attempt: {
+            attempt_id: 'b'.repeat(43),
+            state: 'decision_complete',
+            sequence: 2,
+            followup_committed_at: '2026-09-01T14:49:00.000Z',
+          },
+          main_answer: {
+            action_id: 'a',
+            qualifier_id: 'q1',
+            evidence_ids: ['e1', 'e2'],
+            confidence_id: 'fairly_sure',
+          },
+          followup_answer: {
+            case_revision: 'case_revision_001',
+            type: 'new_information',
+            response_id: 'change_mid',
+          },
+          result: {
+            version: 1,
+            total: 89,
+            components: { main: 45, evidence: 16, followup: 28 },
+            main_band: 'Best-supported',
+            followup_band: 'Best-supported',
+            confidence_id: 'fairly_sure',
+            mode: 'official',
+            assisted: false,
+            participation: 'awarded',
+          },
+          reveal: {
+            schemaVersion: 1,
+            caseRevision: 'case_revision_001',
+            continuation: {
+              kind: 'authored',
+              events: [
+                {
+                  timestamp: '00:23',
+                  action: 'The pair re-cleared middle.',
+                  consequence: 'The rotation was confirmed before commitment.',
+                  state: 'The round ended with a supported A split.',
+                },
+              ],
+            },
+            comparison: {
+              roundAction: 'Re-clear middle before committing.',
+              materialInformation: 'The aged sighting and rotation sound.',
+              roundFollowup: 'The authored line changed after the cue.',
+            },
+            debrief: {
+              whyItWorks: 'It refreshes the oldest decisive information.',
+              cost: 'It spends time and gives up immediate pressure.',
+              assumption: 'The pair can trade the re-clear.',
+              breaksWhen: 'The clock no longer permits a second route.',
+              evidenceReview: [
+                { evidenceId: 'e1', explanation: 'The bomb preserved both routes.' },
+                { evidenceId: 'e2', explanation: 'The sighting had aged.' },
+              ],
+              followupReview: 'Changing line responded to the new information.',
+              strongestAlternative: 'Keep the line, but accelerate.',
+              counterfactual: {
+                changedFact: 'Remove the rotation sound.',
+                effect: 'Keeping the original line becomes equally strong.',
+              },
+              method: 'Synthetic case reviewed against disclosed state only.',
+              sources: [
+                { label: 'Roundcraft method', detail: 'Synthetic continuation.' },
+              ],
+            },
+            principle:
+              'When new information invalidates the route assumption, refresh the decision before committing the remaining time.',
+          },
+        },
+        error: null,
+        meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+      },
+    }),
+  )
 
   await page.goto('/')
   await page.getByRole('button', { name: 'Start case' }).click()
@@ -213,6 +294,32 @@ test('a released case opens its protected briefing and evidence step', async ({
     await page.setViewportSize({ width: 390, height: 844 })
     await page.screenshot({
       path: 'test-results/roundcraft-followup-mobile.png',
+      fullPage: true,
+    })
+  }
+
+  await page.getByRole('radio', { name: 'Change to pressure middle' }).check()
+  await page.getByRole('button', { name: 'Review update' }).click()
+  await expect(page.getByRole('heading', { name: 'Review your update' })).toBeFocused()
+  await page.getByRole('button', { name: 'Lock follow-up' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'What actually happened', level: 1 }),
+  ).toBeFocused()
+  await expect(page.locator('.total-score')).toContainText('89/100')
+  await expect(page.getByText('Awarded')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'What to remember from this round' }),
+  ).toBeVisible()
+
+  if (process.env.ROUNDCRAFT_CAPTURE_VISUALS === '1') {
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.screenshot({
+      path: 'test-results/roundcraft-debrief-desktop.png',
+      fullPage: true,
+    })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.screenshot({
+      path: 'test-results/roundcraft-debrief-mobile.png',
       fullPage: true,
     })
   }

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Roundcraft API",
-    "version": "0.1.0",
-    "description": "Public contract for the first Roundcraft implementation slice."
+    "version": "0.2.0",
+    "description": "Public contract through the official follow-up commitment and authorised debrief."
   },
   "servers": [{ "url": "/api/v1" }],
   "paths": {
@@ -224,6 +224,94 @@
                 "schema": { "$ref": "./schemas/main-commit-response.json" },
                 "examples": {
                   "success": { "externalValue": "./examples/main-commit.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
+          "404": { "$ref": "#/components/responses/SafeError" },
+          "409": { "$ref": "#/components/responses/SafeError" },
+          "410": { "$ref": "#/components/responses/SafeError" },
+          "422": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/attempts/{attempt_id}/followup-commit": {
+      "post": {
+        "operationId": "commitFollowupAnswer",
+        "summary": "Immutably lock the follow-up, calculate the result and release the public debrief",
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": { "const": "\"1\"" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["case_revision", "type", "response_id"],
+                    "properties": {
+                      "case_revision": { "type": "string", "pattern": "^[a-z0-9_]+$", "maxLength": 80 },
+                      "type": { "const": "new_information" },
+                      "response_id": { "type": "string", "pattern": "^[a-z0-9_]+$", "maxLength": 80 }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["case_revision", "type", "posture_id", "priority_id"],
+                    "properties": {
+                      "case_revision": { "type": "string", "pattern": "^[a-z0-9_]+$", "maxLength": 80 },
+                      "type": { "const": "economy_risk" },
+                      "posture_id": { "type": "string", "pattern": "^[a-z0-9_]+$", "maxLength": 80 },
+                      "priority_id": { "type": "string", "pattern": "^[a-z0-9_]+$", "maxLength": 80 }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The frozen result and newly authorised public debrief",
+            "headers": {
+              "ETag": { "schema": { "const": "\"2\"" } }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/followup-commit-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/followup-commit.success.json" }
                 }
               }
             }

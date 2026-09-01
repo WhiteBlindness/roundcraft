@@ -21,14 +21,18 @@ const updateSchema = z
   })
   .strict()
 
-export const publicFollowupSchema = z
+const publicFollowupBase = {
+  schemaVersion: z.literal(1),
+  caseRevision: identifierSchema,
+  heading: z.string().min(1).max(160),
+  stimulus: z.string().min(1).max(800),
+  updates: z.array(updateSchema).min(1).max(20),
+} as const
+
+const newInformationFollowupSchema = z
   .object({
-    schemaVersion: z.literal(1),
-    caseRevision: identifierSchema,
-    type: z.enum(['new_information', 'economy_risk']),
-    heading: z.string().min(1).max(160),
-    stimulus: z.string().min(1).max(800),
-    updates: z.array(updateSchema).min(1).max(20),
+    ...publicFollowupBase,
+    type: z.literal('new_information'),
     responses: z.array(optionSchema).min(2).max(8),
   })
   .strict()
@@ -46,5 +50,29 @@ export const publicFollowupSchema = z
       })
     }
   })
+
+const economyRiskFollowupSchema = z
+  .object({
+    ...publicFollowupBase,
+    type: z.literal('economy_risk'),
+    postures: z.array(optionSchema).min(2).max(8),
+    priorities: z.array(optionSchema).min(2).max(8),
+  })
+  .strict()
+  .superRefine((followup, context) => {
+    const groups = [followup.updates, followup.postures, followup.priorities]
+
+    if (groups.some((group) => new Set(group.map(({ id }) => id)).size !== group.length)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Public follow-up identifiers must be unique within each group',
+      })
+    }
+  })
+
+export const publicFollowupSchema = z.discriminatedUnion('type', [
+  newInformationFollowupSchema,
+  economyRiskFollowupSchema,
+])
 
 export type PublicFollowup = z.infer<typeof publicFollowupSchema>

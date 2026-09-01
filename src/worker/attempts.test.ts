@@ -63,6 +63,87 @@ const publicFollowup = {
   ],
 } as const
 
+const publicReveal = {
+  schemaVersion: 1,
+  caseRevision: 'case_revision_today_001',
+  continuation: {
+    kind: 'authored',
+    events: [
+      {
+        timestamp: '00:23',
+        action: 'The pair re-cleared middle.',
+        consequence: 'The rotation was confirmed before the final commitment.',
+        state: 'The round ended with a supported A split.',
+      },
+    ],
+  },
+  comparison: {
+    roundAction: 'Re-clear middle before committing.',
+    materialInformation: 'The aged B sighting and the new rotation sound.',
+    roundFollowup: 'The authored line changed after the new sound cue.',
+  },
+  debrief: {
+    whyItWorks: 'It refreshes the oldest decisive information.',
+    cost: 'It spends time and gives up immediate site pressure.',
+    assumption: 'The pair can trade the re-clear.',
+    breaksWhen: 'The clock no longer permits a second route.',
+    evidenceReview: [
+      {
+        evidenceId: 'bomb_location',
+        explanation: 'The bomb position preserved both routes.',
+      },
+      {
+        evidenceId: 'utility',
+        explanation: 'The smoke made the re-clear survivable.',
+      },
+    ],
+    followupReview: 'Changing line responded directly to the new information.',
+    strongestAlternative: 'Keep the line, but accelerate before the cue ages.',
+    counterfactual: {
+      changedFact: 'Remove the rotation sound.',
+      effect: 'Keeping the original line becomes equally strong.',
+    },
+    method: `Synthetic case reviewed against disclosed state only. ${forbiddenMarker}`,
+    sources: [
+      { label: 'Roundcraft method', detail: 'Synthetic authored continuation.' },
+    ],
+  },
+  principle:
+    'When new information invalidates the route assumption, refresh the decision before committing the remaining time.',
+} as const
+
+const serverRubric = {
+  schemaVersion: 1,
+  caseRevision: 'case_revision_today_001',
+  rubricRevision: 'rubric_revision_today_001',
+  dimensions: [
+    { id: 'timing', weight: 60 },
+    { id: 'trade', weight: 40 },
+  ],
+  main: [
+    {
+      actionId: 'regroup_a',
+      qualifierId: 'quiet',
+      ratings: { timing: 4, trade: 3 },
+      caps: [],
+    },
+  ],
+  evidence: [
+    {
+      actionId: 'regroup_a',
+      evidenceIds: ['bomb_location', 'utility'],
+      points: 16,
+    },
+  ],
+  followup: {
+    type: 'new_information',
+    responses: [
+      { responseId: 'keep_original', quality: 58 },
+      { responseId: 'change_mid', quality: 92 },
+    ],
+  },
+} as const
+
 const validMainAnswer = {
   case_revision: 'case_revision_today_001',
   action_id: 'regroup_a',
@@ -217,7 +298,7 @@ async function seedReleasedCase(): Promise<void> {
       ) VALUES (?, ?, ?, ?)`,
     ).bind(
       'case_revision_today_001',
-      JSON.stringify({ hidden: forbiddenMarker }),
+      JSON.stringify(publicReveal),
       'reveal_checksum_today_001',
       createdAt,
     ),
@@ -228,7 +309,7 @@ async function seedReleasedCase(): Promise<void> {
     ).bind(
       'rubric_revision_today_001',
       'case_revision_today_001',
-      JSON.stringify({ preferredAction: forbiddenMarker }),
+      JSON.stringify(serverRubric),
       'rubric_checksum_today_001',
       createdAt,
     ),
@@ -238,7 +319,9 @@ async function seedReleasedCase(): Promise<void> {
 describe('official attempts API', () => {
   beforeEach(async () => {
     await env.DB.exec(
-      `DELETE FROM idempotency_receipts;
+      `DELETE FROM participation_credits;
+       DELETE FROM result_versions;
+       DELETE FROM idempotency_receipts;
        DELETE FROM attempt_commits;
        DELETE FROM attempts;
        DELETE FROM case_rubrics;

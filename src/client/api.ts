@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
+import { followupAnswerSchema, type FollowupAnswer } from '../domain/followup-answer'
 import { publicBriefSchema } from '../domain/public-brief'
 import { publicFollowupSchema } from '../domain/public-followup'
+import { publicResultSchema } from '../domain/public-result'
+import { publicRevealSchema } from '../domain/public-reveal'
 
 const metaSchema = z.object({
   request_id: z.uuid(),
@@ -119,10 +122,34 @@ const lockedAttemptDataSchema = z
   })
   .strict()
 
+const completedAttemptDataSchema = z
+  .object({
+    attempt: z
+      .object({
+        ...attemptBase,
+        state: z.enum(['decision_complete', 'debrief_complete']),
+        sequence: z.number().int().min(2).max(3),
+        main_committed_at: z.iso.datetime(),
+        followup_committed_at: z.iso.datetime(),
+      })
+      .strict(),
+    brief: publicBriefSchema,
+    main_answer: mainAnswerSchema,
+    followup: publicFollowupSchema,
+    followup_answer: followupAnswerSchema,
+    result: publicResultSchema,
+    reveal: publicRevealSchema,
+  })
+  .strict()
+
 const attemptResponseSchema = z
   .object({
     ok: z.literal(true),
-    data: z.union([issuedAttemptDataSchema, lockedAttemptDataSchema]),
+    data: z.union([
+      issuedAttemptDataSchema,
+      lockedAttemptDataSchema,
+      completedAttemptDataSchema,
+    ]),
     error: z.null(),
     meta: metaSchema,
   })
@@ -156,6 +183,34 @@ const mainCommitResponseSchema = z
 
 export type MainCommitData = z.infer<typeof mainCommitResponseSchema>['data']
 
+const followupCommitResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        attempt: z
+          .object({
+            attempt_id: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+            state: z.literal('decision_complete'),
+            sequence: z.literal(2),
+            followup_committed_at: z.iso.datetime(),
+          })
+          .strict(),
+        main_answer: mainAnswerSchema,
+        followup_answer: followupAnswerSchema,
+        result: publicResultSchema,
+        reveal: publicRevealSchema,
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type FollowupCommitData = z.infer<
+  typeof followupCommitResponseSchema
+>['data']
+
 export interface MainAnswerDraft {
   readonly case_revision: string
   readonly action_id: string
@@ -163,6 +218,8 @@ export interface MainAnswerDraft {
   readonly evidence_ids: readonly [string, string]
   readonly confidence_id: string
 }
+
+export type FollowupAnswerDraft = FollowupAnswer
 
 async function parseResponse<T>(
   response: Response,
@@ -240,6 +297,28 @@ export async function commitMainAnswer(
     body: JSON.stringify(answer),
   })
   const payload = await parseResponse(response, mainCommitResponseSchema)
+
+  return payload.data
+}
+
+export async function commitFollowupAnswer(
+  attemptId: string,
+  csrfToken: string,
+  idempotencyKey: string,
+  answer: FollowupAnswerDraft,
+): Promise<FollowupCommitData> {
+  const response = await fetch(`/api/v1/attempts/${attemptId}/followup-commit`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'content-type': 'application/json',
+      'idempotency-key': idempotencyKey,
+      'if-match': '"1"',
+      'x-csrf-token': csrfToken,
+    },
+    body: JSON.stringify(answer),
+  })
+  const payload = await parseResponse(response, followupCommitResponseSchema)
 
   return payload.data
 }

@@ -3,11 +3,14 @@ import {
   mainAnswerSchema,
   type MainCommitBody,
 } from '../domain/main-answer'
+import { followupAnswerSchema } from '../domain/followup-answer'
 import { publicBriefSchema, type PublicBrief } from '../domain/public-brief'
 import {
   publicFollowupSchema,
   type PublicFollowup,
 } from '../domain/public-followup'
+import { publicResultSchema } from '../domain/public-result'
+import { publicRevealSchema } from '../domain/public-reveal'
 import type { Bindings } from './bindings'
 import {
   authenticateIdentity,
@@ -43,8 +46,14 @@ interface AttemptProjectionRecord extends EditionProjectionRecord {
   readonly assisted: number
   readonly issued_at: string
   readonly main_committed_at?: string | null
+  readonly followup_committed_at?: string | null
   readonly main_answer_json?: string | null
   readonly followup_json?: string | null
+}
+
+interface DecisionProjectionRecord {
+  readonly followup_answer_json: string
+  readonly response_snapshot_json: string
 }
 
 interface AttemptBody {
@@ -108,6 +117,9 @@ function publicAttempt(record: AttemptProjectionRecord) {
     ...(record.main_committed_at
       ? { main_committed_at: record.main_committed_at }
       : {}),
+    ...(record.followup_committed_at
+      ? { followup_committed_at: record.followup_committed_at }
+      : {}),
   } as const
 }
 
@@ -140,7 +152,36 @@ function parseStoredMainAnswer(
   }
 }
 
-function authorizedAttemptProjection(record: AttemptProjectionRecord) {
+async function loadDecisionProjection(
+  database: D1Database,
+  attemptId: string,
+): Promise<DecisionProjectionRecord | null> {
+  return database
+    .prepare(
+      `SELECT
+         fc.answer_json AS followup_answer_json,
+         ir.response_snapshot_json
+       FROM attempt_commits fc
+       INNER JOIN attempts a ON a.attempt_id = fc.attempt_id
+       INNER JOIN result_versions rv ON rv.attempt_id = a.attempt_id
+       INNER JOIN participation_credits pc ON pc.attempt_id = a.attempt_id
+       INNER JOIN idempotency_receipts ir
+         ON ir.attempt_id = a.attempt_id AND ir.phase = 'followup'
+       WHERE fc.attempt_id = ?
+         AND fc.phase = 'followup'
+         AND rv.status = 'scored'
+         AND pc.status = 'awarded'
+       ORDER BY rv.version DESC
+       LIMIT 1`,
+    )
+    .bind(attemptId)
+    .first<DecisionProjectionRecord>()
+}
+
+async function authorizedAttemptProjection(
+  record: AttemptProjectionRecord,
+  database: D1Database,
+) {
   const brief = parseBrief(record.payload_json)
   if (!brief) return null
 
@@ -162,6 +203,42 @@ function authorizedAttemptProjection(record: AttemptProjectionRecord) {
       main_answer: mainAnswer,
       followup,
     } as const
+  }
+
+  if (
+    record.state === 'decision_complete' ||
+    record.state === 'debrief_complete'
+  ) {
+    const mainAnswer = parseStoredMainAnswer(record.main_answer_json ?? null, brief)
+    const followup = record.followup_json
+      ? parseFollowup(record.followup_json)
+      : null
+    const decision = await loadDecisionProjection(database, record.attempt_id)
+
+    if (!mainAnswer || !followup || !decision) return null
+
+    try {
+      const followupAnswer = followupAnswerSchema.parse(
+        JSON.parse(decision.followup_answer_json),
+      )
+      const storedSnapshot = JSON.parse(decision.response_snapshot_json) as {
+        readonly data?: { readonly result?: unknown; readonly reveal?: unknown }
+      }
+      const result = publicResultSchema.parse(storedSnapshot.data?.result)
+      const reveal = publicRevealSchema.parse(storedSnapshot.data?.reveal)
+
+      return {
+        attempt: publicAttempt(record),
+        brief,
+        main_answer: mainAnswer,
+        followup,
+        followup_answer: followupAnswer,
+        result,
+        reveal,
+      } as const
+    } catch {
+      return null
+    }
   }
 
   return null
@@ -211,6 +288,7 @@ async function loadOwnedAttempt(
          a.assisted,
          a.issued_at,
          a.main_committed_at,
+         a.followup_committed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
@@ -250,6 +328,7 @@ async function loadOwnedAttemptForEdition(
          a.assisted,
          a.issued_at,
          a.main_committed_at,
+         a.followup_committed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
@@ -308,6 +387,7 @@ async function issueOrLoadAttempt(
          a.assisted,
          a.issued_at,
          a.main_committed_at,
+         a.followup_committed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
@@ -369,7 +449,7 @@ export async function createOrResumeAttempt(
       )
     }
 
-    const existingProjection = authorizedAttemptProjection(existing)
+    const existingProjection = await authorizedAttemptProjection(existing, env.DB)
     if (!existingProjection) {
       return jsonError(
         503,
@@ -388,7 +468,9 @@ export async function createOrResumeAttempt(
   }
 
   const record = await issueOrLoadAttempt(env.DB, identity, edition, now)
-  const projection = record ? authorizedAttemptProjection(record) : null
+  const projection = record
+    ? await authorizedAttemptProjection(record, env.DB)
+    : null
   if (!projection) {
     return jsonError(503, 'SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.', requestId)
   }
@@ -424,7 +506,7 @@ export async function getAttempt(
     return jsonError(410, 'ATTEMPT_EXPIRED', 'The attempt is no longer active.', requestId)
   }
 
-  const projection = authorizedAttemptProjection(record)
+  const projection = await authorizedAttemptProjection(record, env.DB)
   if (!projection) {
     return jsonError(503, 'SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.', requestId)
   }
