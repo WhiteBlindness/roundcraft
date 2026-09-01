@@ -1,52 +1,14 @@
 import type { Bindings } from './bindings'
-import { encodeBase64Url, jsonError, jsonSuccess } from './http'
+import {
+  authenticateIdentity,
+  createIdentityToken,
+  identityCookie,
+  identityLifetimeSeconds,
+  signIdentityValue,
+} from './identity'
+import { jsonError, jsonSuccess } from './http'
 
-const cookieName = '__Host-roundcraft'
-const tokenPattern = /^[A-Za-z0-9_-]{43}$/
-const identityLifetimeSeconds = 90 * 24 * 60 * 60
 const maximumBodyBytes = 1024
-
-interface IdentityRecord {
-  readonly identity_id: string
-  readonly expires_at: string
-}
-
-function readCookie(request: Request): string | null {
-  const cookieHeader = request.headers.get('cookie')
-
-  if (!cookieHeader) {
-    return null
-  }
-
-  const cookie = cookieHeader
-    .split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(`${cookieName}=`))
-  const value = cookie?.slice(cookieName.length + 1) ?? null
-
-  return value && tokenPattern.test(value) ? value : null
-}
-
-function createToken(): string {
-  return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
-}
-
-async function sign(pepper: string, value: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(pepper),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  )
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    new TextEncoder().encode(value),
-  )
-
-  return encodeBase64Url(new Uint8Array(signature))
-}
 
 async function acceptsSessionRequest(request: Request): Promise<boolean> {
   const url = new URL(request.url)
@@ -79,10 +41,6 @@ async function acceptsSessionRequest(request: Request): Promise<boolean> {
   }
 }
 
-function sessionCookie(token: string): string {
-  return `${cookieName}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${identityLifetimeSeconds}`
-}
-
 export async function createOrRenewSession(
   request: Request,
   env: Bindings,
@@ -107,27 +65,17 @@ export async function createOrRenewSession(
   }
 
   const now = new Date()
-  const existingToken = readCookie(request)
-  const existingVerifier = existingToken
-    ? await sign(env.IDENTITY_PEPPER, `identity:${existingToken}`)
-    : null
-  const existingIdentity = existingVerifier
-    ? await env.DB.prepare(
-        `SELECT identity_id, expires_at
-         FROM anonymous_identities
-         WHERE token_verifier = ? AND status = 'active' AND expires_at > ?
-         LIMIT 1`,
-      )
-        .bind(existingVerifier, now.toISOString())
-        .first<IdentityRecord>()
-    : null
-  const token = existingIdentity && existingToken ? existingToken : createToken()
+  const existingIdentity = await authenticateIdentity(request, env, now)
+  const token = existingIdentity?.token ?? createIdentityToken()
   const expiresAt = existingIdentity
-    ? existingIdentity.expires_at
+    ? existingIdentity.expiresAt
     : new Date(now.getTime() + identityLifetimeSeconds * 1000).toISOString()
 
   if (!existingIdentity) {
-    const verifier = await sign(env.IDENTITY_PEPPER, `identity:${token}`)
+    const verifier = await signIdentityValue(
+      env.IDENTITY_PEPPER,
+      `identity:${token}`,
+    )
 
     await env.DB.prepare(
       `INSERT INTO anonymous_identities (
@@ -138,12 +86,12 @@ export async function createOrRenewSession(
       .run()
   }
 
-  const csrfToken = await sign(env.IDENTITY_PEPPER, `csrf:${token}`)
+  const csrfToken = await signIdentityValue(env.IDENTITY_PEPPER, `csrf:${token}`)
   const response = jsonSuccess(
     { csrf_token: csrfToken, identity_expires_at: expiresAt },
     requestId,
   )
-  response.headers.append('Set-Cookie', sessionCookie(token))
+  response.headers.append('Set-Cookie', identityCookie(token))
 
   return response
 }

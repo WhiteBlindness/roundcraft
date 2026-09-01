@@ -1,0 +1,52 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "edition_id": "edition_today_001",
+      "mode": "official",
+      "state": "issued",
+      "sequence": 0,
+      "assisted": false,
+      "issued_at": "2026-09-01T14:45:00.000Z",
+      "grace_end_at": "2026-09-02T12:00:00.000Z"
+    },
+    "brief": {
+      "schemaVersion": 1,
+      "editionId": "edition_today_001",
+      "caseRevision": "case_revision_today_001",
+      "title": "The last smoke",
+      "focus": "Resource allocation under uncertainty",
+      "origin": "synthetic",
+      "facts": [
+        { "id": "fact_bomb", "status": "confirmed", "text": "The bomb is down outside B." },
+        { "id": "fact_anchor", "status": "last_seen", "text": "One defender was last seen at A." }
+      ],
+      "actions": [
+        { "id": "regroup_a", "label": "Regroup toward A", "qualifierIds": ["quiet", "fast"] },
+        { "id": "pressure_mid", "label": "Pressure middle", "qualifierIds": ["paired", "delayed"] },
+        { "id": "hold_shape", "label": "Hold the current shape", "qualifierIds": ["passive", "contact"] }
+      ],
+      "qualifiers": [
+        { "id": "quiet", "label": "Quietly" },
+        { "id": "fast", "label": "Immediately" },
+        { "id": "paired", "label": "As a pair" },
+        { "id": "delayed", "label": "After a delay" },
+        { "id": "passive", "label": "Without taking space" },
+        { "id": "contact", "label": "On contact" }
+      ],
+      "evidence": [
+        { "id": "bomb", "label": "Bomb location" },
+        { "id": "sighting", "label": "Last defender sighting" },
+        { "id": "utility", "label": "Remaining utility" },
+        { "id": "clock", "label": "Round clock" },
+        { "id": "spacing", "label": "Trade spacing" }
+      ]
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "9fd0debf-8f44-4a19-a4e8-a123a1132b24",
+    "api_version": "v1"
+  }
+}

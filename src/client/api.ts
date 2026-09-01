@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { publicBriefSchema } from '../domain/public-brief'
+
 const metaSchema = z.object({
   request_id: z.uuid(),
   api_version: z.literal('v1'),
@@ -67,8 +69,34 @@ const sessionResponseSchema = z.object({
   meta: metaSchema,
 })
 
+const attemptResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        attempt: z
+          .object({
+            attempt_id: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+            edition_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+            mode: z.literal('official'),
+            state: z.literal('issued'),
+            sequence: z.literal(0),
+            assisted: z.literal(false),
+            issued_at: z.iso.datetime(),
+            grace_end_at: z.iso.datetime(),
+          })
+          .strict(),
+        brief: publicBriefSchema,
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
 export type TodayData = z.infer<typeof todayResponseSchema>['data']
 export type SessionData = z.infer<typeof sessionResponseSchema>['data']
+export type AttemptData = z.infer<typeof attemptResponseSchema>['data']
 
 async function parseResponse<T>(
   response: Response,
@@ -106,6 +134,24 @@ export async function createSession(): Promise<SessionData> {
     body: '{}',
   })
   const payload = await parseResponse(response, sessionResponseSchema)
+
+  return payload.data
+}
+
+export async function createAttempt(
+  editionId: string,
+  csrfToken: string,
+): Promise<AttemptData> {
+  const response = await fetch('/api/v1/attempts', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'content-type': 'application/json',
+      'x-csrf-token': csrfToken,
+    },
+    body: JSON.stringify({ edition_id: editionId }),
+  })
+  const payload = await parseResponse(response, attemptResponseSchema)
 
   return payload.data
 }

@@ -38,6 +38,11 @@
       "name": "TODAY_RATE_LIMITER",
       "namespace_id": "682402",
       "simple": { "limit": 120, "period": 60 }
+    },
+    {
+      "name": "ATTEMPT_RATE_LIMITER",
+      "namespace_id": "682403",
+      "simple": { "limit": 30, "period": 60 }
     }
   ],
   "vars": {
