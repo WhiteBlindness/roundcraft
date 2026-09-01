@@ -1,0 +1,128 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Roundcraft API",
+    "version": "0.1.0",
+    "description": "Public contract for the first Roundcraft implementation slice."
+  },
+  "servers": [{ "url": "/api/v1" }],
+  "paths": {
+    "/session": {
+      "post": {
+        "operationId": "createOrRenewSession",
+        "summary": "Issue or renew a pseudonymous session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "maxProperties": 0,
+                "additionalProperties": false
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session context",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string" },
+                "description": "Secure __Host-roundcraft identity cookie"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/session-response.json" },
+                "examples": {
+                  "success": {
+                    "externalValue": "./examples/session.success.json"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/today": {
+      "get": {
+        "operationId": "getToday",
+        "summary": "Return only the current public edition cover",
+        "responses": {
+          "200": {
+            "description": "Current public cover or neutral unavailable state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/today-response.json" },
+                "examples": {
+                  "available": {
+                    "externalValue": "./examples/today.success.json"
+                  },
+                  "unavailable": {
+                    "externalValue": "./examples/today.unavailable.json"
+                  }
+                }
+              }
+            }
+          },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "SafeError": {
+        "description": "Safe versioned error envelope",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ok", "data", "error", "meta"],
+              "properties": {
+                "ok": { "const": false },
+                "data": { "type": "null" },
+                "error": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["code", "message"],
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "INVALID_REQUEST",
+                        "SESSION_INVALID",
+                        "REQUEST_FORBIDDEN",
+                        "RATE_LIMITED",
+                        "NO_CURRENT_EDITION",
+                        "SERVICE_UNAVAILABLE"
+                      ]
+                    },
+                    "message": { "type": "string", "maxLength": 160 }
+                  }
+                },
+                "meta": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["request_id", "api_version"],
+                  "properties": {
+                    "request_id": { "type": "string" },
+                    "api_version": { "const": "v1" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

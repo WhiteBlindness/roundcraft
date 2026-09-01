@@ -28,7 +28,22 @@
       "migrations_dir": "migrations"
     }
   ],
+  "ratelimits": [
+    {
+      "name": "SESSION_RATE_LIMITER",
+      "namespace_id": "682401",
+      "simple": { "limit": 20, "period": 60 }
+    },
+    {
+      "name": "TODAY_RATE_LIMITER",
+      "namespace_id": "682402",
+      "simple": { "limit": 120, "period": 60 }
+    }
+  ],
   "vars": {
     "APP_ENV": "production"
+  },
+  "secrets": {
+    "required": ["IDENTITY_PEPPER"]
   }
 }

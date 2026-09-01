@@ -102,6 +102,37 @@ main {
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.45fr);
 }
 
+.case-state {
+  padding: clamp(42px, 8vw, 96px);
+  border: 1px solid rgb(12 80 72 / 25%);
+  background: #f8f6ef;
+  box-shadow: 0 28px 80px rgb(40 49 46 / 10%);
+}
+
+.case-state h1 {
+  font-size: clamp(2.6rem, 7vw, 5.4rem);
+}
+
+.availability-label {
+  margin: 28px 0 0;
+  color: #0c5048;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.secondary-action {
+  min-height: 48px;
+  margin-top: 28px;
+  padding-inline: 20px;
+  border: 1px solid #0c5048;
+  background: transparent;
+  color: #0c5048;
+  cursor: pointer;
+  font-weight: 800;
+}
+
 .case-kicker {
   display: flex;
   grid-column: 1 / -1;
@@ -209,6 +240,11 @@ h1 {
 
 .case-actions button:hover {
   background: #f27a4f;
+}
+
+.case-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .case-actions p,

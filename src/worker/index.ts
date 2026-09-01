@@ -1,10 +1,9 @@
 import { Hono } from 'hono'
 
-interface Bindings {
-  readonly APP_ENV: string
-  readonly ASSETS?: Fetcher
-  readonly DB?: D1Database
-}
+import type { Bindings } from './bindings'
+import { enforceRateLimit } from './rate-limit'
+import { createOrRenewSession } from './session'
+import { getToday } from './today'
 
 const api = new Hono<{ Bindings: Bindings }>()
 
@@ -38,7 +37,10 @@ api.use('*', async (context, next) => {
   context.header('Referrer-Policy', 'no-referrer')
   context.header('X-Content-Type-Options', 'nosniff')
 
-  if (context.req.path.startsWith('/api/')) {
+  const isPublicToday =
+    context.req.method === 'GET' && context.req.path === '/api/v1/today'
+
+  if (context.req.path.startsWith('/api/') && !isPublicToday) {
     context.header('Cache-Control', 'private, no-store')
   }
 })
@@ -57,6 +59,32 @@ api.get('/api/v1/health', (context) =>
     },
   }),
 )
+
+api.post('/api/v1/session', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.SESSION_RATE_LIMITER,
+    'session',
+    requestId,
+  )
+
+  return (
+    limited ?? createOrRenewSession(context.req.raw, context.env, requestId)
+  )
+})
+
+api.get('/api/v1/today', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.TODAY_RATE_LIMITER,
+    'today',
+    requestId,
+  )
+
+  return limited ?? getToday(context.req.raw, context.env, requestId)
+})
 
 api.all('*', async (context) => {
   if (!context.env.ASSETS) {

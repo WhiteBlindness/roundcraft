@@ -23,6 +23,8 @@ export default defineConfig({
           },
           bindings: {
             APP_ENV: 'test',
+            IDENTITY_PEPPER:
+              'roundcraft-test-pepper-with-at-least-thirty-two-characters',
             TEST_MIGRATIONS: migrations,
           },
         },
