@@ -37,6 +37,21 @@
       "message": "The attempt is no longer active."
     },
     {
+      "code": "IDEMPOTENCY_KEY_REUSED",
+      "status": 409,
+      "message": "The submission key has already been used."
+    },
+    {
+      "code": "VERSION_CONFLICT",
+      "status": 409,
+      "message": "The attempt has changed. Resume it before trying again."
+    },
+    {
+      "code": "ATTEMPT_STATE_CONFLICT",
+      "status": 409,
+      "message": "The attempt already has an accepted main line."
+    },
+    {
       "code": "VALIDATION_ERROR",
       "status": 422,
       "message": "The submitted data is invalid."

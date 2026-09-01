@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { publicBriefSchema } from '../domain/public-brief'
+import { publicFollowupSchema } from '../domain/public-followup'
 
 const metaSchema = z.object({
   request_id: z.uuid(),
@@ -69,26 +70,59 @@ const sessionResponseSchema = z.object({
   meta: metaSchema,
 })
 
+const mainAnswerSchema = z
+  .object({
+    action_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+    qualifier_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+    evidence_ids: z
+      .array(z.string().regex(/^[a-z0-9_]+$/).max(80))
+      .length(2),
+    confidence_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+  })
+  .strict()
+
+const attemptBase = {
+  attempt_id: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  edition_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+  mode: z.literal('official'),
+  assisted: z.literal(false),
+  issued_at: z.iso.datetime(),
+  grace_end_at: z.iso.datetime(),
+}
+
+const issuedAttemptDataSchema = z
+  .object({
+    attempt: z
+      .object({
+        ...attemptBase,
+        state: z.literal('issued'),
+        sequence: z.literal(0),
+      })
+      .strict(),
+    brief: publicBriefSchema,
+  })
+  .strict()
+
+const lockedAttemptDataSchema = z
+  .object({
+    attempt: z
+      .object({
+        ...attemptBase,
+        state: z.literal('main_locked'),
+        sequence: z.literal(1),
+        main_committed_at: z.iso.datetime(),
+      })
+      .strict(),
+    brief: publicBriefSchema,
+    main_answer: mainAnswerSchema,
+    followup: publicFollowupSchema,
+  })
+  .strict()
+
 const attemptResponseSchema = z
   .object({
     ok: z.literal(true),
-    data: z
-      .object({
-        attempt: z
-          .object({
-            attempt_id: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-            edition_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
-            mode: z.literal('official'),
-            state: z.literal('issued'),
-            sequence: z.literal(0),
-            assisted: z.literal(false),
-            issued_at: z.iso.datetime(),
-            grace_end_at: z.iso.datetime(),
-          })
-          .strict(),
-        brief: publicBriefSchema,
-      })
-      .strict(),
+    data: z.union([issuedAttemptDataSchema, lockedAttemptDataSchema]),
     error: z.null(),
     meta: metaSchema,
   })
@@ -97,6 +131,38 @@ const attemptResponseSchema = z
 export type TodayData = z.infer<typeof todayResponseSchema>['data']
 export type SessionData = z.infer<typeof sessionResponseSchema>['data']
 export type AttemptData = z.infer<typeof attemptResponseSchema>['data']
+
+const mainCommitResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        attempt: z
+          .object({
+            attempt_id: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+            state: z.literal('main_locked'),
+            sequence: z.literal(1),
+            main_committed_at: z.iso.datetime(),
+          })
+          .strict(),
+        main_answer: mainAnswerSchema,
+        followup: publicFollowupSchema,
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type MainCommitData = z.infer<typeof mainCommitResponseSchema>['data']
+
+export interface MainAnswerDraft {
+  readonly case_revision: string
+  readonly action_id: string
+  readonly qualifier_id: string
+  readonly evidence_ids: readonly [string, string]
+  readonly confidence_id: string
+}
 
 async function parseResponse<T>(
   response: Response,
@@ -152,6 +218,28 @@ export async function createAttempt(
     body: JSON.stringify({ edition_id: editionId }),
   })
   const payload = await parseResponse(response, attemptResponseSchema)
+
+  return payload.data
+}
+
+export async function commitMainAnswer(
+  attemptId: string,
+  csrfToken: string,
+  idempotencyKey: string,
+  answer: MainAnswerDraft,
+): Promise<MainCommitData> {
+  const response = await fetch(`/api/v1/attempts/${attemptId}/main-commit`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'content-type': 'application/json',
+      'idempotency-key': idempotencyKey,
+      'if-match': '"0"',
+      'x-csrf-token': csrfToken,
+    },
+    body: JSON.stringify(answer),
+  })
+  const payload = await parseResponse(response, mainCommitResponseSchema)
 
   return payload.data
 }

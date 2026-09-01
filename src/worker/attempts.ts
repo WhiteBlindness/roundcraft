@@ -1,4 +1,13 @@
+import {
+  isPublishedMainAnswer,
+  mainAnswerSchema,
+  type MainCommitBody,
+} from '../domain/main-answer'
 import { publicBriefSchema, type PublicBrief } from '../domain/public-brief'
+import {
+  publicFollowupSchema,
+  type PublicFollowup,
+} from '../domain/public-followup'
 import type { Bindings } from './bindings'
 import {
   authenticateIdentity,
@@ -6,8 +15,11 @@ import {
   verifyCsrfToken,
 } from './identity'
 import { encodeBase64Url, jsonError, jsonSuccess } from './http'
+import {
+  acceptsStateChangingHeaders,
+  maximumStateChangingBodyBytes,
+} from './request-protection'
 
-const maximumBodyBytes = 1024
 const editionPattern = /^[a-z0-9_]{1,80}$/
 const attemptPattern = /^[A-Za-z0-9_-]{43}$/
 
@@ -22,10 +34,17 @@ interface EditionProjectionRecord {
 interface AttemptProjectionRecord extends EditionProjectionRecord {
   readonly attempt_id: string
   readonly mode: 'official'
-  readonly state: 'issued'
+  readonly state:
+    | 'issued'
+    | 'main_locked'
+    | 'decision_complete'
+    | 'debrief_complete'
   readonly sequence: number
   readonly assisted: number
   readonly issued_at: string
+  readonly main_committed_at?: string | null
+  readonly main_answer_json?: string | null
+  readonly followup_json?: string | null
 }
 
 interface AttemptBody {
@@ -36,27 +55,13 @@ function createAttemptId(): string {
   return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
 }
 
-function acceptsStateChangingHeaders(request: Request): boolean {
-  const url = new URL(request.url)
-  const contentType = request.headers.get('content-type') ?? ''
-  const contentLength = Number(request.headers.get('content-length') ?? 0)
-
-  return (
-    request.headers.get('origin') === url.origin &&
-    request.headers.get('sec-fetch-site') === 'same-origin' &&
-    contentType.toLowerCase().startsWith('application/json') &&
-    Number.isFinite(contentLength) &&
-    contentLength <= maximumBodyBytes
-  )
-}
-
 async function parseAttemptBody(request: Request): Promise<AttemptBody | null> {
   try {
     const text = await request.text()
     const value = JSON.parse(text) as unknown
 
     if (
-      text.length > maximumBodyBytes ||
+      text.length > maximumStateChangingBodyBytes ||
       typeof value !== 'object' ||
       value === null ||
       Array.isArray(value) ||
@@ -82,6 +87,14 @@ function parseBrief(payloadJson: string): PublicBrief | null {
   }
 }
 
+function parseFollowup(payloadJson: string): PublicFollowup | null {
+  try {
+    return publicFollowupSchema.parse(JSON.parse(payloadJson))
+  } catch {
+    return null
+  }
+}
+
 function publicAttempt(record: AttemptProjectionRecord) {
   return {
     attempt_id: record.attempt_id,
@@ -92,7 +105,66 @@ function publicAttempt(record: AttemptProjectionRecord) {
     assisted: record.assisted === 1,
     issued_at: record.issued_at,
     grace_end_at: record.grace_end_at,
+    ...(record.main_committed_at
+      ? { main_committed_at: record.main_committed_at }
+      : {}),
   } as const
+}
+
+function parseStoredMainAnswer(
+  payloadJson: string | null,
+  brief: PublicBrief,
+): Omit<MainCommitBody, 'case_revision'> | null {
+  if (!payloadJson) return null
+
+  try {
+    const parsed = mainAnswerSchema.safeParse(JSON.parse(payloadJson))
+    if (!parsed.success) return null
+
+    const body: MainCommitBody = {
+      case_revision: brief.caseRevision,
+      ...parsed.data,
+      evidence_ids: parsed.data.evidence_ids as [string, string],
+    }
+
+    return isPublishedMainAnswer(body, brief)
+      ? {
+          action_id: body.action_id,
+          qualifier_id: body.qualifier_id,
+          evidence_ids: body.evidence_ids,
+          confidence_id: body.confidence_id,
+        }
+      : null
+  } catch {
+    return null
+  }
+}
+
+function authorizedAttemptProjection(record: AttemptProjectionRecord) {
+  const brief = parseBrief(record.payload_json)
+  if (!brief) return null
+
+  if (record.state === 'issued') {
+    return { attempt: publicAttempt(record), brief } as const
+  }
+
+  if (record.state === 'main_locked') {
+    const mainAnswer = parseStoredMainAnswer(record.main_answer_json ?? null, brief)
+    const followup = record.followup_json
+      ? parseFollowup(record.followup_json)
+      : null
+
+    if (!mainAnswer || !followup) return null
+
+    return {
+      attempt: publicAttempt(record),
+      brief,
+      main_answer: mainAnswer,
+      followup,
+    } as const
+  }
+
+  return null
 }
 
 async function loadEdition(
@@ -138,13 +210,19 @@ async function loadOwnedAttempt(
          a.sequence,
          a.assisted,
          a.issued_at,
+         a.main_committed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
-         a.rubric_revision
+         a.rubric_revision,
+         mc.answer_json AS main_answer_json,
+         f.payload_json AS followup_json
        FROM attempts a
        INNER JOIN editions e ON e.edition_id = a.edition_id
        INNER JOIN case_public_briefs b ON b.case_revision = a.case_revision
+       LEFT JOIN attempt_commits mc
+         ON mc.attempt_id = a.attempt_id AND mc.phase = 'main'
+       LEFT JOIN case_followups f ON f.case_revision = a.case_revision
        WHERE a.attempt_id = ?
          AND a.identity_id = ?
          AND a.mode = 'official'
@@ -171,13 +249,19 @@ async function loadOwnedAttemptForEdition(
          a.sequence,
          a.assisted,
          a.issued_at,
+         a.main_committed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
-         a.rubric_revision
+         a.rubric_revision,
+         mc.answer_json AS main_answer_json,
+         f.payload_json AS followup_json
        FROM attempts a
        INNER JOIN editions e ON e.edition_id = a.edition_id
        INNER JOIN case_public_briefs b ON b.case_revision = a.case_revision
+       LEFT JOIN attempt_commits mc
+         ON mc.attempt_id = a.attempt_id AND mc.phase = 'main'
+       LEFT JOIN case_followups f ON f.case_revision = a.case_revision
        WHERE a.identity_id = ?
          AND a.edition_id = ?
          AND a.mode = 'official'
@@ -223,12 +307,18 @@ async function issueOrLoadAttempt(
          a.sequence,
          a.assisted,
          a.issued_at,
+         a.main_committed_at,
          a.grace_end_at,
          a.case_revision,
          b.payload_json,
-         a.rubric_revision
+         a.rubric_revision,
+         mc.answer_json AS main_answer_json,
+         f.payload_json AS followup_json
        FROM attempts a
        INNER JOIN case_public_briefs b ON b.case_revision = a.case_revision
+       LEFT JOIN attempt_commits mc
+         ON mc.attempt_id = a.attempt_id AND mc.phase = 'main'
+       LEFT JOIN case_followups f ON f.case_revision = a.case_revision
        WHERE a.identity_id = ? AND a.edition_id = ? AND a.mode = 'official'
        LIMIT 1`,
     )
@@ -279,8 +369,8 @@ export async function createOrResumeAttempt(
       )
     }
 
-    const existingBrief = parseBrief(existing.payload_json)
-    if (!existingBrief) {
+    const existingProjection = authorizedAttemptProjection(existing)
+    if (!existingProjection) {
       return jsonError(
         503,
         'SERVICE_UNAVAILABLE',
@@ -289,10 +379,7 @@ export async function createOrResumeAttempt(
       )
     }
 
-    return jsonSuccess(
-      { attempt: publicAttempt(existing), brief: existingBrief },
-      requestId,
-    )
+    return jsonSuccess(existingProjection, requestId)
   }
 
   const edition = await loadEdition(env.DB, body.edition_id, now)
@@ -301,12 +388,12 @@ export async function createOrResumeAttempt(
   }
 
   const record = await issueOrLoadAttempt(env.DB, identity, edition, now)
-  const brief = record ? parseBrief(record.payload_json) : null
-  if (!record || !brief) {
+  const projection = record ? authorizedAttemptProjection(record) : null
+  if (!projection) {
     return jsonError(503, 'SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.', requestId)
   }
 
-  return jsonSuccess({ attempt: publicAttempt(record), brief }, requestId)
+  return jsonSuccess(projection, requestId)
 }
 
 export async function getAttempt(
@@ -337,10 +424,10 @@ export async function getAttempt(
     return jsonError(410, 'ATTEMPT_EXPIRED', 'The attempt is no longer active.', requestId)
   }
 
-  const brief = parseBrief(record.payload_json)
-  if (!brief) {
+  const projection = authorizedAttemptProjection(record)
+  if (!projection) {
     return jsonError(503, 'SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.', requestId)
   }
 
-  return jsonSuccess({ attempt: publicAttempt(record), brief }, requestId)
+  return jsonSuccess(projection, requestId)
 }

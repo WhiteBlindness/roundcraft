@@ -41,6 +41,12 @@
         { "id": "utility", "label": "Remaining utility" },
         { "id": "clock", "label": "Round clock" },
         { "id": "spacing", "label": "Trade spacing" }
+      ],
+      "confidence": [
+        { "id": "guessing", "label": "Guessing" },
+        { "id": "leaning", "label": "Leaning" },
+        { "id": "fairly_sure", "label": "Fairly sure" },
+        { "id": "strong_read", "label": "Strong read" }
       ]
     }
   },

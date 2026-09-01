@@ -45,6 +45,12 @@ const validBrief = {
     { id: 'e4', label: 'Round clock' },
     { id: 'e5', label: 'Trade spacing' },
   ],
+  confidence: [
+    { id: 'guessing', label: 'Guessing' },
+    { id: 'leaning', label: 'Leaning' },
+    { id: 'fairly_sure', label: 'Fairly sure' },
+    { id: 'strong_read', label: 'Strong read' },
+  ],
 } as const
 
 describe('publicBriefSchema', () => {
@@ -68,5 +74,19 @@ describe('publicBriefSchema', () => {
     }
 
     expect(publicBriefSchema.safeParse(leakedBrief).success).toBe(false)
+  })
+
+  it('requires exactly four distinct confidence labels', () => {
+    const invalidBrief = {
+      ...validBrief,
+      confidence: [
+        validBrief.confidence[0],
+        validBrief.confidence[0],
+        validBrief.confidence[2],
+        validBrief.confidence[3],
+      ],
+    }
+
+    expect(publicBriefSchema.safeParse(invalidBrief).success).toBe(false)
   })
 })
