@@ -9,6 +9,9 @@ export type ApiErrorCode =
   | 'REQUEST_FORBIDDEN'
   | 'RATE_LIMITED'
   | 'NO_CURRENT_EDITION'
+  | 'ATTEMPT_NOT_FOUND'
+  | 'ATTEMPT_EXPIRED'
+  | 'VALIDATION_ERROR'
   | 'SERVICE_UNAVAILABLE'
 
 export function apiMeta(requestId: string): ApiMeta {

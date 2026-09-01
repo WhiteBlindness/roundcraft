@@ -76,6 +76,87 @@
           "503": { "$ref": "#/components/responses/SafeError" }
         }
       }
+    },
+    "/attempts": {
+      "post": {
+        "operationId": "createOrResumeAttempt",
+        "summary": "Create or resume the official attempt for a released edition",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["edition_id"],
+                "properties": {
+                  "edition_id": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_]+$",
+                    "maxLength": 80
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canonical official attempt and its published briefing",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/attempt-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/attempt.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
+          "404": { "$ref": "#/components/responses/SafeError" },
+          "422": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/attempts/{attempt_id}": {
+      "get": {
+        "operationId": "getAttempt",
+        "summary": "Resume an owned active attempt",
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned attempt and its currently authorised projection",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/attempt-response.json" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "404": { "$ref": "#/components/responses/SafeError" },
+          "410": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
     }
   },
   "components": {
@@ -103,6 +184,9 @@
                         "REQUEST_FORBIDDEN",
                         "RATE_LIMITED",
                         "NO_CURRENT_EDITION",
+                        "ATTEMPT_NOT_FOUND",
+                        "ATTEMPT_EXPIRED",
+                        "VALIDATION_ERROR",
                         "SERVICE_UNAVAILABLE"
                       ]
                     },

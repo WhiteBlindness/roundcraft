@@ -5,4 +5,5 @@ export interface Bindings {
   readonly IDENTITY_PEPPER?: string
   readonly SESSION_RATE_LIMITER?: RateLimit
   readonly TODAY_RATE_LIMITER?: RateLimit
+  readonly ATTEMPT_RATE_LIMITER?: RateLimit
 }

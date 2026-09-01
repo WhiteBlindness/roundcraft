@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "edition_id": "edition_today_001",
+      "mode": "official",
+      "state": "issued",
+      "sequence": 0,
+      "assisted": false,
+      "issued_at": "2026-09-01T14:45:00.000Z",
+      "grace_end_at": "2026-09-02T12:00:00.000Z"
+    },
+    "brief": {
+      "schemaVersion": 1,
+      "editionId": "edition_today_001",
+      "caseRevision": "case_revision_today_001",
+      "title": "Leaking projection",
+      "focus": "Information",
+      "origin": "synthetic",
+      "facts": [{ "id": "fact", "status": "confirmed", "text": "Published fact" }],
+      "actions": [],
+      "qualifiers": [],
+      "evidence": [],
+      "preferredAction": "server_only"
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "9fd0debf-8f44-4a19-a4e8-a123a1132b24",
+    "api_version": "v1"
+  }
+}

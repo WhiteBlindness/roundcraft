@@ -27,6 +27,21 @@
       "message": "No current edition is available."
     },
     {
+      "code": "ATTEMPT_NOT_FOUND",
+      "status": 404,
+      "message": "The attempt is unavailable."
+    },
+    {
+      "code": "ATTEMPT_EXPIRED",
+      "status": 410,
+      "message": "The attempt is no longer active."
+    },
+    {
+      "code": "VALIDATION_ERROR",
+      "status": 422,
+      "message": "The submitted data is invalid."
+    },
+    {
       "code": "SERVICE_UNAVAILABLE",
       "status": 503,
       "message": "The service is temporarily unavailable."

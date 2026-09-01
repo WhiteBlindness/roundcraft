@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 
+import { createOrResumeAttempt, getAttempt } from './attempts'
 import type { Bindings } from './bindings'
 import { enforceRateLimit } from './rate-limit'
 import { createOrRenewSession } from './session'
@@ -84,6 +85,38 @@ api.get('/api/v1/today', async (context) => {
   )
 
   return limited ?? getToday(context.req.raw, context.env, requestId)
+})
+
+api.post('/api/v1/attempts', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'attempt-create',
+    requestId,
+  )
+
+  return limited ?? createOrResumeAttempt(context.req.raw, context.env, requestId)
+})
+
+api.get('/api/v1/attempts/:attemptId', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'attempt-read',
+    requestId,
+  )
+
+  return (
+    limited ??
+    getAttempt(
+      context.req.raw,
+      context.env,
+      requestId,
+      context.req.param('attemptId'),
+    )
+  )
 })
 
 api.all('*', async (context) => {
