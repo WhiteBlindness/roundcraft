@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "main_locked",
+      "sequence": 1,
+      "main_committed_at": "2026-09-01T14:48:00.000Z"
+    },
+    "main_answer": {
+      "action_id": "regroup_a",
+      "qualifier_id": "quiet",
+      "evidence_ids": ["bomb", "utility"],
+      "confidence_id": "fairly_sure"
+    },
+    "followup": {
+      "schemaVersion": 1,
+      "caseRevision": "case_revision_today_001",
+      "type": "new_information",
+      "heading": "The round changed",
+      "stimulus": "Eight seconds pass before a defender is heard rotating.",
+      "updates": [
+        { "id": "rotation", "status": "new", "text": "A defender is heard leaving B." }
+      ],
+      "responses": [
+        { "id": "keep_original", "label": "Keep the original line" },
+        { "id": "change_mid", "label": "Change to pressure middle" }
+      ]
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "9fd0debf-8f44-4a19-a4e8-a123a1132b24",
+    "api_version": "v1"
+  }
+}

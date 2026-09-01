@@ -100,6 +100,51 @@ describe('App', () => {
                 { id: 'e4', label: 'Round clock' },
                 { id: 'e5', label: 'Trade spacing' },
               ],
+              confidence: [
+                { id: 'guessing', label: 'Guessing' },
+                { id: 'leaning', label: 'Leaning' },
+                { id: 'fairly_sure', label: 'Fairly sure' },
+                { id: 'strong_read', label: 'Strong read' },
+              ],
+            },
+          },
+          error: null,
+          meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+          data: {
+            attempt: {
+              attempt_id: 'b'.repeat(43),
+              state: 'main_locked',
+              sequence: 1,
+              main_committed_at: '2026-09-01T14:48:00.000Z',
+            },
+            main_answer: {
+              action_id: 'a',
+              qualifier_id: 'q1',
+              evidence_ids: ['e1', 'e2'],
+              confidence_id: 'fairly_sure',
+            },
+            followup: {
+              schemaVersion: 1,
+              caseRevision: 'case_revision_001',
+              type: 'new_information',
+              heading: 'The round changed',
+              stimulus: 'Eight seconds pass before a defender is heard rotating.',
+              updates: [
+                {
+                  id: 'rotation',
+                  status: 'new',
+                  text: 'A defender is heard leaving B.',
+                },
+              ],
+              responses: [
+                { id: 'keep_original', label: 'Keep the original line' },
+                { id: 'change_mid', label: 'Change to pressure middle' },
+              ],
             },
           },
           error: null,
@@ -141,9 +186,25 @@ describe('App', () => {
       screen.getByRole('checkbox', { name: 'Last defender sighting' }),
     )
     expect(screen.getByText('2 of 2 selected')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Selection ready for the decision step',
-    )
+    await user.click(screen.getByRole('button', { name: 'Continue to call' }))
+    expect(screen.getByRole('heading', { name: 'Make the call' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'Regroup toward A' }))
+    await user.click(screen.getByRole('radio', { name: 'Quietly' }))
+    await user.click(screen.getByRole('radio', { name: 'Fairly sure' }))
+    await user.click(screen.getByRole('button', { name: 'Review call' }))
+
+    expect(
+      screen.getByRole('heading', { name: 'Review your line' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('You cannot change this official line after it is locked.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Lock main call' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'The round changed' }),
+    ).toHaveFocus()
+    expect(screen.getByText('Main locked')).toBeInTheDocument()
+    expect(screen.getByText('A defender is heard leaving B.')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/today', {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
@@ -163,6 +224,27 @@ describe('App', () => {
       },
       body: JSON.stringify({ edition_id: 'edition_001' }),
     })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      `/api/v1/attempts/${'b'.repeat(43)}/main-commit`,
+      {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': expect.any(String),
+          'if-match': '"0"',
+          'x-csrf-token': 'a'.repeat(43),
+        },
+        body: JSON.stringify({
+          case_revision: 'case_revision_001',
+          action_id: 'a',
+          qualifier_id: 'q1',
+          evidence_ids: ['e1', 'e2'],
+          confidence_id: 'fairly_sure',
+        }),
+      },
+    )
   })
 
   it('shows a neutral unavailable state without inventing a case', async () => {

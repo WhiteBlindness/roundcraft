@@ -1,7 +1,11 @@
 import { Hono } from 'hono'
 
-import { createOrResumeAttempt, getAttempt } from './attempts'
+import {
+  createOrResumeAttempt,
+  getAttempt,
+} from './attempts'
 import type { Bindings } from './bindings'
+import { commitMainAnswer } from './main-commit'
 import { enforceRateLimit } from './rate-limit'
 import { createOrRenewSession } from './session'
 import { getToday } from './today'
@@ -111,6 +115,26 @@ api.get('/api/v1/attempts/:attemptId', async (context) => {
   return (
     limited ??
     getAttempt(
+      context.req.raw,
+      context.env,
+      requestId,
+      context.req.param('attemptId'),
+    )
+  )
+})
+
+api.post('/api/v1/attempts/:attemptId/main-commit', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'attempt-main-commit',
+    requestId,
+  )
+
+  return (
+    limited ??
+    commitMainAnswer(
       context.req.raw,
       context.env,
       requestId,

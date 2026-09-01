@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "short",
+      "state": "issued",
+      "sequence": 0,
+      "main_committed_at": null
+    },
+    "main_answer": {
+      "action_id": "regroup_a",
+      "qualifier_id": "quiet",
+      "evidence_ids": ["bomb", "bomb"],
+      "confidence_id": "fairly_sure"
+    },
+    "followup": { "rubric": "hidden" }
+  },
+  "error": null,
+  "meta": { "request_id": "invalid", "api_version": "v1" }
+}

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "data", "error", "meta"],
+  "properties": {
+    "ok": { "const": true },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt", "main_answer", "followup"],
+      "properties": {
+        "attempt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attempt_id", "state", "sequence", "main_committed_at"],
+          "properties": {
+            "attempt_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+            "state": { "const": "main_locked" },
+            "sequence": { "const": 1 },
+            "main_committed_at": { "$ref": "#/$defs/timestamp" }
+          }
+        },
+        "main_answer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action_id", "qualifier_id", "evidence_ids", "confidence_id"],
+          "properties": {
+            "action_id": { "$ref": "#/$defs/identifier" },
+            "qualifier_id": { "$ref": "#/$defs/identifier" },
+            "evidence_ids": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/identifier" }
+            },
+            "confidence_id": { "$ref": "#/$defs/identifier" }
+          }
+        },
+        "followup": { "$ref": "#/$defs/followup" }
+      }
+    },
+    "error": { "type": "null" },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "api_version"],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "api_version": { "const": "v1" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 160 }
+      }
+    },
+    "followup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "caseRevision", "type", "heading", "stimulus", "updates", "responses"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "caseRevision": { "$ref": "#/$defs/identifier" },
+        "type": { "enum": ["new_information", "economy_risk"] },
+        "heading": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "stimulus": { "type": "string", "minLength": 1, "maxLength": 800 },
+        "updates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "status", "text"],
+            "properties": {
+              "id": { "$ref": "#/$defs/identifier" },
+              "status": { "enum": ["new", "changed", "expired", "unchanged"] },
+              "text": { "type": "string", "minLength": 1, "maxLength": 500 }
+            }
+          }
+        },
+        "responses": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/option" }
+        }
+      }
+    }
+  }
+}

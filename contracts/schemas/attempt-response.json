@@ -21,15 +21,54 @@
             "attempt_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
             "edition_id": { "$ref": "#/$defs/identifier" },
             "mode": { "const": "official" },
-            "state": { "const": "issued" },
-            "sequence": { "const": 0 },
+            "state": { "enum": ["issued", "main_locked"] },
+            "sequence": { "type": "integer", "minimum": 0, "maximum": 1 },
             "assisted": { "const": false },
             "issued_at": { "$ref": "#/$defs/timestamp" },
-            "grace_end_at": { "$ref": "#/$defs/timestamp" }
+            "grace_end_at": { "$ref": "#/$defs/timestamp" },
+            "main_committed_at": { "$ref": "#/$defs/timestamp" }
           }
         },
-        "brief": { "$ref": "#/$defs/brief" }
-      }
+        "brief": { "$ref": "#/$defs/brief" },
+        "main_answer": { "$ref": "#/$defs/mainAnswer" },
+        "followup": { "$ref": "#/$defs/followup" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "attempt": { "type": "object", "properties": { "state": { "const": "issued" } } }
+            }
+          },
+          "then": {
+            "properties": {
+              "attempt": { "type": "object", "properties": { "sequence": { "const": 0 } } }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attempt": { "type": "object", "properties": { "state": { "const": "main_locked" } } }
+            }
+          },
+          "then": {
+            "required": ["main_answer", "followup"],
+            "properties": {
+              "main_answer": { "$ref": "#/$defs/mainAnswer" },
+              "followup": { "$ref": "#/$defs/followup" },
+              "attempt": {
+                "type": "object",
+                "required": ["main_committed_at"],
+                "properties": {
+                  "sequence": { "const": 1 },
+                  "main_committed_at": { "$ref": "#/$defs/timestamp" }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "error": { "type": "null" },
     "meta": {
@@ -65,12 +104,54 @@
         "label": { "type": "string", "minLength": 1, "maxLength": 160 }
       }
     },
+    "mainAnswer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "qualifier_id", "evidence_ids", "confidence_id"],
+      "properties": {
+        "action_id": { "$ref": "#/$defs/identifier" },
+        "qualifier_id": { "$ref": "#/$defs/identifier" },
+        "evidence_ids": {
+          "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "confidence_id": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "followup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "caseRevision", "type", "heading", "stimulus", "updates", "responses"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "caseRevision": { "$ref": "#/$defs/identifier" },
+        "type": { "enum": ["new_information", "economy_risk"] },
+        "heading": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "stimulus": { "type": "string", "minLength": 1, "maxLength": 800 },
+        "updates": {
+          "type": "array", "minItems": 1, "maxItems": 20,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["id", "status", "text"],
+            "properties": {
+              "id": { "$ref": "#/$defs/identifier" },
+              "status": { "enum": ["new", "changed", "expired", "unchanged"] },
+              "text": { "type": "string", "minLength": 1, "maxLength": 500 }
+            }
+          }
+        },
+        "responses": {
+          "type": "array", "minItems": 2, "maxItems": 8,
+          "items": { "$ref": "#/$defs/option" }
+        }
+      }
+    },
     "brief": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "schemaVersion", "editionId", "caseRevision", "title", "focus",
-        "origin", "facts", "actions", "qualifiers", "evidence"
+        "origin", "facts", "actions", "qualifiers", "evidence", "confidence"
       ],
       "properties": {
         "schemaVersion": { "const": 1 },
@@ -113,6 +194,11 @@
         },
         "evidence": {
           "type": "array", "minItems": 5, "maxItems": 5,
+          "items": { "$ref": "#/$defs/option" }
+        },
+        "confidence": {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "uniqueItems": true,
           "items": { "$ref": "#/$defs/option" }
         }
       }

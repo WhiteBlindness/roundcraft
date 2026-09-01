@@ -45,6 +45,7 @@ export const publicBriefSchema = z
     actions: z.array(actionSchema).min(3).max(5),
     qualifiers: z.array(optionSchema).min(2).max(20),
     evidence: z.array(optionSchema).length(5),
+    confidence: z.array(optionSchema).length(4),
   })
   .strict()
   .superRefine((brief, context) => {
@@ -52,13 +53,15 @@ export const publicBriefSchema = z
     const qualifierIds = brief.qualifiers.map(({ id }) => id)
     const evidenceIds = brief.evidence.map(({ id }) => id)
     const factIds = brief.facts.map(({ id }) => id)
+    const confidenceIds = brief.confidence.map(({ id }) => id)
     const qualifierIdSet = new Set(qualifierIds)
 
     if (
       containsDuplicates(actionIds) ||
       containsDuplicates(qualifierIds) ||
       containsDuplicates(evidenceIds) ||
-      containsDuplicates(factIds)
+      containsDuplicates(factIds) ||
+      containsDuplicates(confidenceIds)
     ) {
       context.addIssue({
         code: 'custom',

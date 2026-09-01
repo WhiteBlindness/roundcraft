@@ -40,6 +40,35 @@ const publicBrief = {
     { id: 'clock', label: 'Round clock' },
     { id: 'spacing', label: 'Trade spacing' },
   ],
+  confidence: [
+    { id: 'guessing', label: 'Guessing' },
+    { id: 'leaning', label: 'Leaning' },
+    { id: 'fairly_sure', label: 'Fairly sure' },
+    { id: 'strong_read', label: 'Strong read' },
+  ],
+} as const
+
+const publicFollowup = {
+  schemaVersion: 1,
+  caseRevision: 'case_revision_today_001',
+  type: 'new_information',
+  heading: 'The round changed',
+  stimulus: 'Eight seconds pass before a defender is heard rotating.',
+  updates: [
+    { id: 'rotation', status: 'new', text: 'A defender is heard leaving B.' },
+  ],
+  responses: [
+    { id: 'keep_original', label: 'Keep the original line' },
+    { id: 'change_mid', label: 'Change to pressure middle' },
+  ],
+} as const
+
+const validMainAnswer = {
+  case_revision: 'case_revision_today_001',
+  action_id: 'regroup_a',
+  qualifier_id: 'quiet',
+  evidence_ids: ['bomb_location', 'utility'],
+  confidence_id: 'fairly_sure',
 } as const
 
 function sessionRequest(cookie?: string) {
@@ -84,6 +113,44 @@ function attemptRequest(
     },
     body: JSON.stringify(body),
   })
+}
+
+function mainCommitRequest(
+  identity: { cookie: string; csrf: string },
+  attemptId: string,
+  body: unknown = validMainAnswer,
+  idempotencyKey = '9fd0debf-8f44-4a19-a4e8-a123a1132b24',
+  ifMatch = '"0"',
+): Request {
+  return new Request(`${apiOrigin}/api/v1/attempts/${attemptId}/main-commit`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      cookie: identity.cookie,
+      origin: apiOrigin,
+      'sec-fetch-site': 'same-origin',
+      'x-csrf-token': identity.csrf,
+      'idempotency-key': idempotencyKey,
+      'if-match': ifMatch,
+    },
+    body: JSON.stringify(body),
+  })
+}
+
+async function createOfficialAttempt(identity: {
+  cookie: string
+  csrf: string
+}): Promise<string> {
+  const response = await worker.fetch(
+    attemptRequest(identity),
+    env,
+    executionContext,
+  )
+  const payload = await response.json<{
+    data: { attempt: { attempt_id: string } }
+  }>()
+
+  return payload.data.attempt.attempt_id
 }
 
 async function seedReleasedCase(): Promise<void> {
@@ -140,7 +207,7 @@ async function seedReleasedCase(): Promise<void> {
       ) VALUES (?, ?, ?, ?)`,
     ).bind(
       'case_revision_today_001',
-      JSON.stringify({ hidden: forbiddenMarker }),
+      JSON.stringify(publicFollowup),
       'followup_checksum_today_001',
       createdAt,
     ),
@@ -171,7 +238,9 @@ async function seedReleasedCase(): Promise<void> {
 describe('official attempts API', () => {
   beforeEach(async () => {
     await env.DB.exec(
-      `DELETE FROM attempts;
+      `DELETE FROM idempotency_receipts;
+       DELETE FROM attempt_commits;
+       DELETE FROM attempts;
        DELETE FROM case_rubrics;
        DELETE FROM case_reveals;
        DELETE FROM case_followups;
@@ -182,6 +251,247 @@ describe('official attempts API', () => {
        DELETE FROM anonymous_identities;`,
     )
     await seedReleasedCase()
+  })
+
+  it('locks one valid main line and only then returns the public follow-up', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    const response = await worker.fetch(
+      mainCommitRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+    const text = await response.text()
+    const payload = JSON.parse(text)
+    const attempt = await env.DB.prepare(
+      `SELECT state, sequence, main_committed_at FROM attempts WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{ state: string; sequence: number; main_committed_at: string }>()
+    const commit = await env.DB.prepare(
+      `SELECT answer_json, expected_sequence, accepted_sequence
+       FROM attempt_commits WHERE attempt_id = ? AND phase = 'main'`,
+    )
+      .bind(attemptId)
+      .first<{ answer_json: string; expected_sequence: number; accepted_sequence: number }>()
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('etag')).toBe('"1"')
+    expect(payload.data).toMatchObject({
+      attempt: { attempt_id: attemptId, state: 'main_locked', sequence: 1 },
+      main_answer: {
+        action_id: 'regroup_a',
+        qualifier_id: 'quiet',
+        evidence_ids: ['bomb_location', 'utility'],
+        confidence_id: 'fairly_sure',
+      },
+      followup: publicFollowup,
+    })
+    expect(attempt).toMatchObject({ state: 'main_locked', sequence: 1 })
+    expect(commit).toMatchObject({ expected_sequence: 0, accepted_sequence: 1 })
+    expect(JSON.parse(commit?.answer_json ?? '{}')).toEqual(payload.data.main_answer)
+    expect(text).not.toContain(forbiddenMarker)
+    expect(text).not.toMatch(/rubric|reveal/i)
+  })
+
+  it.each([
+    [{ ...validMainAnswer, action_id: 'unknown' }, 'unknown action'],
+    [{ ...validMainAnswer, qualifier_id: 'paired' }, 'qualifier from another action'],
+    [{ ...validMainAnswer, evidence_ids: ['bomb_location'] }, 'wrong evidence count'],
+    [{ ...validMainAnswer, evidence_ids: ['utility', 'utility'] }, 'duplicate evidence'],
+    [{ ...validMainAnswer, evidence_ids: ['utility', 'unknown'] }, 'unknown evidence'],
+    [{ ...validMainAnswer, confidence_id: 'certain' }, 'unknown confidence'],
+  ])('rejects %s (%s) without writing', async (body, _label) => {
+    void _label
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    const response = await worker.fetch(
+      mainCommitRequest(identity, attemptId, body),
+      env,
+      executionContext,
+    )
+    const count = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM attempt_commits WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{ count: number }>()
+
+    expect(response.status).toBe(422)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'VALIDATION_ERROR' },
+    })
+    expect(count?.count).toBe(0)
+  })
+
+  it('returns the identical stored response for the same key and logical body', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    const first = await worker.fetch(
+      mainCommitRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+    const second = await worker.fetch(
+      mainCommitRequest(identity, attemptId, {
+        ...validMainAnswer,
+        evidence_ids: ['utility', 'bomb_location'],
+      }),
+      env,
+      executionContext,
+    )
+    const receiptCount = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM idempotency_receipts WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{ count: number }>()
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(await second.text()).toBe(await first.text())
+    expect(receiptCount?.count).toBe(1)
+  })
+
+  it('resumes the authorised locked projection without exposing hidden content', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    await worker.fetch(mainCommitRequest(identity, attemptId), env, executionContext)
+
+    const response = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/attempts/${attemptId}`, {
+        headers: { cookie: identity.cookie },
+      }),
+      env,
+      executionContext,
+    )
+    const text = await response.text()
+    const payload = JSON.parse(text)
+
+    expect(response.status).toBe(200)
+    expect(payload.data).toMatchObject({
+      attempt: { state: 'main_locked', sequence: 1 },
+      main_answer: {
+        action_id: validMainAnswer.action_id,
+        qualifier_id: validMainAnswer.qualifier_id,
+        evidence_ids: validMainAnswer.evidence_ids,
+        confidence_id: validMainAnswer.confidence_id,
+      },
+      followup: publicFollowup,
+    })
+    expect(text).not.toContain(forbiddenMarker)
+    expect(text).not.toMatch(/rubric|reveal/i)
+  })
+
+  it('rejects reuse of one key with a different body', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    await worker.fetch(mainCommitRequest(identity, attemptId), env, executionContext)
+
+    const response = await worker.fetch(
+      mainCommitRequest(identity, attemptId, {
+        ...validMainAnswer,
+        confidence_id: 'strong_read',
+      }),
+      env,
+      executionContext,
+    )
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'IDEMPOTENCY_KEY_REUSED' },
+    })
+  })
+
+  it('never replaces the winning line when another key submits later', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    await worker.fetch(mainCommitRequest(identity, attemptId), env, executionContext)
+
+    const response = await worker.fetch(
+      mainCommitRequest(
+        identity,
+        attemptId,
+        { ...validMainAnswer, action_id: 'pressure_mid', qualifier_id: 'paired' },
+        '6f74ce40-4039-4f9e-aef9-f08aab27aef8',
+      ),
+      env,
+      executionContext,
+    )
+    const stored = await env.DB.prepare(
+      `SELECT answer_json FROM attempt_commits WHERE attempt_id = ? AND phase = 'main'`,
+    )
+      .bind(attemptId)
+      .first<{ answer_json: string }>()
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'ATTEMPT_STATE_CONFLICT' },
+    })
+    expect(JSON.parse(stored?.answer_json ?? '{}')).toMatchObject({
+      action_id: 'regroup_a',
+      qualifier_id: 'quiet',
+    })
+  })
+
+  it('accepts exactly one branch when different keys race concurrently', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    const [first, second] = await Promise.all([
+      worker.fetch(
+        mainCommitRequest(identity, attemptId),
+        env,
+        executionContext,
+      ),
+      worker.fetch(
+        mainCommitRequest(
+          identity,
+          attemptId,
+          { ...validMainAnswer, action_id: 'pressure_mid', qualifier_id: 'paired' },
+          '6f74ce40-4039-4f9e-aef9-f08aab27aef8',
+        ),
+        env,
+        executionContext,
+      ),
+    ])
+    const commitCount = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM attempt_commits
+       WHERE attempt_id = ? AND phase = 'main'`,
+    )
+      .bind(attemptId)
+      .first<{ count: number }>()
+
+    expect([first.status, second.status].sort()).toEqual([200, 409])
+    expect(commitCount?.count).toBe(1)
+  })
+
+  it('rejects invalid version and request protection before committing', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    const stale = await worker.fetch(
+      mainCommitRequest(identity, attemptId, validMainAnswer, undefined, '"4"'),
+      env,
+      executionContext,
+    )
+    const staleRevision = await worker.fetch(
+      mainCommitRequest(identity, attemptId, {
+        ...validMainAnswer,
+        case_revision: 'case_revision_other',
+      }),
+      env,
+      executionContext,
+    )
+    const forbidden = await worker.fetch(
+      mainCommitRequest({ ...identity, csrf: 'x'.repeat(43) }, attemptId),
+      env,
+      executionContext,
+    )
+
+    expect(stale.status).toBe(409)
+    expect(await stale.json()).toMatchObject({ error: { code: 'VERSION_CONFLICT' } })
+    expect(staleRevision.status).toBe(409)
+    expect(await staleRevision.json()).toMatchObject({
+      error: { code: 'VERSION_CONFLICT' },
+    })
+    expect(forbidden.status).toBe(403)
   })
 
   it('creates one opaque official attempt and returns only the public briefing', async () => {
@@ -401,6 +711,32 @@ describe('official attempts API', () => {
     const count = await env.DB.prepare(
       'SELECT COUNT(*) AS count FROM attempts',
     ).first<{ count: number }>()
+
+    expect(response.status).toBe(429)
+    expect(limit).toHaveBeenCalledOnce()
+    expect(count?.count).toBe(0)
+  })
+
+  it('rate-limits a main commitment before writing D1', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    const limit = vi.fn().mockResolvedValue({ success: false })
+    const limitedEnv: Bindings = {
+      APP_ENV: env.APP_ENV,
+      DB: env.DB,
+      IDENTITY_PEPPER: env.IDENTITY_PEPPER,
+      ATTEMPT_RATE_LIMITER: { limit } as RateLimit,
+    }
+    const response = await worker.fetch(
+      mainCommitRequest(identity, attemptId),
+      limitedEnv,
+      executionContext,
+    )
+    const count = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM attempt_commits WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{ count: number }>()
 
     expect(response.status).toBe(429)
     expect(limit).toHaveBeenCalledOnce()

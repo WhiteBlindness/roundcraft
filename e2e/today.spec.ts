@@ -115,6 +115,53 @@ test('a released case opens its protected briefing and evidence step', async ({
               { id: 'e4', label: 'Round clock' },
               { id: 'e5', label: 'Trade spacing' },
             ],
+            confidence: [
+              { id: 'guessing', label: 'Guessing' },
+              { id: 'leaning', label: 'Leaning' },
+              { id: 'fairly_sure', label: 'Fairly sure' },
+              { id: 'strong_read', label: 'Strong read' },
+            ],
+          },
+        },
+        error: null,
+        meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+      },
+    }),
+  )
+  await page.route('**/api/v1/attempts/*/main-commit', (route) =>
+    route.fulfill({
+      json: {
+        ok: true,
+        data: {
+          attempt: {
+            attempt_id: 'b'.repeat(43),
+            state: 'main_locked',
+            sequence: 1,
+            main_committed_at: '2026-09-01T14:48:00.000Z',
+          },
+          main_answer: {
+            action_id: 'a',
+            qualifier_id: 'q1',
+            evidence_ids: ['e1', 'e2'],
+            confidence_id: 'fairly_sure',
+          },
+          followup: {
+            schemaVersion: 1,
+            caseRevision: 'case_revision_001',
+            type: 'new_information',
+            heading: 'The round changed',
+            stimulus: 'Eight seconds pass before a defender is heard rotating.',
+            updates: [
+              {
+                id: 'rotation',
+                status: 'new',
+                text: 'A defender is heard leaving B.',
+              },
+            ],
+            responses: [
+              { id: 'keep_original', label: 'Keep the original line' },
+              { id: 'change_mid', label: 'Change to pressure middle' },
+            ],
           },
         },
         error: null,
@@ -147,7 +194,26 @@ test('a released case opens its protected briefing and evidence step', async ({
   await page.getByRole('checkbox', { name: 'Last defender sighting' }).check()
 
   await expect(page.getByText('2 of 2 selected')).toBeVisible()
-  await expect(page.getByRole('status')).toHaveText(
-    'Selection ready for the decision step',
-  )
+  await page.getByRole('button', { name: 'Continue to call' }).click()
+  await page.getByRole('radio', { name: 'Regroup toward A' }).check()
+  await page.getByRole('radio', { name: 'Quietly' }).check()
+  await page.getByRole('radio', { name: 'Fairly sure' }).check()
+  await page.getByRole('button', { name: 'Review call' }).click()
+  await expect(page.getByRole('heading', { name: 'Review your line' })).toBeVisible()
+  await page.getByRole('button', { name: 'Lock main call' }).click()
+  await expect(page.getByRole('heading', { name: 'The round changed' })).toBeFocused()
+  await expect(page.getByText('Main locked')).toBeVisible()
+
+  if (process.env.ROUNDCRAFT_CAPTURE_VISUALS === '1') {
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.screenshot({
+      path: 'test-results/roundcraft-followup-desktop.png',
+      fullPage: true,
+    })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.screenshot({
+      path: 'test-results/roundcraft-followup-mobile.png',
+      fullPage: true,
+    })
+  }
 })
