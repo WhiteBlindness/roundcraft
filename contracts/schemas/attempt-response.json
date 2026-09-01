@@ -21,17 +21,27 @@
             "attempt_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
             "edition_id": { "$ref": "#/$defs/identifier" },
             "mode": { "const": "official" },
-            "state": { "enum": ["issued", "main_locked"] },
-            "sequence": { "type": "integer", "minimum": 0, "maximum": 1 },
+            "state": { "enum": ["issued", "main_locked", "decision_complete"] },
+            "sequence": { "type": "integer", "minimum": 0, "maximum": 2 },
             "assisted": { "const": false },
             "issued_at": { "$ref": "#/$defs/timestamp" },
             "grace_end_at": { "$ref": "#/$defs/timestamp" },
-            "main_committed_at": { "$ref": "#/$defs/timestamp" }
+            "main_committed_at": { "$ref": "#/$defs/timestamp" },
+            "followup_committed_at": { "$ref": "#/$defs/timestamp" }
           }
         },
         "brief": { "$ref": "#/$defs/brief" },
         "main_answer": { "$ref": "#/$defs/mainAnswer" },
-        "followup": { "$ref": "#/$defs/followup" }
+        "followup": { "$ref": "#/$defs/followup" },
+        "followup_answer": {
+          "$ref": "https://roundcraft.local/schemas/followup-commit-response.json#/$defs/followupAnswer"
+        },
+        "result": {
+          "$ref": "https://roundcraft.local/schemas/followup-commit-response.json#/$defs/result"
+        },
+        "reveal": {
+          "$ref": "https://roundcraft.local/schemas/followup-commit-response.json#/$defs/reveal"
+        }
       },
       "allOf": [
         {
@@ -63,6 +73,38 @@
                 "properties": {
                   "sequence": { "const": 1 },
                   "main_committed_at": { "$ref": "#/$defs/timestamp" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attempt": { "type": "object", "properties": { "state": { "const": "decision_complete" } } }
+            }
+          },
+          "then": {
+            "required": ["main_answer", "followup", "followup_answer", "result", "reveal"],
+            "properties": {
+              "main_answer": { "$ref": "#/$defs/mainAnswer" },
+              "followup": { "$ref": "#/$defs/followup" },
+              "followup_answer": {
+                "$ref": "https://roundcraft.local/schemas/followup-commit-response.json#/$defs/followupAnswer"
+              },
+              "result": {
+                "$ref": "https://roundcraft.local/schemas/followup-commit-response.json#/$defs/result"
+              },
+              "reveal": {
+                "$ref": "https://roundcraft.local/schemas/followup-commit-response.json#/$defs/reveal"
+              },
+              "attempt": {
+                "type": "object",
+                "required": ["main_committed_at", "followup_committed_at"],
+                "properties": {
+                  "sequence": { "const": 2 },
+                  "main_committed_at": { "$ref": "#/$defs/timestamp" },
+                  "followup_committed_at": { "$ref": "#/$defs/timestamp" }
                 }
               }
             }

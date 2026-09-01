@@ -5,6 +5,7 @@ import {
   getAttempt,
 } from './attempts'
 import type { Bindings } from './bindings'
+import { commitFollowupAnswer } from './followup-commit'
 import { commitMainAnswer } from './main-commit'
 import { enforceRateLimit } from './rate-limit'
 import { createOrRenewSession } from './session'
@@ -135,6 +136,26 @@ api.post('/api/v1/attempts/:attemptId/main-commit', async (context) => {
   return (
     limited ??
     commitMainAnswer(
+      context.req.raw,
+      context.env,
+      requestId,
+      context.req.param('attemptId'),
+    )
+  )
+})
+
+api.post('/api/v1/attempts/:attemptId/followup-commit', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'attempt-followup-commit',
+    requestId,
+  )
+
+  return (
+    limited ??
+    commitFollowupAnswer(
       context.req.raw,
       context.env,
       requestId,

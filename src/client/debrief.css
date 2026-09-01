@@ -1,0 +1,326 @@
+.followup-choice {
+  max-width: 760px;
+}
+
+.followup-form {
+  padding-block: 8px;
+}
+
+.result-pending {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+  border-top: 1px solid rgb(12 80 72 / 35%);
+  border-bottom: 1px solid rgb(12 80 72 / 35%);
+  color: #113d38;
+}
+
+.result-pending p {
+  margin: 0;
+  color: #52615e;
+  line-height: 1.55;
+}
+
+.debrief-screen {
+  display: grid;
+  gap: clamp(64px, 9vw, 112px);
+}
+
+.debrief-opening {
+  display: grid;
+  align-items: end;
+  gap: 18px clamp(32px, 6vw, 100px);
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.7fr);
+}
+
+.debrief-opening h1 {
+  max-width: 13ch;
+  margin: 0;
+  color: #0c5048;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3.4rem, 7vw, 6rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.94;
+}
+
+.debrief-opening p {
+  max-width: 42ch;
+  margin: 0 0 8px;
+  color: #40504d;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.05rem, 2vw, 1.3rem);
+  line-height: 1.55;
+}
+
+.continuation-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgb(12 80 72 / 28%);
+  list-style: none;
+}
+
+.continuation-list li {
+  display: grid;
+  gap: 28px;
+  padding: 26px 0;
+  border-bottom: 1px solid rgb(23 32 31 / 15%);
+  grid-template-columns: 100px 1fr;
+}
+
+.continuation-list time {
+  color: #bd4f29;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.continuation-list div {
+  display: grid;
+  max-width: 70ch;
+  gap: 8px;
+}
+
+.continuation-list strong {
+  color: #113d38;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.continuation-list p {
+  margin: 0;
+  color: #40504d;
+  line-height: 1.55;
+}
+
+.result-summary {
+  display: grid;
+  align-items: end;
+  gap: 32px;
+  padding-block: 36px;
+  border-top: 2px solid #0c5048;
+  border-bottom: 1px solid rgb(12 80 72 / 28%);
+  grid-template-columns: minmax(260px, 1fr) auto;
+}
+
+.result-summary h2,
+.comparison-section h2,
+.tactical-debrief > h2,
+.principle-card h2 {
+  margin: 0;
+  color: #113d38;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.result-summary > div > p {
+  margin: 10px 0 0;
+  color: #61706d;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.total-score {
+  color: #0c5048;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(4rem, 8vw, 6rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.8;
+}
+
+.total-score span {
+  margin-left: 4px;
+  color: #61706d;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.score-components,
+.result-bands {
+  display: grid;
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
+.score-components {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.result-bands {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.score-components div,
+.result-bands div {
+  display: grid;
+  gap: 10px;
+  padding: 20px 24px 20px 0;
+  border-top: 1px solid rgb(23 32 31 / 15%);
+}
+
+.score-components div + div,
+.result-bands div + div {
+  padding-left: 24px;
+  border-left: 1px solid rgb(23 32 31 / 15%);
+}
+
+.score-components dt,
+.result-bands dt {
+  color: #697773;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.score-components dd,
+.result-bands dd {
+  margin: 0;
+  color: #113d38;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+}
+
+.comparison-section,
+.tactical-debrief {
+  display: grid;
+  gap: 32px;
+}
+
+.comparison-grid {
+  display: grid;
+  border-top: 1px solid rgb(12 80 72 / 28%);
+  border-bottom: 1px solid rgb(12 80 72 / 28%);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.comparison-grid article {
+  padding: 34px 36px 34px 0;
+}
+
+.comparison-grid article + article {
+  padding-right: 0;
+  padding-left: 36px;
+  border-left: 1px solid rgb(12 80 72 / 22%);
+}
+
+.comparison-grid h3 {
+  margin: 0 0 22px;
+  color: #0c5048;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.comparison-grid p {
+  max-width: 58ch;
+  margin: 0;
+  color: #40504d;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+
+.comparison-grid p + p {
+  margin-top: 14px;
+}
+
+.tactical-debrief > dl {
+  margin: 0;
+  border-top: 1px solid rgb(12 80 72 / 28%);
+}
+
+.tactical-debrief > dl > div {
+  display: grid;
+  gap: 32px;
+  padding: 24px 0;
+  border-bottom: 1px solid rgb(23 32 31 / 15%);
+  grid-template-columns: minmax(190px, 0.4fr) 1fr;
+}
+
+.tactical-debrief dt {
+  color: #0c5048;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tactical-debrief dd {
+  max-width: 72ch;
+  margin: 0;
+  color: #33423f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  line-height: 1.62;
+}
+
+.tactical-debrief dd p,
+.tactical-debrief dd ul {
+  margin: 0;
+}
+
+.tactical-debrief dd ul {
+  padding-left: 20px;
+}
+
+.principle-card {
+  display: grid;
+  gap: 24px;
+  padding: clamp(32px, 5vw, 64px) 0;
+  border-top: 2px solid #ef6b3a;
+  border-bottom: 1px solid rgb(12 80 72 / 28%);
+}
+
+.principle-card p {
+  max-width: 31ch;
+  margin: 0;
+  color: #0c5048;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+
+@media (max-width: 760px) {
+  .debrief-opening,
+  .result-summary,
+  .comparison-grid,
+  .tactical-debrief > dl > div {
+    grid-template-columns: 1fr;
+  }
+
+  .debrief-opening h1 {
+    font-size: clamp(3rem, 15vw, 4.5rem);
+  }
+
+  .score-components,
+  .result-bands {
+    grid-template-columns: 1fr;
+  }
+
+  .score-components div + div,
+  .result-bands div + div {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .comparison-grid article,
+  .comparison-grid article + article {
+    padding: 28px 0;
+    border-left: 0;
+  }
+
+  .comparison-grid article + article {
+    border-top: 1px solid rgb(12 80 72 / 22%);
+  }
+
+  .continuation-list li {
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+}

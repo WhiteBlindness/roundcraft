@@ -1,0 +1,132 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "edition_id": "edition_today_001",
+      "mode": "official",
+      "state": "decision_complete",
+      "sequence": 2,
+      "assisted": false,
+      "issued_at": "2026-09-01T14:45:00.000Z",
+      "grace_end_at": "2026-09-02T12:00:00.000Z",
+      "main_committed_at": "2026-09-01T14:48:00.000Z",
+      "followup_committed_at": "2026-09-01T14:49:00.000Z"
+    },
+    "brief": {
+      "schemaVersion": 1,
+      "editionId": "edition_today_001",
+      "caseRevision": "case_revision_today_001",
+      "title": "The last smoke",
+      "focus": "Resource allocation under uncertainty",
+      "origin": "synthetic",
+      "facts": [
+        { "id": "fact_bomb", "status": "confirmed", "text": "The bomb is down outside B." }
+      ],
+      "actions": [
+        { "id": "regroup_a", "label": "Regroup toward A", "qualifierIds": ["quiet", "fast"] },
+        { "id": "pressure_mid", "label": "Pressure middle", "qualifierIds": ["paired", "delayed"] },
+        { "id": "hold_shape", "label": "Hold shape", "qualifierIds": ["passive", "contact"] }
+      ],
+      "qualifiers": [
+        { "id": "quiet", "label": "Quietly" },
+        { "id": "fast", "label": "Immediately" },
+        { "id": "paired", "label": "As a pair" },
+        { "id": "delayed", "label": "After a delay" },
+        { "id": "passive", "label": "Passively" },
+        { "id": "contact", "label": "On contact" }
+      ],
+      "evidence": [
+        { "id": "bomb", "label": "Bomb location" },
+        { "id": "sighting", "label": "Last sighting" },
+        { "id": "utility", "label": "Utility" },
+        { "id": "clock", "label": "Clock" },
+        { "id": "spacing", "label": "Spacing" }
+      ],
+      "confidence": [
+        { "id": "guessing", "label": "Guessing" },
+        { "id": "leaning", "label": "Leaning" },
+        { "id": "fairly_sure", "label": "Fairly sure" },
+        { "id": "strong_read", "label": "Strong read" }
+      ]
+    },
+    "main_answer": {
+      "action_id": "regroup_a",
+      "qualifier_id": "quiet",
+      "evidence_ids": ["bomb", "utility"],
+      "confidence_id": "fairly_sure"
+    },
+    "followup": {
+      "schemaVersion": 1,
+      "caseRevision": "case_revision_today_001",
+      "type": "new_information",
+      "heading": "The round changed",
+      "stimulus": "Eight seconds pass before a defender is heard rotating.",
+      "updates": [
+        { "id": "rotation", "status": "new", "text": "A defender is heard leaving B." }
+      ],
+      "responses": [
+        { "id": "keep_original", "label": "Keep the original line" },
+        { "id": "change_mid", "label": "Change to pressure middle" }
+      ]
+    },
+    "followup_answer": {
+      "case_revision": "case_revision_today_001",
+      "type": "new_information",
+      "response_id": "change_mid"
+    },
+    "result": {
+      "version": 1,
+      "total": 89,
+      "components": { "main": 45, "evidence": 16, "followup": 28 },
+      "main_band": "Best-supported",
+      "followup_band": "Best-supported",
+      "confidence_id": "fairly_sure",
+      "mode": "official",
+      "assisted": false,
+      "participation": "awarded"
+    },
+    "reveal": {
+      "schemaVersion": 1,
+      "caseRevision": "case_revision_today_001",
+      "continuation": {
+        "kind": "authored",
+        "events": [{
+          "timestamp": "00:23",
+          "action": "The pair re-cleared middle.",
+          "consequence": "The rotation was confirmed.",
+          "state": "The round ended with a supported A split."
+        }]
+      },
+      "comparison": {
+        "roundAction": "Re-clear middle before committing.",
+        "materialInformation": "The aged sighting and rotation sound.",
+        "roundFollowup": "The authored line changed after the cue."
+      },
+      "debrief": {
+        "whyItWorks": "It refreshes the oldest decisive information.",
+        "cost": "It spends time and gives up immediate pressure.",
+        "assumption": "The pair can trade the re-clear.",
+        "breaksWhen": "The clock no longer permits a second route.",
+        "evidenceReview": [
+          { "evidenceId": "bomb", "explanation": "The bomb preserved both routes." },
+          { "evidenceId": "utility", "explanation": "The smoke made the re-clear survivable." }
+        ],
+        "followupReview": "Changing line responded to the new information.",
+        "strongestAlternative": "Keep the line, but accelerate.",
+        "counterfactual": {
+          "changedFact": "Remove the rotation sound.",
+          "effect": "Keeping the original line becomes equally strong."
+        },
+        "method": "Synthetic case reviewed against disclosed state only.",
+        "sources": [{ "label": "Roundcraft method", "detail": "Synthetic continuation." }]
+      },
+      "principle": "When new information invalidates the route assumption, refresh the decision before committing the remaining time."
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "9fd0debf-8f44-4a19-a4e8-a123a1132b24",
+    "api_version": "v1"
+  }
+}

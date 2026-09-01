@@ -151,6 +151,85 @@ describe('App', () => {
           meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
         }),
       )
+      .mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+          data: {
+            attempt: {
+              attempt_id: 'b'.repeat(43),
+              state: 'decision_complete',
+              sequence: 2,
+              followup_committed_at: '2026-09-01T14:49:00.000Z',
+            },
+            main_answer: {
+              action_id: 'a',
+              qualifier_id: 'q1',
+              evidence_ids: ['e1', 'e2'],
+              confidence_id: 'fairly_sure',
+            },
+            followup_answer: {
+              case_revision: 'case_revision_001',
+              type: 'new_information',
+              response_id: 'change_mid',
+            },
+            result: {
+              version: 1,
+              total: 89,
+              components: { main: 45, evidence: 16, followup: 28 },
+              main_band: 'Best-supported',
+              followup_band: 'Best-supported',
+              confidence_id: 'fairly_sure',
+              mode: 'official',
+              assisted: false,
+              participation: 'awarded',
+            },
+            reveal: {
+              schemaVersion: 1,
+              caseRevision: 'case_revision_001',
+              continuation: {
+                kind: 'authored',
+                events: [
+                  {
+                    timestamp: '00:23',
+                    action: 'The pair re-cleared middle.',
+                    consequence: 'The rotation was confirmed.',
+                    state: 'The round ended with a supported A split.',
+                  },
+                ],
+              },
+              comparison: {
+                roundAction: 'Re-clear middle before committing.',
+                materialInformation: 'The new rotation sound.',
+                roundFollowup: 'The authored line changed after the cue.',
+              },
+              debrief: {
+                whyItWorks: 'It refreshes the oldest decisive information.',
+                cost: 'It spends time.',
+                assumption: 'The pair can trade.',
+                breaksWhen: 'The clock no longer permits a second route.',
+                evidenceReview: [
+                  { evidenceId: 'e1', explanation: 'The bomb preserved both routes.' },
+                  { evidenceId: 'e2', explanation: 'The sighting had aged.' },
+                ],
+                followupReview: 'The change responded to the new information.',
+                strongestAlternative: 'Keep the line, but accelerate.',
+                counterfactual: {
+                  changedFact: 'Remove the sound cue.',
+                  effect: 'Keeping the line becomes equally strong.',
+                },
+                method: 'Synthetic case reviewed against disclosed state only.',
+                sources: [
+                  { label: 'Roundcraft method', detail: 'Synthetic continuation.' },
+                ],
+              },
+              principle:
+                'When new information invalidates the route assumption, refresh the decision before committing the remaining time.',
+            },
+          },
+          error: null,
+          meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+        }),
+      )
     vi.stubGlobal('fetch', fetchMock)
 
     render(<App />)
@@ -205,6 +284,25 @@ describe('App', () => {
     ).toHaveFocus()
     expect(screen.getByText('Main locked')).toBeInTheDocument()
     expect(screen.getByText('A defender is heard leaving B.')).toBeInTheDocument()
+    await user.click(
+      screen.getByRole('radio', { name: 'Change to pressure middle' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Review update' }))
+    expect(
+      screen.getByRole('heading', { name: 'Review your update' }),
+    ).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Lock follow-up' }))
+    expect(
+      await screen.findByRole('heading', {
+        name: 'What actually happened',
+        level: 1,
+      }),
+    ).toHaveFocus()
+    expect(screen.getByText('89')).toBeInTheDocument()
+    expect(screen.getByText('Participation')).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'What to remember from this round' }),
+    ).toBeInTheDocument()
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/today', {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
@@ -242,6 +340,25 @@ describe('App', () => {
           qualifier_id: 'q1',
           evidence_ids: ['e1', 'e2'],
           confidence_id: 'fairly_sure',
+        }),
+      },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      5,
+      `/api/v1/attempts/${'b'.repeat(43)}/followup-commit`,
+      {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': expect.any(String),
+          'if-match': '"1"',
+          'x-csrf-token': 'a'.repeat(43),
+        },
+        body: JSON.stringify({
+          case_revision: 'case_revision_001',
+          type: 'new_information',
+          response_id: 'change_mid',
         }),
       },
     )

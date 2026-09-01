@@ -22,18 +22,29 @@ const errors = readJson('errors.json') as {
   errors: Array<{ code: string; status: number; message: string }>
 }
 
+function contractValidator(schemaPath: string) {
+  const ajv = new Ajv2020({ allErrors: true, strict: true })
+
+  if (schemaPath !== 'schemas/followup-commit-response.json') {
+    ajv.addSchema(readJson('schemas/followup-commit-response.json'))
+  }
+
+  return { ajv, validator: ajv.compile(readJson(schemaPath)) }
+}
+
 describe('Roundcraft API contracts', () => {
-  it('publishes only the approved routes through the main commitment', () => {
+  it('publishes only the approved routes through the follow-up commitment', () => {
     expect(openApi.openapi).toBe('3.1.0')
     expect(Object.keys(openApi.paths).sort()).toEqual([
       '/attempts',
       '/attempts/{attempt_id}',
+      '/attempts/{attempt_id}/followup-commit',
       '/attempts/{attempt_id}/main-commit',
       '/session',
       '/today',
     ])
     expect(JSON.stringify(openApi)).not.toMatch(
-      /rubric|future|preferred_action|server_scoring|reveal/i,
+      /rubric|future|preferred_action|server_scoring/i,
     )
   })
 
@@ -54,10 +65,11 @@ describe('Roundcraft API contracts', () => {
     ['schemas/today-response.json', 'examples/today.unavailable.json'],
     ['schemas/attempt-response.json', 'examples/attempt.success.json'],
     ['schemas/attempt-response.json', 'examples/attempt.locked.json'],
+    ['schemas/attempt-response.json', 'examples/attempt.complete.json'],
     ['schemas/main-commit-response.json', 'examples/main-commit.success.json'],
+    ['schemas/followup-commit-response.json', 'examples/followup-commit.success.json'],
   ])('validates %s against %s', (schemaPath, examplePath) => {
-    const ajv = new Ajv2020({ allErrors: true, strict: true })
-    const validator = ajv.compile(readJson(schemaPath))
+    const { ajv, validator } = contractValidator(schemaPath)
 
     expect(validator(readJson(examplePath)), ajv.errorsText(validator.errors)).toBe(
       true,
@@ -69,10 +81,9 @@ describe('Roundcraft API contracts', () => {
     ['schemas/today-response.json', 'examples/today.invalid.json'],
     ['schemas/attempt-response.json', 'examples/attempt.invalid.json'],
     ['schemas/main-commit-response.json', 'examples/main-commit.invalid.json'],
+    ['schemas/followup-commit-response.json', 'examples/followup-commit.invalid.json'],
   ])('rejects invalid example %s against %s', (schemaPath, examplePath) => {
-    const validator = new Ajv2020({ allErrors: true, strict: true }).compile(
-      readJson(schemaPath),
-    )
+    const { validator } = contractValidator(schemaPath)
 
     expect(validator(readJson(examplePath))).toBe(false)
   })

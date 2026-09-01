@@ -6,9 +6,11 @@ import {
   commitMainAnswer,
   loadToday,
   type AttemptData,
+  type FollowupCommitData,
   type MainCommitData,
   type TodayData,
 } from './api'
+import { FollowupExperience } from './FollowupExperience'
 
 type TodayState =
   | { readonly kind: 'loading' }
@@ -48,7 +50,13 @@ interface AttemptExperienceProps {
   readonly onExit: () => void
 }
 
-type AttemptStage = 'brief' | 'evidence' | 'call' | 'review' | 'followup'
+type AttemptStage =
+  | 'brief'
+  | 'evidence'
+  | 'call'
+  | 'review'
+  | 'followup'
+  | 'debrief'
 
 function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) {
   const resumedCommit: MainCommitData | null =
@@ -56,16 +64,31 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
       ? {
           attempt: {
             attempt_id: data.attempt.attempt_id,
-            state: data.attempt.state,
-            sequence: data.attempt.sequence,
+            state: 'main_locked',
+            sequence: 1,
             main_committed_at: data.attempt.main_committed_at,
           },
           main_answer: data.main_answer,
           followup: data.followup,
         }
       : null
+  const resumedResult: FollowupCommitData | null =
+    'result' in data
+      ? {
+          attempt: {
+            attempt_id: data.attempt.attempt_id,
+            state: 'decision_complete',
+            sequence: 2,
+            followup_committed_at: data.attempt.followup_committed_at,
+          },
+          main_answer: data.main_answer,
+          followup_answer: data.followup_answer,
+          result: data.result,
+          reveal: data.reveal,
+        }
+      : null
   const [stage, setStage] = useState<AttemptStage>(
-    resumedCommit ? 'followup' : 'brief',
+    resumedResult ? 'debrief' : resumedCommit ? 'followup' : 'brief',
   )
   const [selectedEvidence, setSelectedEvidence] = useState<readonly string[]>(
     resumedCommit?.main_answer.evidence_ids ?? [],
@@ -89,12 +112,7 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
   const idempotencyKey = useRef(
     loadMainIdempotencyKey(data.attempt.attempt_id),
   )
-  const followupHeading = useRef<HTMLHeadingElement>(null)
   const { brief } = data
-
-  useEffect(() => {
-    if (stage === 'followup') followupHeading.current?.focus()
-  }, [stage])
 
   useEffect(() => {
     try {
@@ -206,7 +224,7 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
           <li aria-current={stage === 'evidence' ? 'step' : undefined}>Evidence</li>
           <li aria-current={decisionStage ? 'step' : undefined}>Decision</li>
           <li aria-current={stage === 'followup' ? 'step' : undefined}>Follow-up</li>
-          <li>Debrief</li>
+          <li aria-current={stage === 'debrief' ? 'step' : undefined}>Debrief</li>
         </ol>
       </header>
 
@@ -470,33 +488,15 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
           </section>
         ) : null}
 
-        {stage === 'followup' && mainCommit ? (
-          <section className="followup-screen" aria-labelledby="followup-title">
-            <div className="locked-line">
-              <span>Main locked</span>
-              <p>
-                {optionLabel(brief.actions, mainCommit.main_answer.action_id)} ·{' '}
-                {optionLabel(brief.qualifiers, mainCommit.main_answer.qualifier_id)}
-              </p>
-            </div>
-            <div className="decision-heading">
-              <h1 id="followup-title" ref={followupHeading} tabIndex={-1}>
-                {mainCommit.followup.heading}
-              </h1>
-              <p>{mainCommit.followup.stimulus}</p>
-            </div>
-            <ul className="followup-updates">
-              {mainCommit.followup.updates.map((update) => (
-                <li key={update.id}>
-                  <span>{update.status}</span>
-                  <p>{update.text}</p>
-                </li>
-              ))}
-            </ul>
-            <p className="followup-pending">
-              Keep the locked line in view while you assess what changed.
-            </p>
-          </section>
+        {(stage === 'followup' || stage === 'debrief') && mainCommit ? (
+          <FollowupExperience
+            attemptId={data.attempt.attempt_id}
+            csrfToken={csrfToken}
+            brief={brief}
+            mainCommit={mainCommit}
+            initialResult={resumedResult}
+            onStageChange={setStage}
+          />
         ) : null}
       </main>
     </div>

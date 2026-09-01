@@ -1,0 +1,75 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "state": "decision_complete",
+      "sequence": 2,
+      "followup_committed_at": "2026-09-01T14:49:00.000Z"
+    },
+    "main_answer": {
+      "action_id": "regroup_a",
+      "qualifier_id": "quiet",
+      "evidence_ids": ["bomb_location", "utility"],
+      "confidence_id": "fairly_sure"
+    },
+    "followup_answer": {
+      "case_revision": "case_revision_001",
+      "type": "new_information",
+      "response_id": "change_mid"
+    },
+    "result": {
+      "version": 1,
+      "total": 89,
+      "components": { "main": 45, "evidence": 16, "followup": 28 },
+      "main_band": "Best-supported",
+      "followup_band": "Best-supported",
+      "confidence_id": "fairly_sure",
+      "mode": "official",
+      "assisted": false,
+      "participation": "awarded"
+    },
+    "reveal": {
+      "schemaVersion": 1,
+      "caseRevision": "case_revision_001",
+      "continuation": {
+        "kind": "authored",
+        "events": [{
+          "timestamp": "00:23",
+          "action": "The pair re-cleared middle.",
+          "consequence": "The rotation was confirmed.",
+          "state": "The round ended with a supported A split."
+        }]
+      },
+      "comparison": {
+        "roundAction": "Re-clear middle before committing.",
+        "materialInformation": "The aged sighting and rotation sound.",
+        "roundFollowup": "The authored line changed after the cue."
+      },
+      "debrief": {
+        "whyItWorks": "It refreshes the oldest decisive information.",
+        "cost": "It spends time and gives up immediate site pressure.",
+        "assumption": "The pair can trade the re-clear.",
+        "breaksWhen": "The clock no longer permits a second route.",
+        "evidenceReview": [
+          { "evidenceId": "bomb_location", "explanation": "The bomb preserved both routes." },
+          { "evidenceId": "utility", "explanation": "The smoke made the re-clear survivable." }
+        ],
+        "followupReview": "Changing line responded to the new information.",
+        "strongestAlternative": "Keep the line, but accelerate.",
+        "counterfactual": {
+          "changedFact": "Remove the rotation sound.",
+          "effect": "Keeping the original line becomes equally strong."
+        },
+        "method": "Synthetic case reviewed against disclosed state only.",
+        "sources": [{ "label": "Roundcraft method", "detail": "Synthetic continuation." }]
+      },
+      "principle": "When new information invalidates the route assumption, refresh the decision before committing the remaining time."
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "123e4567-e89b-42d3-a456-426614174000",
+    "api_version": "v1"
+  }
+}
