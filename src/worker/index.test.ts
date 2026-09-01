@@ -1,0 +1,47 @@
+import { describe, expect, it } from 'vitest'
+
+import worker from './index'
+
+describe('Roundcraft Worker', () => {
+  it('returns a versioned health response with security headers', async () => {
+    const response = await worker.fetch(
+      new Request('https://roundcraft.test/api/v1/health'),
+      { APP_ENV: 'test' },
+      {} as ExecutionContext,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      ok: true,
+      data: { status: 'ok', environment: 'test' },
+      error: null,
+      meta: {
+        api_version: 'v1',
+        request_id: expect.any(String),
+      },
+    })
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    expect(response.headers.get('content-security-policy')).toContain(
+      "script-src 'self'",
+    )
+    expect(response.headers.get('content-security-policy')).not.toContain(
+      "'unsafe-inline'",
+    )
+  })
+
+  it('permits Vite development injection only in the local environment', async () => {
+    const response = await worker.fetch(
+      new Request('https://roundcraft.test/api/v1/health'),
+      { APP_ENV: 'local' },
+      {} as ExecutionContext,
+    )
+
+    expect(response.headers.get('content-security-policy')).toContain(
+      "script-src 'self' 'unsafe-inline'",
+    )
+    expect(response.headers.get('content-security-policy')).toContain(
+      "style-src 'self' 'unsafe-inline'",
+    )
+  })
+})
