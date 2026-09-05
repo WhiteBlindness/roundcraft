@@ -544,11 +544,13 @@ export function App() {
     const path = target === 'today' ? '/' : `/${target}`
     window.history.pushState(null, '', path)
     setPage(target)
+    window.scrollTo(0, 0)
   }
 
   useEffect(() => {
     function handlePopState(): void {
       setPage(getInitialPage())
+      window.scrollTo(0, 0)
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -646,7 +648,11 @@ export function App() {
         csrfToken={activeAttempt.csrfToken}
         caseNumber={activeAttempt.caseNumber}
         editionDate={activeAttempt.editionDate}
-        onExit={() => setActiveAttempt(null)}
+        onExit={() => {
+          setActiveAttempt(null)
+          setReloadKey((k) => k + 1)
+          window.scrollTo(0, 0)
+        }}
       />
     )
   }
