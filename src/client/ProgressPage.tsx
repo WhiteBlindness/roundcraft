@@ -54,9 +54,45 @@ export function ProgressPage({ onNavigateToday }: ProgressPageProps) {
 
   if (state.kind === 'loading') {
     return (
-      <section className="page-state" aria-live="polite">
-        <p className="eyebrow">Progress</p>
-        <h1>Loading history</h1>
+      <section className="progress-page progress-skeleton" aria-live="polite" aria-busy="true">
+        <header className="progress-header">
+          <div>
+            <p className="eyebrow"><span className="skel skel-text-s">&nbsp;</span></p>
+            <h1><span className="skel skel-text-l">&nbsp;</span></h1>
+          </div>
+          <dl className="progress-summary">
+            {[1, 2, 3].map((n) => (
+              <div key={n}>
+                <dt><span className="skel skel-text-s">&nbsp;</span></dt>
+                <dd><span className="skel skel-text-s">&nbsp;</span></dd>
+              </div>
+            ))}
+          </dl>
+        </header>
+        <div className="progress-table-wrap">
+          <table className="progress-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Date</th>
+                <th>Total</th>
+                <th>Main</th>
+                <th>Evidence</th>
+                <th>Follow-up</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3].map((n) => (
+                <tr key={n}>
+                  {[1, 2, 3, 4, 5, 6, 7].map((c) => (
+                    <td key={c}><span className="skel skel-text-s">&nbsp;</span></td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     )
   }

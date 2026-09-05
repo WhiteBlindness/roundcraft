@@ -16,6 +16,23 @@ import { FollowupExperience } from './FollowupExperience'
 import { ProgressPage } from './ProgressPage'
 import { SettingsPage } from './SettingsPage'
 
+function useOnlineStatus(): boolean {
+  const [online, setOnline] = useState(navigator.onLine)
+
+  useEffect(() => {
+    function goOnline() { setOnline(true) }
+    function goOffline() { setOnline(false) }
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
+
+  return online
+}
+
 type TodayState =
   | { readonly kind: 'loading' }
   | { readonly kind: 'ready'; readonly data: TodayData }
@@ -542,6 +559,7 @@ function getInitialPage(): AppPage {
 }
 
 export function App() {
+  const isOnline = useOnlineStatus()
   const [page, setPage] = useState<AppPage>(getInitialPage)
   const [today, setToday] = useState<TodayState>({ kind: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
@@ -704,6 +722,11 @@ export function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
+      {!isOnline ? (
+        <p className="offline-banner" role="alert">
+          You are offline. Some features may be unavailable.
+        </p>
+      ) : null}
       <header className="site-header">
         <a
           className="wordmark"

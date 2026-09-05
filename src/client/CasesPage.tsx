@@ -238,9 +238,28 @@ export function CasesPage() {
 
   if (state.kind === 'loading') {
     return (
-      <section className="page-state" aria-live="polite">
-        <p className="eyebrow">Cases</p>
-        <h1>Loading archive</h1>
+      <section className="cases-page cases-skeleton" aria-live="polite" aria-busy="true">
+        <header className="cases-header">
+          <div>
+            <p className="eyebrow"><span className="skel skel-text-s">&nbsp;</span></p>
+            <h1><span className="skel skel-text-l">&nbsp;</span></h1>
+            <p className="case-intro"><span className="skel skel-text-l">&nbsp;</span></p>
+          </div>
+        </header>
+        <ul className="cases-list">
+          {[1, 2, 3].map((n) => (
+            <li key={n} className="case-card">
+              <div className="case-card-body">
+                <div className="case-card-top">
+                  <span className="skel skel-text-s">&nbsp;</span>
+                  <span className="skel skel-text-s">&nbsp;</span>
+                </div>
+                <p><span className="skel skel-text-m">&nbsp;</span></p>
+              </div>
+              <span className="skel skel-button">&nbsp;</span>
+            </li>
+          ))}
+        </ul>
       </section>
     )
   }

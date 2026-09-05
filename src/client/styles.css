@@ -1882,8 +1882,24 @@ footer p {
   flex-wrap: wrap;
 }
 
+.offline-banner {
+  margin: 0;
+  padding: 10px 20px;
+  background: #d4534a;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
 .case-skeleton .case-kicker {
   background: #d4d0c8;
+}
+
+.cases-skeleton .case-card,
+.progress-skeleton .progress-table tbody td {
+  pointer-events: none;
 }
 
 .skel {
