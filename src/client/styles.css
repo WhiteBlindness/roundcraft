@@ -39,6 +39,10 @@ input:focus-visible {
   outline-offset: 4px;
 }
 
+#main-content:focus {
+  outline: none;
+}
+
 .skip-link {
   position: absolute;
   top: -100%;

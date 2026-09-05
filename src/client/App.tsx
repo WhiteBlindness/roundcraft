@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   createAttempt,
@@ -545,6 +545,7 @@ export function App() {
   const [page, setPage] = useState<AppPage>(getInitialPage)
   const [today, setToday] = useState<TodayState>({ kind: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
+  const mainRef = useRef<HTMLElement>(null)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [activeAttempt, setActiveAttempt] = useState<{
@@ -554,12 +555,13 @@ export function App() {
     readonly editionDate: string
   } | null>(null)
 
-  function navigate(target: AppPage): void {
+  const navigate = useCallback((target: AppPage): void => {
     const path = target === 'today' ? '/' : `/${target}`
     window.history.pushState(null, '', path)
     setPage(target)
     window.scrollTo(0, 0)
-  }
+    requestAnimationFrame(() => mainRef.current?.focus())
+  }, [])
 
   useEffect(() => {
     const titles: Record<AppPage, string> = {
@@ -575,6 +577,7 @@ export function App() {
     function handlePopState(): void {
       setPage(getInitialPage())
       window.scrollTo(0, 0)
+      requestAnimationFrame(() => mainRef.current?.focus())
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -597,6 +600,23 @@ export function App() {
       isCurrent = false
     }
   }, [reloadKey])
+
+  useEffect(() => {
+    let hiddenAt: number | null = null
+    const staleThresholdMs = 5 * 60 * 1000
+
+    function handleVisibility() {
+      if (document.hidden) {
+        hiddenAt = Date.now()
+      } else if (hiddenAt && Date.now() - hiddenAt > staleThresholdMs) {
+        hiddenAt = null
+        setReloadKey((k) => k + 1)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   async function handleStart(): Promise<void> {
     setIsCreatingSession(true)
@@ -725,7 +745,7 @@ export function App() {
         </nav>
       </header>
 
-      <main id="main-content">
+      <main id="main-content" ref={mainRef} tabIndex={-1}>
         {page === 'cases' ? <CasesPage /> : null}
         {page === 'progress' ? <ProgressPage onNavigateToday={() => navigate('today')} /> : null}
         {page === 'settings' ? <SettingsPage /> : null}
