@@ -380,3 +380,262 @@ export async function completeDebrief(
 
   return payload.data
 }
+
+const progressEntrySchema = z
+  .object({
+    edition_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+    state: z.enum(['decision_complete', 'debrief_complete']),
+    total_score: z.number().int().min(0).max(100),
+    display_main: z.number().int().min(0).max(50),
+    display_evidence: z.number().int().min(0).max(20),
+    display_followup: z.number().int().min(0).max(30),
+    issued_at: z.iso.datetime(),
+    debrief_completed_at: z.iso.datetime().nullable(),
+  })
+  .strict()
+
+const progressResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        entries: z.array(progressEntrySchema),
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type ProgressEntry = z.infer<typeof progressEntrySchema>
+export type ProgressData = z.infer<typeof progressResponseSchema>['data']
+
+export async function loadProgress(): Promise<ProgressData> {
+  const response = await fetch('/api/v1/progress', {
+    credentials: 'same-origin',
+    headers: { accept: 'application/json' },
+  })
+  const payload = await parseResponse(response, progressResponseSchema)
+
+  return payload.data
+}
+
+const casesEditionSchema = z
+  .object({
+    edition_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+    release_at: z.iso.datetime(),
+    metadata: z.record(z.string(), z.unknown()),
+  })
+  .strict()
+
+const casesResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        editions: z.array(casesEditionSchema),
+        next_cursor: z.string().nullable().optional(),
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type CasesEdition = z.infer<typeof casesEditionSchema>
+export type CasesData = z.infer<typeof casesResponseSchema>['data']
+
+export async function loadCases(cursor?: string): Promise<CasesData> {
+  const params = new URLSearchParams()
+  if (cursor) params.set('cursor', cursor)
+  const query = params.toString()
+  const url = query ? `/api/v1/cases?${query}` : '/api/v1/cases'
+
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    headers: { accept: 'application/json' },
+  })
+  const payload = await parseResponse(response, casesResponseSchema)
+
+  return payload.data
+}
+
+const practiceAttemptBase = {
+  attempt_id: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  edition_id: z.string().regex(/^[a-z0-9_]+$/).max(80),
+  mode: z.literal('practice'),
+  assisted: z.literal(false),
+  issued_at: z.iso.datetime(),
+  grace_end_at: z.iso.datetime(),
+}
+
+const practiceAttemptResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        attempt: z
+          .object({
+            ...practiceAttemptBase,
+            state: z.literal('issued'),
+            sequence: z.literal(0),
+          })
+          .strict(),
+        brief: publicBriefSchema,
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type PracticeAttemptData = z.infer<
+  typeof practiceAttemptResponseSchema
+>['data']
+
+export async function createPracticeAttempt(
+  editionId: string,
+  csrfToken: string,
+): Promise<PracticeAttemptData> {
+  const response = await fetch('/api/v1/practice-attempts', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'content-type': 'application/json',
+      'x-csrf-token': csrfToken,
+    },
+    body: JSON.stringify({ edition_id: editionId }),
+  })
+  const payload = await parseResponse(response, practiceAttemptResponseSchema)
+
+  return payload.data
+}
+
+const fairnessReportResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        report_id: z.uuid(),
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type FairnessReportData = z.infer<
+  typeof fairnessReportResponseSchema
+>['data']
+
+export type FairnessCategory =
+  | 'missing_action'
+  | 'missing_qualifier'
+  | 'missing_evidence'
+  | 'incorrect_disclosed_fact'
+  | 'other'
+
+export async function createFairnessReport(
+  attemptId: string,
+  category: FairnessCategory,
+  csrfToken: string,
+): Promise<FairnessReportData> {
+  const response = await fetch('/api/v1/fairness-reports', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'content-type': 'application/json',
+      'x-csrf-token': csrfToken,
+    },
+    body: JSON.stringify({ attempt_id: attemptId, category }),
+  })
+  const payload = await parseResponse(response, fairnessReportResponseSchema)
+
+  return payload.data
+}
+
+const eventsResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        accepted: z.literal(true),
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export type EventName =
+  | 'today_loaded'
+  | 'attempt_issued'
+  | 'attempt_resumed'
+  | 'state_reached'
+  | 'main_committed'
+  | 'followup_committed'
+  | 'decision_complete'
+  | 'debrief_opened'
+  | 'debrief_complete'
+  | 'sources_opened'
+  | 'share_invoked'
+  | 'fairness_reported'
+  | 'return_visit'
+
+export interface EventProperties {
+  readonly edition_id?: string
+  readonly mode?: 'official' | 'practice'
+  readonly assisted?: boolean
+  readonly state_name?: string
+  readonly version?: string
+  readonly surface?: string
+}
+
+export async function recordEvent(
+  eventName: EventName,
+  properties: EventProperties,
+  csrfToken: string,
+): Promise<void> {
+  try {
+    const response = await fetch('/api/v1/events', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'content-type': 'application/json',
+        'x-csrf-token': csrfToken,
+      },
+      body: JSON.stringify({ event_name: eventName, properties }),
+    })
+    await parseResponse(response, eventsResponseSchema)
+  } catch {
+    // Analytics failures are silently discarded.
+  }
+}
+
+const deleteHistoryResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    data: z
+      .object({
+        deleted: z.literal(true),
+      })
+      .strict(),
+    error: z.null(),
+    meta: metaSchema,
+  })
+  .strict()
+
+export async function deleteHistory(
+  csrfToken: string,
+): Promise<void> {
+  const response = await fetch('/api/v1/history', {
+    method: 'DELETE',
+    credentials: 'same-origin',
+    headers: {
+      'content-type': 'application/json',
+      'x-csrf-token': csrfToken,
+    },
+    body: '{}',
+  })
+  await parseResponse(response, deleteHistoryResponseSchema)
+}
