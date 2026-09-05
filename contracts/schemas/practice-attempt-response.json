@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "data", "error", "meta"],
+  "properties": {
+    "ok": { "const": true },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt", "brief"],
+      "properties": {
+        "attempt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "attempt_id", "edition_id", "mode", "state", "sequence",
+            "assisted", "issued_at", "grace_end_at"
+          ],
+          "properties": {
+            "attempt_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+            "edition_id": { "$ref": "#/$defs/identifier" },
+            "mode": { "const": "practice" },
+            "state": { "const": "issued" },
+            "sequence": { "const": 0 },
+            "assisted": { "const": false },
+            "issued_at": { "$ref": "#/$defs/timestamp" },
+            "grace_end_at": { "$ref": "#/$defs/timestamp" }
+          }
+        },
+        "brief": {
+          "$ref": "https://roundcraft.local/schemas/attempt-response.json#/$defs/brief"
+        }
+      }
+    },
+    "error": { "type": "null" },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "api_version"],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "api_version": { "const": "v1" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    }
+  }
+}

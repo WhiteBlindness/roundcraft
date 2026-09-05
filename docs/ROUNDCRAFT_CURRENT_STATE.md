@@ -1,8 +1,8 @@
 # Roundcraft — estado atual do repositório
 
-**Data:** 04/09/2026
+**Data:** 05/09/2026
 **Ramo:** `claude/roundcraft-phase-3-recovery-7atkq2`
-**HEAD:** `60f7320` (Merge pull request #5)
+**HEAD:** pendente (Fase 4 — endpoints secundários)
 
 ---
 
@@ -21,13 +21,13 @@ roundcraft/
 ├── migrations/
 │   └── 0001_initial.sql                       # 13 tabelas STRICT, 216 linhas
 ├── contracts/
-│   ├── openapi.json                           # OpenAPI 3.1.0, v0.3.0, 7 rotas
+│   ├── openapi.json                           # OpenAPI 3.1.0, v0.4.0, 13 rotas
 │   ├── errors.json                            # 12 códigos de erro
-│   ├── schemas/                               # 6 esquemas JSON de resposta
-│   ├── examples/                              # 11 exemplos válidos e inválidos
-│   └── contracts.test.ts                      # Testes de contrato (17 testes)
+│   ├── schemas/                               # 12 esquemas JSON de resposta
+│   ├── examples/                              # 23 exemplos válidos e inválidos
+│   └── contracts.test.ts                      # Testes de contrato (29 testes)
 ├── src/
-│   ├── worker/                                # 14 ficheiros (rotas, identidade, segurança)
+│   ├── worker/                                # 20 ficheiros (rotas, identidade, segurança)
 │   ├── domain/                                # 14 ficheiros (máquina de estados, classificação, projeções)
 │   └── client/                                # 8 ficheiros (SPA React, API, estilos)
 ├── e2e/
@@ -64,10 +64,10 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 
 | Conjunto | Ficheiros | Testes | Estado |
 |---|---|---|---|
-| Contrato | 1 | 17 | Passou |
+| Contrato | 1 | 29 | Passou |
 | Worker | 13 | 73 | Passou |
 | Cliente | 2 | 7 | Passou |
-| **Total** | **16** | **97** | **Todos passaram** |
+| **Total** | **16** | **109** | **Todos passaram** |
 
 ---
 
@@ -95,7 +95,7 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 | Fase 2 — Exploração de design | "Proposed for user selection" | Datado de 31/08/2026; Design A selecionado |
 | Fase 2B — Design selecionado | "Proposed for approval" | Datado de 31/08/2026; Editorial Tactical Desk |
 | Fase 3 — Arquitetura técnica | "Proposta para aprovação" | Datado de 01/09/2026; 1 068 linhas, em português |
-| Fase 4 — Implementação | Em curso (parcial) | 5 PRs fundidos; fluxo principal completo |
+| Fase 4 — Implementação | Em curso (avançada) | 5 PRs fundidos + 6 endpoints secundários; fluxo completo |
 
 ### B.3 Progressão da Fase 4
 
@@ -119,7 +119,13 @@ A implementação avançou apesar de a Fase 3 estar marcada como "Proposta para 
 | Cliente API | Completo | `api.ts` — validação Zod em todas as respostas |
 | Cabeçalhos de segurança | Completos | CSP, X-Frame-Options, nosniff, Referrer-Policy |
 | Limitação de taxa | Completa | 3 limitadores configurados e aplicados |
-| Contratos OpenAPI | Completos | 7 rotas definidas, esquemas e exemplos |
+| Listar casos (GET /cases) | Completa | `cases.ts` — paginação por cursor |
+| Tentativas de prática (POST /practice-attempts) | Completa | `practice-attempts.ts` — modo practice |
+| Progresso (GET /progress) | Completo | `progress.ts` — edições pontuadas |
+| Relatórios de equidade (POST /fairness-reports) | Completa | `fairness-reports.ts` — 5 categorias |
+| Eventos de produto (POST /events) | Completo | `events.ts` — 13 tipos, retenção 90 dias |
+| Eliminação do histórico (DELETE /history) | Completa | `history.ts` — limpeza atómica D1 batch |
+| Contratos OpenAPI | Completos | 13 rotas definidas, esquemas e exemplos |
 | Migração D1 | Completa | 13 tabelas STRICT com restrições |
 
 ---
@@ -132,12 +138,12 @@ Desvios identificados entre os documentos de planeamento e a implementação atu
 
 | ID | Descrição | Fonte | Impacto |
 |---|---|---|---|
-| D-01 | `GET /cases` — listar edições divulgadas | Fase 3 §12.1 | Sem arquivo de casos passados |
-| D-02 | `POST /practice-attempts` — repetições sem crédito | Fase 3 §12.1 | Sem modo de prática |
-| D-03 | `GET /progress` — histórico da identidade | Fase 3 §12.1 | Sem página de progresso |
-| D-04 | `POST /fairness-reports` — relatórios estruturados | Fase 3 §12.1 | Sem mecanismo de relatório |
-| D-05 | `POST /events` — acontecimentos de produto | Fase 3 §12.1 | Sem analítica de produto |
-| D-06 | `DELETE /history` — eliminação do histórico | Fase 3 §12.1 | Sem eliminação no servidor |
+| ~~D-01~~ | ~~`GET /cases` — listar edições divulgadas~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `cases.ts` implementado |
+| ~~D-02~~ | ~~`POST /practice-attempts` — repetições sem crédito~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `practice-attempts.ts` implementado |
+| ~~D-03~~ | ~~`GET /progress` — histórico da identidade~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `progress.ts` implementado |
+| ~~D-04~~ | ~~`POST /fairness-reports` — relatórios estruturados~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `fairness-reports.ts` implementado |
+| ~~D-05~~ | ~~`POST /events` — acontecimentos de produto~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `events.ts` implementado |
+| ~~D-06~~ | ~~`DELETE /history` — eliminação do histórico~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `history.ts` implementado |
 | D-07 | Turnstile adaptativo | Fase 3 §13.4 | Sem proteção progressiva contra automatização |
 | D-08 | IndexedDB para rascunhos locais | Fase 3 §16.3 | Sem persistência de rascunho fora de linha |
 | D-09 | Tabelas de governação (case_sources, rights_records, etc.) | Fase 3 §8.1 | Não presentes na migração |
@@ -158,7 +164,7 @@ Desvios identificados entre os documentos de planeamento e a implementação atu
 
 | ID | Descrição | Observação |
 |---|---|---|
-| O-01 | OpenAPI define 7 rotas; Fase 3 define 13 | As 6 rotas em falta são funcionalidades secundárias (D-01 a D-06) |
+| ~~O-01~~ | ~~OpenAPI define 7 rotas; Fase 3 define 13~~ | **Resolvido** — OpenAPI v0.4.0 define 13 rotas |
 | O-02 | `GET /health` existe na implementação mas não no OpenAPI | Rota operacional, aceitável omitir do contrato público |
 
 ### C.4 Desvios entre migração e Fase 3
@@ -166,7 +172,7 @@ Desvios identificados entre os documentos de planeamento e a implementação atu
 | ID | Descrição | Observação |
 |---|---|---|
 | M-01 | Migração cria 13 tabelas; Fase 3 lista ~20 tabelas conceptuais | Tabelas de governação, operações e distribuição ficaram para fases posteriores |
-| M-02 | Tabela `fairness_reports` existe na migração mas não tem rota | Estrutura pronta, funcionalidade por implementar |
+| ~~M-02~~ | ~~Tabela `fairness_reports` existe na migração mas não tem rota~~ | **Resolvido** — POST /fairness-reports implementado |
 
 ### C.5 Desvios aceitáveis (decisões de implementação coerentes)
 
@@ -212,9 +218,9 @@ Não foram identificadas lacunas materiais. A Fase 3 cobre exaustivamente todos 
 
 ### D.3 Conclusão
 
-O repositório encontra-se num estado coerente entre planeamento e implementação. A Fase 3 está completa como documento de arquitetura. A Fase 4 avançou parcialmente com o fluxo principal do jogo (7 dos 13 pontos de acesso da API). As 6 rotas em falta, o modo de prática, a analítica, a eliminação e o Turnstile são funcionalidades secundárias a implementar nas próximas iterações da Fase 4.
+O repositório encontra-se num estado coerente e avançado. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre agora as 13 rotas da API (7 do fluxo principal + 6 endpoints secundários). As funcionalidades em falta (D-07 a D-12) são melhoramentos progressivos: Turnstile adaptativo, IndexedDB para rascunhos, tabelas de governação/operações/distribuição e ETag em GET /today.
 
-**Próximo marco:** continuar a Fase 4 com as funcionalidades secundárias, por ordem de prioridade definida pelo produto.
+**Próximo marco:** testes de integração para os endpoints secundários e funcionalidades progressivas (D-07 a D-12).
 
 ---
 
@@ -230,7 +236,7 @@ O repositório encontra-se num estado coerente entre planeamento e implementaç�
 | 6 | CSRF e SameSite aplicados | Passou (comparação em tempo constante, SameSite=Strict) |
 | 7 | CSP restritiva em todas as rotas HTML | Passou (middleware global, adaptada por ambiente) |
 | 8 | Limitação de taxa configurada | Passou (3 limitadores nas rotas críticas) |
-| 9 | Contratos OpenAPI validados | Passou (17 testes de contrato) |
+| 9 | Contratos OpenAPI validados | Passou (29 testes de contrato) |
 | 10 | Migração D1 com restrições CHECK e UNIQUE | Passou (13 tabelas STRICT) |
 | 11 | Testes de concorrência para compromissos simultâneos | Passou (73 testes worker) |
 | 12 | Fase 3 cobre todos os tópicos exigidos | Passou (ver secção D.1) |

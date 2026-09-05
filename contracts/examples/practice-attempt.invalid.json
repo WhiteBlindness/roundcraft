@@ -1,0 +1,53 @@
+{
+  "ok": true,
+  "data": {
+    "attempt": {
+      "attempt_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "edition_id": "edition_today_001",
+      "mode": "official",
+      "state": "issued",
+      "sequence": 0,
+      "assisted": false,
+      "issued_at": "2026-09-01T14:45:00.000Z",
+      "grace_end_at": "2026-09-02T12:00:00.000Z"
+    },
+    "brief": {
+      "schemaVersion": 1,
+      "editionId": "edition_today_001",
+      "caseRevision": "case_revision_today_001",
+      "title": "The last smoke",
+      "focus": "Resource allocation under uncertainty",
+      "origin": "synthetic",
+      "facts": [
+        { "id": "fact_bomb", "status": "confirmed", "text": "The bomb is down outside B." }
+      ],
+      "actions": [
+        { "id": "regroup_a", "label": "Regroup toward A", "qualifierIds": ["quiet", "fast"] },
+        { "id": "pressure_mid", "label": "Pressure middle", "qualifierIds": ["paired", "delayed"] },
+        { "id": "hold_shape", "label": "Hold the current shape", "qualifierIds": ["passive", "contact"] }
+      ],
+      "qualifiers": [
+        { "id": "quiet", "label": "Quietly" },
+        { "id": "fast", "label": "Immediately" }
+      ],
+      "evidence": [
+        { "id": "bomb", "label": "Bomb location" },
+        { "id": "sighting", "label": "Last defender sighting" },
+        { "id": "utility", "label": "Remaining utility" },
+        { "id": "clock", "label": "Round clock" },
+        { "id": "spacing", "label": "Trade spacing" }
+      ],
+      "confidence": [
+        { "id": "guessing", "label": "Guessing" },
+        { "id": "leaning", "label": "Leaning" },
+        { "id": "fairly_sure", "label": "Fairly sure" },
+        { "id": "strong_read", "label": "Strong read" }
+      ]
+    }
+  },
+  "error": null,
+  "meta": {
+    "request_id": "a1b2c3d4-e5f6-4a7b-8c9d-a1b2c3d4e5f6",
+    "api_version": "v1"
+  }
+}
