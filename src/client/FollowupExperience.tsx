@@ -544,7 +544,7 @@ export function FollowupExperience({
               >
                 Review case
               </button>
-              <button type="button" onClick={() => void handleShare()}>
+              <button className="share-action" type="button" onClick={() => void handleShare()}>
                 {shareStatus === 'copied'
                   ? 'Copied to clipboard'
                   : shareStatus === 'shared'

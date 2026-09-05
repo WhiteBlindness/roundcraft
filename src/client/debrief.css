@@ -319,6 +319,21 @@
   gap: 14px;
 }
 
+.share-action {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid #0c5048;
+  background: transparent;
+  color: #0c5048;
+  cursor: pointer;
+  font-weight: 800;
+  transition: background 0.15s ease;
+}
+
+.share-action:hover {
+  background: rgb(12 80 72 / 8%);
+}
+
 .review-completion > button,
 .completion-actions > button:last-child {
   min-height: 52px;

@@ -617,15 +617,16 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
   )
 }
 
-type AppPage = 'today' | 'cases' | 'progress' | 'settings'
+type AppPage = 'today' | 'cases' | 'progress' | 'settings' | 'not-found'
 
 function getInitialPage(): AppPage {
   const path = window.location.pathname
+  if (path === '/' || path === '') return 'today'
   if (path === '/cases') return 'cases'
   if (path === '/progress') return 'progress'
   if (path === '/settings') return 'settings'
 
-  return 'today'
+  return 'not-found'
 }
 
 export function App() {
@@ -657,6 +658,7 @@ export function App() {
       cases: 'Cases — Roundcraft',
       progress: 'Progress — Roundcraft',
       settings: 'Settings — Roundcraft',
+      'not-found': 'Not found — Roundcraft',
     }
     document.title = titles[page]
   }, [page])
@@ -842,6 +844,23 @@ export function App() {
         {page === 'cases' ? <CasesPage /> : null}
         {page === 'progress' ? <ProgressPage onNavigateToday={() => navigate('today')} /> : null}
         {page === 'settings' ? <SettingsPage /> : null}
+
+        {page === 'not-found' ? (
+          <section className="page-state" aria-labelledby="not-found-title">
+            <p className="eyebrow">404</p>
+            <h1 id="not-found-title">Page not found</h1>
+            <p className="case-intro">
+              The page you are looking for does not exist.
+            </p>
+            <a
+              className="inline-nav-link"
+              href="/"
+              onClick={(e) => { e.preventDefault(); navigate('today') }}
+            >
+              Go to Today
+            </a>
+          </section>
+        ) : null}
 
         {page === 'today' ? (
           <>
