@@ -29,7 +29,11 @@ type ProgressState =
   | { readonly kind: 'ready'; readonly entries: readonly ProgressEntry[] }
   | { readonly kind: 'error' }
 
-export function ProgressPage() {
+interface ProgressPageProps {
+  readonly onNavigateToday: () => void
+}
+
+export function ProgressPage({ onNavigateToday }: ProgressPageProps) {
   const [state, setState] = useState<ProgressState>({ kind: 'loading' })
 
   useEffect(() => {
@@ -64,8 +68,14 @@ export function ProgressPage() {
         <h1 id="progress-error">No history yet</h1>
         <p className="case-intro">
           Complete your first official case to see your scored history here.
-          Return to Today to start.
         </p>
+        <a
+          className="inline-nav-link"
+          href="/"
+          onClick={(e) => { e.preventDefault(); onNavigateToday() }}
+        >
+          Go to Today
+        </a>
       </section>
     )
   }
@@ -80,6 +90,13 @@ export function ProgressPage() {
         <p className="case-intro">
           Complete an official case to see your scored history here.
         </p>
+        <a
+          className="inline-nav-link"
+          href="/"
+          onClick={(e) => { e.preventDefault(); onNavigateToday() }}
+        >
+          Go to Today
+        </a>
       </section>
     )
   }

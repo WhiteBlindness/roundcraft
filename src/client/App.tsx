@@ -557,6 +557,16 @@ export function App() {
   }
 
   useEffect(() => {
+    const titles: Record<AppPage, string> = {
+      today: 'Today — Roundcraft',
+      cases: 'Cases — Roundcraft',
+      progress: 'Progress — Roundcraft',
+      settings: 'Settings — Roundcraft',
+    }
+    document.title = titles[page]
+  }, [page])
+
+  useEffect(() => {
     function handlePopState(): void {
       setPage(getInitialPage())
       window.scrollTo(0, 0)
@@ -711,7 +721,7 @@ export function App() {
 
       <main>
         {page === 'cases' ? <CasesPage /> : null}
-        {page === 'progress' ? <ProgressPage /> : null}
+        {page === 'progress' ? <ProgressPage onNavigateToday={() => navigate('today')} /> : null}
         {page === 'settings' ? <SettingsPage /> : null}
 
         {page === 'today' ? (
