@@ -10,7 +10,8 @@
         "display_evidence": 14,
         "display_followup": 20,
         "issued_at": "2026-09-01T08:30:00.000Z",
-        "debrief_completed_at": null
+        "debrief_completed_at": null,
+        "metadata": {}
       }
     ]
   },

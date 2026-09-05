@@ -10,7 +10,13 @@
         "display_evidence": 14,
         "display_followup": 20,
         "issued_at": "2026-09-01T08:30:00.000Z",
-        "debrief_completed_at": "2026-09-01T09:15:00.000Z"
+        "debrief_completed_at": "2026-09-01T09:15:00.000Z",
+        "metadata": {
+          "case_number": 1,
+          "edition_date_utc": "2026-09-01",
+          "estimated_minutes": 7,
+          "focus": "Resource allocation under uncertainty"
+        }
       }
     ]
   },

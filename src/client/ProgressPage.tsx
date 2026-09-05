@@ -2,6 +2,19 @@ import { useEffect, useState } from 'react'
 
 import { loadProgress, type ProgressEntry } from './api'
 
+interface EditionMetadata {
+  readonly case_number?: number
+}
+
+function editionLabel(entry: ProgressEntry): string {
+  const meta = entry.metadata as EditionMetadata
+  if (meta.case_number) {
+    return `Case ${String(meta.case_number).padStart(3, '0')}`
+  }
+
+  return entry.edition_id
+}
+
 function formatDate(isoString: string): string {
   const date = new Date(isoString)
   const day = String(date.getUTCDate()).padStart(2, '0')
@@ -109,7 +122,7 @@ export function ProgressPage() {
           <tbody>
             {entries.map((entry) => (
               <tr key={entry.edition_id}>
-                <td className="edition-cell">{entry.edition_id}</td>
+                <td className="edition-cell">{editionLabel(entry)}</td>
                 <td>{formatDate(entry.issued_at)}</td>
                 <td className="score-cell">
                   <strong>{entry.total_score}</strong>

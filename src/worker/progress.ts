@@ -11,6 +11,7 @@ interface ProgressRow {
   readonly display_followup: number
   readonly issued_at: string
   readonly debrief_completed_at: string | null
+  readonly public_metadata_json: string | null
 }
 
 export async function getProgress(
@@ -46,10 +47,13 @@ export async function getProgress(
        rv.display_evidence,
        rv.display_followup,
        a.issued_at,
-       a.debrief_completed_at
+       a.debrief_completed_at,
+       e.public_metadata_json
      FROM attempts a
      INNER JOIN result_versions rv
        ON rv.attempt_id = a.attempt_id AND rv.version = 1
+     LEFT JOIN editions e
+       ON e.edition_id = a.edition_id
      WHERE a.identity_id = ?
        AND a.mode = 'official'
        AND a.state IN ('decision_complete', 'debrief_complete')
@@ -61,16 +65,23 @@ export async function getProgress(
 
   return jsonSuccess(
     {
-      entries: rows.results.map((row) => ({
-        edition_id: row.edition_id,
-        state: row.state,
-        total_score: row.total_score,
-        display_main: row.display_main,
-        display_evidence: row.display_evidence,
-        display_followup: row.display_followup,
-        issued_at: row.issued_at,
-        debrief_completed_at: row.debrief_completed_at,
-      })),
+      entries: rows.results.map((row) => {
+        const metadata: Record<string, unknown> = row.public_metadata_json
+          ? (JSON.parse(row.public_metadata_json) as Record<string, unknown>)
+          : {}
+
+        return {
+          edition_id: row.edition_id,
+          state: row.state,
+          total_score: row.total_score,
+          display_main: row.display_main,
+          display_evidence: row.display_evidence,
+          display_followup: row.display_followup,
+          issued_at: row.issued_at,
+          debrief_completed_at: row.debrief_completed_at,
+          metadata,
+        }
+      }),
     },
     requestId,
   )

@@ -391,6 +391,7 @@ const progressEntrySchema = z
     display_followup: z.number().int().min(0).max(30),
     issued_at: z.iso.datetime(),
     debrief_completed_at: z.iso.datetime().nullable(),
+    metadata: z.record(z.string(), z.unknown()),
   })
   .strict()
 
