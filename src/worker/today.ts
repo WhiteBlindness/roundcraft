@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { Bindings } from './bindings'
 import { jsonError, jsonSuccess, sha256Base64Url } from './http'
+import { authenticateIdentity } from './identity'
 
 const publicMetadataSchema = z.object({
   case_number: z.number().int().positive(),
@@ -101,13 +102,45 @@ export async function getToday(
     )
   }
 
+  let status: string = 'new'
+  let primaryAction: string = 'start_case'
+
+  const identity = await authenticateIdentity(request, env)
+  if (identity) {
+    const attempt = await env.DB.prepare(
+      `SELECT state FROM attempts
+       WHERE identity_id = ? AND edition_id = ? AND mode = 'official' AND deleted_at IS NULL
+       LIMIT 1`,
+    )
+      .bind(identity.identityId, edition.edition_id)
+      .first<{ readonly state: string }>()
+
+    if (attempt) {
+      switch (attempt.state) {
+        case 'issued':
+        case 'main_locked':
+          status = 'in_progress'
+          primaryAction = 'continue'
+          break
+        case 'decision_complete':
+          status = 'decision_complete'
+          primaryAction = 'view_debrief'
+          break
+        case 'debrief_complete':
+          status = 'complete'
+          primaryAction = 'review'
+          break
+      }
+    }
+  }
+
   const data = {
     availability: 'available',
     edition: {
       edition_id: edition.edition_id,
       ...parsedMetadata.data,
-      status: 'new',
-      primary_action: 'start_case',
+      status,
+      primary_action: primaryAction,
       origin: edition.origin,
     },
   } as const

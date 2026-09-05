@@ -51,6 +51,8 @@ function loadMainIdempotencyKey(attemptId: string): string {
 interface AttemptExperienceProps {
   readonly data: AttemptData
   readonly csrfToken: string
+  readonly caseNumber: number
+  readonly editionDate: string
   readonly onExit: () => void
 }
 
@@ -62,7 +64,7 @@ type AttemptStage =
   | 'followup'
   | 'debrief'
 
-function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) {
+function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }: AttemptExperienceProps) {
   const resumedCommit: MainCommitData | null =
     'main_answer' in data
       ? {
@@ -497,6 +499,8 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
           <FollowupExperience
             attemptId={data.attempt.attempt_id}
             csrfToken={csrfToken}
+            caseNumber={caseNumber}
+            editionDate={editionDate}
             brief={brief}
             mainCommit={mainCommit}
             initialResult={resumedResult}
@@ -532,6 +536,8 @@ export function App() {
   const [activeAttempt, setActiveAttempt] = useState<{
     readonly data: AttemptData
     readonly csrfToken: string
+    readonly caseNumber: number
+    readonly editionDate: string
   } | null>(null)
 
   function navigate(target: AppPage): void {
@@ -578,7 +584,12 @@ export function App() {
         availableEdition.edition_id,
         session.csrf_token,
       )
-      setActiveAttempt({ data: attempt, csrfToken: session.csrf_token })
+      setActiveAttempt({
+        data: attempt,
+        csrfToken: session.csrf_token,
+        caseNumber: availableEdition.case_number,
+        editionDate: availableEdition.edition_date_utc,
+      })
       void recordEvent('attempt_issued', { edition_id: availableEdition.edition_id, mode: 'official' }, session.csrf_token)
     } catch {
       setStatusMessage('The case could not be started. Please try again.')
@@ -591,6 +602,34 @@ export function App() {
     today.kind === 'ready' && today.data.availability === 'available'
       ? today.data.edition
       : null
+
+  const primaryLabel = (() => {
+    if (!availableEdition) return 'Start case'
+    switch (availableEdition.primary_action) {
+      case 'continue':
+        return 'Continue case'
+      case 'view_debrief':
+        return 'View debrief'
+      case 'review':
+        return 'Review result'
+      default:
+        return 'Start case'
+    }
+  })()
+
+  const statusLabel = (() => {
+    if (!availableEdition) return ''
+    switch (availableEdition.status) {
+      case 'in_progress':
+        return 'In progress'
+      case 'decision_complete':
+        return 'Decision complete'
+      case 'complete':
+        return 'Complete'
+      default:
+        return ''
+    }
+  })()
 
   function handleNavClick(
     event: React.MouseEvent<HTMLAnchorElement>,
@@ -605,6 +644,8 @@ export function App() {
       <AttemptExperience
         data={activeAttempt.data}
         csrfToken={activeAttempt.csrfToken}
+        caseNumber={activeAttempt.caseNumber}
+        editionDate={activeAttempt.editionDate}
         onExit={() => setActiveAttempt(null)}
       />
     )
@@ -726,6 +767,12 @@ export function App() {
                     <dt>Edition</dt>
                     <dd>{formatEditionDate(availableEdition.edition_date_utc)}</dd>
                   </div>
+                  {statusLabel ? (
+                    <div>
+                      <dt>Status</dt>
+                      <dd><span className="status-badge" data-status={availableEdition.status}>{statusLabel}</span></dd>
+                    </div>
+                  ) : null}
                 </dl>
 
                 <div className="case-actions">
@@ -734,7 +781,7 @@ export function App() {
                     disabled={isCreatingSession}
                     onClick={() => void handleStart()}
                   >
-                    {isCreatingSession ? 'Starting case' : 'Start case'}
+                    {isCreatingSession ? 'Loading…' : primaryLabel}
                   </button>
                   <p>{availableEdition.origin_label}</p>
                 </div>

@@ -1551,6 +1551,34 @@ footer p {
   }
 }
 
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.status-badge[data-status="in_progress"] {
+  background: rgb(189 139 41 / 14%);
+  color: #8a6c1e;
+}
+
+.status-badge[data-status="decision_complete"] {
+  background: rgb(189 79 41 / 14%);
+  color: #9d4c2d;
+}
+
+.status-badge[data-status="complete"] {
+  background: rgb(12 80 72 / 12%);
+  color: #0c5048;
+}
+
+.completion-actions {
+  flex-wrap: wrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

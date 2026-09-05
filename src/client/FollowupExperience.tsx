@@ -44,6 +44,8 @@ const fairnessCategories: readonly { key: FairnessCategory; label: string }[] = 
 interface FollowupExperienceProps {
   readonly attemptId: string
   readonly csrfToken: string
+  readonly caseNumber: number
+  readonly editionDate: string
   readonly brief: PublicBrief
   readonly mainCommit: MainCommitData
   readonly initialResult: FollowupCommitData | null
@@ -57,6 +59,8 @@ type FollowupStage = 'answer' | 'review' | 'debrief'
 export function FollowupExperience({
   attemptId,
   csrfToken,
+  caseNumber,
+  editionDate,
   brief,
   mainCommit,
   initialResult,
@@ -94,6 +98,43 @@ export function FollowupExperience({
   const debriefHeading = useRef<HTMLHeadingElement>(null)
   const [fairnessCategory, setFairnessCategory] = useState<FairnessCategory | null>(null)
   const [fairnessStatus, setFairnessStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle')
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'shared' | 'error'>('idle')
+
+  function buildShareText(): string {
+    if (!result) return ''
+    const [year, month, day] = editionDate.split('-')
+    const confidenceLabel = optionLabel(brief.confidence, result.result.confidence_id)
+    return [
+      `Roundcraft · Case ${String(caseNumber).padStart(3, '0')} · ${day}/${month}/${year}`,
+      `Score: ${result.result.total}/100`,
+      `Main: ${result.result.components.main}/50 · Evidence: ${result.result.components.evidence}/20 · Follow-up: ${result.result.components.followup}/30`,
+      `Confidence: ${confidenceLabel}`,
+    ].join('\n')
+  }
+
+  async function handleShare(): Promise<void> {
+    const text = buildShareText()
+    if (!text) return
+
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ text })
+        setShareStatus('shared')
+        void recordEvent('share_invoked', { mode: 'official', surface: 'web_share' }, csrfToken)
+        return
+      } catch {
+        // User cancelled or API failed; fall through to clipboard.
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(text)
+      setShareStatus('copied')
+      void recordEvent('share_invoked', { mode: 'official', surface: 'clipboard' }, csrfToken)
+    } catch {
+      setShareStatus('error')
+    }
+  }
 
   useEffect(() => {
     try {
@@ -502,6 +543,15 @@ export function FollowupExperience({
                 onClick={() => debriefHeading.current?.focus()}
               >
                 Review case
+              </button>
+              <button type="button" onClick={() => void handleShare()}>
+                {shareStatus === 'copied'
+                  ? 'Copied to clipboard'
+                  : shareStatus === 'shared'
+                    ? 'Shared'
+                    : shareStatus === 'error'
+                      ? 'Could not copy'
+                      : 'Share result'}
               </button>
               <button type="button" onClick={onExit}>
                 Back to Today
