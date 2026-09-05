@@ -1013,12 +1013,16 @@ footer p {
   gap: clamp(36px, 5vw, 64px);
 }
 
-.progress-header,
-.cases-header {
+.progress-header {
   display: grid;
   align-items: end;
   gap: 18px clamp(32px, 6vw, 100px);
   grid-template-columns: minmax(0, 1.1fr) minmax(200px, 0.5fr);
+}
+
+.cases-header {
+  display: grid;
+  gap: 18px;
 }
 
 .progress-header h1,
@@ -1430,8 +1434,7 @@ footer p {
 }
 
 @media (max-width: 760px) {
-  .progress-header,
-  .cases-header {
+  .progress-header {
     grid-template-columns: 1fr;
   }
 
