@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Roundcraft API",
-    "version": "0.3.0",
-    "description": "Public contract through the official decision and explicit review completion."
+    "version": "0.4.0",
+    "description": "Public contract covering the full game flow, history, progress, archive, fairness and analytics."
   },
   "servers": [{ "url": "/api/v1" }],
   "paths": {
@@ -383,6 +383,298 @@
           "403": { "$ref": "#/components/responses/SafeError" },
           "404": { "$ref": "#/components/responses/SafeError" },
           "409": { "$ref": "#/components/responses/SafeError" },
+          "422": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/practice-attempts": {
+      "post": {
+        "operationId": "createPracticeAttempt",
+        "summary": "Create a new practice attempt for a released edition",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["edition_id"],
+                "properties": {
+                  "edition_id": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_]+$",
+                    "maxLength": 80
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Newly created practice attempt and its published briefing",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/practice-attempt-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/practice-attempt.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
+          "404": { "$ref": "#/components/responses/SafeError" },
+          "422": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/history": {
+      "delete": {
+        "operationId": "deleteHistory",
+        "summary": "Delete all server-side data for the current identity",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Neutral confirmation of deletion",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/history-delete-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/history-delete.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
+          "409": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/progress": {
+      "get": {
+        "operationId": "getProgress",
+        "summary": "Return the scored history for the current identity",
+        "responses": {
+          "200": {
+            "description": "Scored editions for this identity",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/progress-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/progress.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/cases": {
+      "get": {
+        "operationId": "listCases",
+        "summary": "List released editions in reverse chronological order",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "maxLength": 80 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Released editions with public metadata",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/cases-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/cases.success.json" }
+                }
+              }
+            }
+          },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/fairness-reports": {
+      "post": {
+        "operationId": "createFairnessReport",
+        "summary": "Submit a structured fairness report for an edition",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["attempt_id", "category"],
+                "properties": {
+                  "attempt_id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{43}$"
+                  },
+                  "category": {
+                    "enum": [
+                      "missing_action",
+                      "missing_qualifier",
+                      "missing_evidence",
+                      "incorrect_disclosed_fact",
+                      "other"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Neutral confirmation of the report",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/fairness-report-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/fairness-report.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
+          "404": { "$ref": "#/components/responses/SafeError" },
+          "422": { "$ref": "#/components/responses/SafeError" },
+          "429": { "$ref": "#/components/responses/SafeError" },
+          "503": { "$ref": "#/components/responses/SafeError" }
+        }
+      }
+    },
+    "/events": {
+      "post": {
+        "operationId": "recordEvent",
+        "summary": "Record a permitted product analytics event",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["event_name", "properties"],
+                "properties": {
+                  "event_name": {
+                    "enum": [
+                      "today_loaded",
+                      "attempt_issued",
+                      "attempt_resumed",
+                      "state_reached",
+                      "main_committed",
+                      "followup_committed",
+                      "decision_complete",
+                      "debrief_opened",
+                      "debrief_complete",
+                      "sources_opened",
+                      "share_invoked",
+                      "fairness_reported",
+                      "return_visit"
+                    ]
+                  },
+                  "properties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "edition_id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9_]+$",
+                        "maxLength": 80
+                      },
+                      "mode": { "enum": ["official", "practice"] },
+                      "assisted": { "type": "boolean" },
+                      "state_name": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9_]+$",
+                        "maxLength": 40
+                      },
+                      "version": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9_.]+$",
+                        "maxLength": 40
+                      },
+                      "surface": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9_]+$",
+                        "maxLength": 40
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event accepted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./schemas/events-response.json" },
+                "examples": {
+                  "success": { "externalValue": "./examples/events.success.json" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/SafeError" },
+          "403": { "$ref": "#/components/responses/SafeError" },
           "422": { "$ref": "#/components/responses/SafeError" },
           "429": { "$ref": "#/components/responses/SafeError" },
           "503": { "$ref": "#/components/responses/SafeError" }

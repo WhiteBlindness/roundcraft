@@ -5,12 +5,16 @@ import {
   createSession,
   commitMainAnswer,
   loadToday,
+  recordEvent,
   type AttemptData,
   type FollowupCommitData,
   type MainCommitData,
   type TodayData,
 } from './api'
+import { CasesPage } from './CasesPage'
 import { FollowupExperience } from './FollowupExperience'
+import { ProgressPage } from './ProgressPage'
+import { SettingsPage } from './SettingsPage'
 
 type TodayState =
   | { readonly kind: 'loading' }
@@ -188,6 +192,7 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
         // The accepted server state does not depend on local storage cleanup.
       }
       setStage('followup')
+      void recordEvent('main_committed', { edition_id: data.attempt.edition_id, mode: 'official' }, csrfToken)
     } catch {
       setSubmissionError(
         'The acknowledgement was not received. Retry the same submission.',
@@ -507,7 +512,19 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
   )
 }
 
+type AppPage = 'today' | 'cases' | 'progress' | 'settings'
+
+function getInitialPage(): AppPage {
+  const path = window.location.pathname
+  if (path === '/cases') return 'cases'
+  if (path === '/progress') return 'progress'
+  if (path === '/settings') return 'settings'
+
+  return 'today'
+}
+
 export function App() {
+  const [page, setPage] = useState<AppPage>(getInitialPage)
   const [today, setToday] = useState<TodayState>({ kind: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
@@ -516,6 +533,22 @@ export function App() {
     readonly data: AttemptData
     readonly csrfToken: string
   } | null>(null)
+
+  function navigate(target: AppPage): void {
+    const path = target === 'today' ? '/' : `/${target}`
+    window.history.pushState(null, '', path)
+    setPage(target)
+  }
+
+  useEffect(() => {
+    function handlePopState(): void {
+      setPage(getInitialPage())
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   useEffect(() => {
     let isCurrent = true
@@ -546,6 +579,7 @@ export function App() {
         session.csrf_token,
       )
       setActiveAttempt({ data: attempt, csrfToken: session.csrf_token })
+      void recordEvent('attempt_issued', { edition_id: availableEdition.edition_id, mode: 'official' }, session.csrf_token)
     } catch {
       setStatusMessage('The case could not be started. Please try again.')
     } finally {
@@ -557,6 +591,14 @@ export function App() {
     today.kind === 'ready' && today.data.availability === 'available'
       ? today.data.edition
       : null
+
+  function handleNavClick(
+    event: React.MouseEvent<HTMLAnchorElement>,
+    target: AppPage,
+  ): void {
+    event.preventDefault()
+    navigate(target)
+  }
 
   if (activeAttempt) {
     return (
@@ -571,104 +613,140 @@ export function App() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <a className="wordmark" href="/" aria-label="Roundcraft home">
+        <a
+          className="wordmark"
+          href="/"
+          onClick={(e) => handleNavClick(e, 'today')}
+          aria-label="Roundcraft home"
+        >
           Roundcraft
         </a>
         <nav aria-label="Primary navigation">
-          <a aria-current="page" href="/today">
+          <a
+            aria-current={page === 'today' ? 'page' : undefined}
+            href="/"
+            onClick={(e) => handleNavClick(e, 'today')}
+          >
             Today
           </a>
-          <a href="/cases">Cases</a>
-          <a href="/progress">Progress</a>
+          <a
+            aria-current={page === 'cases' ? 'page' : undefined}
+            href="/cases"
+            onClick={(e) => handleNavClick(e, 'cases')}
+          >
+            Cases
+          </a>
+          <a
+            aria-current={page === 'progress' ? 'page' : undefined}
+            href="/progress"
+            onClick={(e) => handleNavClick(e, 'progress')}
+          >
+            Progress
+          </a>
+          <a
+            aria-current={page === 'settings' ? 'page' : undefined}
+            href="/settings"
+            onClick={(e) => handleNavClick(e, 'settings')}
+          >
+            Settings
+          </a>
         </nav>
       </header>
 
       <main>
-        {today.kind === 'loading' ? (
-          <section className="case-state" aria-live="polite">
-            <p className="eyebrow">Today</p>
-            <h1>Loading current case</h1>
-          </section>
-        ) : null}
+        {page === 'cases' ? <CasesPage /> : null}
+        {page === 'progress' ? <ProgressPage /> : null}
+        {page === 'settings' ? <SettingsPage /> : null}
 
-        {today.kind === 'error' ? (
-          <section className="case-state" aria-labelledby="today-error-title">
-            <p className="eyebrow">Today</p>
-            <h1 id="today-error-title">Case service unavailable</h1>
-            <p className="case-intro">The current case could not be loaded.</p>
-            <button
-              className="secondary-action"
-              type="button"
-              onClick={() => {
-                setToday({ kind: 'loading' })
-                setReloadKey((current) => current + 1)
-              }}
-            >
-              Try again
-            </button>
-          </section>
-        ) : null}
+        {page === 'today' ? (
+          <>
+            {today.kind === 'loading' ? (
+              <section className="case-state" aria-live="polite">
+                <p className="eyebrow">Today</p>
+                <h1>Loading current case</h1>
+              </section>
+            ) : null}
 
-        {today.kind === 'ready' &&
-        today.data.availability === 'unavailable' ? (
-          <section className="case-state" aria-labelledby="today-title">
-            <p className="eyebrow">Today</p>
-            <h1 id="today-title">No current case</h1>
-            <p className="case-intro">
-              The next verified edition is not available yet.
-            </p>
-            <p className="availability-label">Retry later</p>
-          </section>
-        ) : null}
+            {today.kind === 'error' ? (
+              <section className="case-state" aria-labelledby="today-error-title">
+                <p className="eyebrow">Today</p>
+                <h1 id="today-error-title">Case service unavailable</h1>
+                <p className="case-intro">The current case could not be loaded.</p>
+                <button
+                  className="secondary-action"
+                  type="button"
+                  onClick={() => {
+                    setToday({ kind: 'loading' })
+                    setReloadKey((current) => current + 1)
+                  }}
+                >
+                  Try again
+                </button>
+              </section>
+            ) : null}
 
-        {availableEdition ? (
-          <section className="case-cover" aria-labelledby="today-title">
-            <div className="case-kicker">
-              <span>Case {String(availableEdition.case_number).padStart(3, '0')}</span>
-              <span>{availableEdition.estimated_minutes} min</span>
-            </div>
+            {today.kind === 'ready' &&
+            today.data.availability === 'unavailable' ? (
+              <section className="case-state" aria-labelledby="today-title">
+                <p className="eyebrow">Today</p>
+                <h1 id="today-title">No current case</h1>
+                <p className="case-intro">
+                  The next verified edition is not available yet.
+                </p>
+                <p className="availability-label">Retry later</p>
+              </section>
+            ) : null}
 
-            <div className="case-copy">
-              <p className="eyebrow">Round reading · {availableEdition.focus}</p>
-              <h1 id="today-title">Today’s tactical case</h1>
-              <p className="case-intro">
-                Study a legitimate round state, make one committed call, then
-                adapt when the information changes.
+            {availableEdition ? (
+              <section className="case-cover" aria-labelledby="today-title">
+                <div className="case-kicker">
+                  <span>Case {String(availableEdition.case_number).padStart(3, '0')}</span>
+                  <span>{availableEdition.estimated_minutes} min</span>
+                </div>
+
+                <div className="case-copy">
+                  <p className="eyebrow">Round reading · {availableEdition.focus}</p>
+                  <h1 id="today-title">Today's tactical case</h1>
+                  <p className="case-intro">
+                    Study a legitimate round state, make one committed call, then
+                    adapt when the information changes.
+                  </p>
+                </div>
+
+                <dl className="case-metadata">
+                  <div>
+                    <dt>Format</dt>
+                    <dd>Main call + follow-up</dd>
+                  </div>
+                  <div>
+                    <dt>Mode</dt>
+                    <dd>Standard</dd>
+                  </div>
+                  <div>
+                    <dt>Edition</dt>
+                    <dd>{formatEditionDate(availableEdition.edition_date_utc)}</dd>
+                  </div>
+                </dl>
+
+                <div className="case-actions">
+                  <button
+                    type="button"
+                    disabled={isCreatingSession}
+                    onClick={() => void handleStart()}
+                  >
+                    {isCreatingSession ? 'Starting case' : 'Start case'}
+                  </button>
+                  <p>{availableEdition.origin_label}</p>
+                </div>
+              </section>
+            ) : null}
+
+            {statusMessage ? (
+              <p className="status-message" role="status">
+                {statusMessage}
               </p>
-            </div>
-
-            <dl className="case-metadata">
-              <div>
-                <dt>Format</dt>
-                <dd>Main call + follow-up</dd>
-              </div>
-              <div>
-                <dt>Mode</dt>
-                <dd>Standard</dd>
-              </div>
-              <div>
-                <dt>Edition</dt>
-                <dd>{formatEditionDate(availableEdition.edition_date_utc)}</dd>
-              </div>
-            </dl>
-
-            <div className="case-actions">
-              <button
-                type="button"
-                disabled={isCreatingSession}
-                onClick={() => void handleStart()}
-              >
-                {isCreatingSession ? 'Starting case' : 'Start case'}
-              </button>
-              <p>{availableEdition.origin_label}</p>
-            </div>
-          </section>
-        ) : null}
-
-        {statusMessage ? (
-          <p className="status-message" role="status">
-            {statusMessage}
-          </p>
+            ) : null}
+          </>
         ) : null}
       </main>
 

@@ -5,9 +5,15 @@ import {
   getAttempt,
 } from './attempts'
 import type { Bindings } from './bindings'
+import { listCases } from './cases'
 import { completeDebrief } from './debrief-complete'
+import { recordEvent } from './events'
+import { createFairnessReport } from './fairness-reports'
 import { commitFollowupAnswer } from './followup-commit'
+import { deleteHistory } from './history'
+import { createPracticeAttempt } from './practice-attempts'
 import { commitMainAnswer } from './main-commit'
+import { getProgress } from './progress'
 import { enforceRateLimit } from './rate-limit'
 import { createOrRenewSession } from './session'
 import { getToday } from './today'
@@ -183,6 +189,82 @@ api.post('/api/v1/attempts/:attemptId/debrief-complete', async (context) => {
       context.req.param('attemptId'),
     )
   )
+})
+
+api.post('/api/v1/practice-attempts', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'practice-attempt-create',
+    requestId,
+  )
+
+  return (
+    limited ?? createPracticeAttempt(context.req.raw, context.env, requestId)
+  )
+})
+
+api.delete('/api/v1/history', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'history-delete',
+    requestId,
+  )
+
+  return limited ?? deleteHistory(context.req.raw, context.env, requestId)
+})
+
+api.get('/api/v1/progress', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'progress',
+    requestId,
+  )
+
+  return limited ?? getProgress(context.req.raw, context.env, requestId)
+})
+
+api.get('/api/v1/cases', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.TODAY_RATE_LIMITER,
+    'cases',
+    requestId,
+  )
+
+  return limited ?? listCases(context.req.raw, context.env, requestId)
+})
+
+api.post('/api/v1/fairness-reports', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'fairness-report',
+    requestId,
+  )
+
+  return (
+    limited ?? createFairnessReport(context.req.raw, context.env, requestId)
+  )
+})
+
+api.post('/api/v1/events', async (context) => {
+  const requestId = crypto.randomUUID()
+  const limited = await enforceRateLimit(
+    context.req.raw,
+    context.env.ATTEMPT_RATE_LIMITER,
+    'events',
+    requestId,
+  )
+
+  return limited ?? recordEvent(context.req.raw, context.env, requestId)
 })
 
 api.all('*', async (context) => {

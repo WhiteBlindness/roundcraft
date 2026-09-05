@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "data": {
+    "accepted": false
+  },
+  "error": null,
+  "meta": {
+    "request_id": "f6a0b8c9-d0e1-4f2a-8b4c-d5e6f0a8b9c0",
+    "api_version": "v1"
+  }
+}

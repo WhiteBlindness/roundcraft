@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://roundcraft.local/schemas/attempt-response.json",
   "type": "object",
   "additionalProperties": false,
   "required": ["ok", "data", "error", "meta"],
