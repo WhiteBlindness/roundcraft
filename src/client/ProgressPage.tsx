@@ -48,10 +48,10 @@ export function ProgressPage() {
     return (
       <section className="page-state" aria-labelledby="progress-error">
         <p className="eyebrow">Progress</p>
-        <h1 id="progress-error">History unavailable</h1>
+        <h1 id="progress-error">No history yet</h1>
         <p className="case-intro">
-          Your scored history could not be loaded. Start a session first if you
-          have not played yet.
+          Complete your first official case to see your scored history here.
+          Return to Today to start.
         </p>
       </section>
     )

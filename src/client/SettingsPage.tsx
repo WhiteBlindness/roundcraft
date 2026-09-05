@@ -23,8 +23,33 @@ export function SettingsPage() {
     <div className="settings-page">
       <div className="settings-header">
         <h1>Settings</h1>
-        <p>Manage your data and preferences.</p>
+        <p>Manage your data and account preferences.</p>
       </div>
+
+      <section className="settings-section" aria-labelledby="about-title">
+        <h2 id="about-title">About Roundcraft</h2>
+        <div className="settings-about">
+          <p>
+            A deliberate-practice platform for CS2 tactical decision-making.
+            Study legitimate round states, commit to a line, then adapt when
+            information changes.
+          </p>
+          <dl className="about-details">
+            <div>
+              <dt>Identity</dt>
+              <dd>Anonymous, cookie-based</dd>
+            </div>
+            <div>
+              <dt>Scoring</dt>
+              <dd>Server-side only</dd>
+            </div>
+            <div>
+              <dt>Build</dt>
+              <dd>Foundation</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
 
       <section className="settings-section" aria-labelledby="data-title">
         <h2 id="data-title">Data management</h2>
