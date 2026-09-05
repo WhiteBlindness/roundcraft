@@ -733,9 +733,24 @@ export function App() {
         {page === 'today' ? (
           <>
             {today.kind === 'loading' ? (
-              <section className="case-state" aria-live="polite">
-                <p className="eyebrow">Today</p>
-                <h1>Loading current case</h1>
+              <section className="case-cover case-skeleton" aria-live="polite" aria-busy="true">
+                <div className="case-kicker">
+                  <span className="skel skel-text-s">&nbsp;</span>
+                  <span className="skel skel-text-s">&nbsp;</span>
+                </div>
+                <div className="case-copy">
+                  <p className="eyebrow"><span className="skel skel-text-m">&nbsp;</span></p>
+                  <h1><span className="skel skel-text-l">&nbsp;</span></h1>
+                  <p className="case-intro"><span className="skel skel-text-l">&nbsp;</span></p>
+                </div>
+                <dl className="case-metadata">
+                  <div><dt className="skel skel-text-s">&nbsp;</dt><dd className="skel skel-text-m">&nbsp;</dd></div>
+                  <div><dt className="skel skel-text-s">&nbsp;</dt><dd className="skel skel-text-m">&nbsp;</dd></div>
+                  <div><dt className="skel skel-text-s">&nbsp;</dt><dd className="skel skel-text-m">&nbsp;</dd></div>
+                </dl>
+                <div className="case-actions">
+                  <span className="skel skel-button">&nbsp;</span>
+                </div>
               </section>
             ) : null}
 
