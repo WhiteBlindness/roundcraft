@@ -39,6 +39,23 @@ input:focus-visible {
   outline-offset: 4px;
 }
 
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 100;
+  padding: 12px 20px;
+  background: #0c5048;
+  color: #f8f6ef;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
 .app-shell {
   display: grid;
   min-height: 100vh;

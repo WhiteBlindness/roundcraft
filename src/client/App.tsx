@@ -93,9 +93,14 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
           reveal: data.reveal,
         }
       : null
-  const [stage, setStage] = useState<AttemptStage>(
+  const [stage, setStageRaw] = useState<AttemptStage>(
     resumedResult ? 'debrief' : resumedCommit ? 'followup' : 'brief',
   )
+
+  function setStage(next: AttemptStage): void {
+    setStageRaw(next)
+    window.scrollTo(0, 0)
+  }
   const [selectedEvidence, setSelectedEvidence] = useState<readonly string[]>(
     resumedCommit?.main_answer.evidence_ids ?? [],
   )
@@ -678,6 +683,7 @@ export function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="site-header">
         <a
           className="wordmark"
@@ -719,7 +725,7 @@ export function App() {
         </nav>
       </header>
 
-      <main>
+      <main id="main-content">
         {page === 'cases' ? <CasesPage /> : null}
         {page === 'progress' ? <ProgressPage onNavigateToday={() => navigate('today')} /> : null}
         {page === 'settings' ? <SettingsPage /> : null}

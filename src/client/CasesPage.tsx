@@ -251,6 +251,24 @@ export function CasesPage() {
         <p className="eyebrow">Cases</p>
         <h1 id="cases-error">Archive unavailable</h1>
         <p className="case-intro">The case archive could not be loaded.</p>
+        <button
+          className="secondary-action"
+          type="button"
+          onClick={() => {
+            setState({ kind: 'loading' })
+            loadCases()
+              .then((data) =>
+                setState({
+                  kind: 'ready',
+                  editions: data.editions,
+                  nextCursor: data.next_cursor ?? null,
+                }),
+              )
+              .catch(() => setState({ kind: 'error' }))
+          }}
+        >
+          Try again
+        </button>
       </section>
     )
   }
