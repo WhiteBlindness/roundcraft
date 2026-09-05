@@ -149,15 +149,27 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
           reveal: data.reveal,
         }
       : null
-  const [stage, setStageRaw] = useState<AttemptStage>(
-    resumedResult ? 'debrief' : resumedCommit ? 'followup' : 'brief',
+  const savedDraft = resumedCommit ? null : loadDraft(data.attempt.attempt_id)
+  const hasDraft = savedDraft !== null && (
+    savedDraft.evidence_ids.length > 0 || savedDraft.action_id !== ''
   )
+
+  function initialStage(): AttemptStage {
+    if (resumedResult) return 'debrief'
+    if (resumedCommit) return 'followup'
+    if (savedDraft?.action_id) return 'call'
+    if (savedDraft && savedDraft.evidence_ids.length > 0) return 'evidence'
+    return 'brief'
+  }
+
+  const [stage, setStageRaw] = useState<AttemptStage>(initialStage)
+  const [draftNotice, setDraftNotice] = useState(hasDraft)
 
   function setStage(next: AttemptStage): void {
     setStageRaw(next)
+    setDraftNotice(false)
     window.scrollTo(0, 0)
   }
-  const savedDraft = resumedCommit ? null : loadDraft(data.attempt.attempt_id)
   const [selectedEvidence, setSelectedEvidence] = useState<readonly string[]>(
     resumedCommit?.main_answer.evidence_ids ?? savedDraft?.evidence_ids ?? [],
   )
@@ -316,6 +328,13 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
           <li aria-current={stage === 'debrief' ? 'step' : undefined} data-status={stageStatus(4)}>Debrief</li>
         </ol>
       </header>
+
+      {draftNotice ? (
+        <p className="draft-notice" role="status">
+          Your previous selections were restored.
+          <button type="button" onClick={() => setDraftNotice(false)}>Dismiss</button>
+        </p>
+      ) : null}
 
       <main className="attempt-main">
         {stage === 'brief' ? (
