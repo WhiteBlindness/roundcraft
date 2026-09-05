@@ -5,6 +5,7 @@ import {
   createSession,
   commitMainAnswer,
   loadToday,
+  recordEvent,
   type AttemptData,
   type FollowupCommitData,
   type MainCommitData,
@@ -13,6 +14,7 @@ import {
 import { CasesPage } from './CasesPage'
 import { FollowupExperience } from './FollowupExperience'
 import { ProgressPage } from './ProgressPage'
+import { SettingsPage } from './SettingsPage'
 
 type TodayState =
   | { readonly kind: 'loading' }
@@ -190,6 +192,7 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
         // The accepted server state does not depend on local storage cleanup.
       }
       setStage('followup')
+      void recordEvent('main_committed', { edition_id: data.attempt.edition_id, mode: 'official' }, csrfToken)
     } catch {
       setSubmissionError(
         'The acknowledgement was not received. Retry the same submission.',
@@ -509,12 +512,13 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
   )
 }
 
-type AppPage = 'today' | 'cases' | 'progress'
+type AppPage = 'today' | 'cases' | 'progress' | 'settings'
 
 function getInitialPage(): AppPage {
   const path = window.location.pathname
   if (path === '/cases') return 'cases'
   if (path === '/progress') return 'progress'
+  if (path === '/settings') return 'settings'
 
   return 'today'
 }
@@ -575,6 +579,7 @@ export function App() {
         session.csrf_token,
       )
       setActiveAttempt({ data: attempt, csrfToken: session.csrf_token })
+      void recordEvent('attempt_issued', { edition_id: availableEdition.edition_id, mode: 'official' }, session.csrf_token)
     } catch {
       setStatusMessage('The case could not be started. Please try again.')
     } finally {
@@ -638,12 +643,20 @@ export function App() {
           >
             Progress
           </a>
+          <a
+            aria-current={page === 'settings' ? 'page' : undefined}
+            href="/settings"
+            onClick={(e) => handleNavClick(e, 'settings')}
+          >
+            Settings
+          </a>
         </nav>
       </header>
 
       <main>
         {page === 'cases' ? <CasesPage /> : null}
         {page === 'progress' ? <ProgressPage /> : null}
+        {page === 'settings' ? <SettingsPage /> : null}
 
         {page === 'today' ? (
           <>

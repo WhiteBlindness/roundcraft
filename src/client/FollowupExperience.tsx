@@ -4,9 +4,12 @@ import type { PublicBrief } from '../domain/public-brief'
 import {
   completeDebrief,
   commitFollowupAnswer,
+  createFairnessReport,
+  type FairnessCategory,
   type FollowupAnswerDraft,
   type FollowupCommitData,
   type MainCommitData,
+  recordEvent,
 } from './api'
 
 const idempotencyKeyPattern =
@@ -29,6 +32,14 @@ function optionLabel(
 ): string {
   return options.find((option) => option.id === id)?.label ?? ''
 }
+
+const fairnessCategories: readonly { key: FairnessCategory; label: string }[] = [
+  { key: 'missing_action', label: 'Missing action' },
+  { key: 'missing_qualifier', label: 'Missing qualifier' },
+  { key: 'missing_evidence', label: 'Missing evidence' },
+  { key: 'incorrect_disclosed_fact', label: 'Incorrect disclosed fact' },
+  { key: 'other', label: 'Other' },
+]
 
 interface FollowupExperienceProps {
   readonly attemptId: string
@@ -81,6 +92,8 @@ export function FollowupExperience({
   const answerHeading = useRef<HTMLHeadingElement>(null)
   const reviewHeading = useRef<HTMLHeadingElement>(null)
   const debriefHeading = useRef<HTMLHeadingElement>(null)
+  const [fairnessCategory, setFairnessCategory] = useState<FairnessCategory | null>(null)
+  const [fairnessStatus, setFairnessStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle')
 
   useEffect(() => {
     try {
@@ -155,12 +168,28 @@ export function FollowupExperience({
         // The accepted server state does not depend on local storage cleanup.
       }
       setStage('debrief')
+      void recordEvent('followup_committed', { mode: 'official' }, csrfToken)
+      void recordEvent('decision_complete', { mode: 'official' }, csrfToken)
     } catch {
       setSubmissionError(
         'The result acknowledgement was not received. Retry the same result.',
       )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function submitFairnessReport(): Promise<void> {
+    if (!fairnessCategory) return
+
+    setFairnessStatus('submitting')
+
+    try {
+      await createFairnessReport(attemptId, fairnessCategory, csrfToken)
+      setFairnessStatus('submitted')
+      void recordEvent('fairness_reported', { mode: 'official' }, csrfToken)
+    } catch {
+      setFairnessStatus('error')
     }
   }
 
@@ -172,6 +201,7 @@ export function FollowupExperience({
     try {
       await completeDebrief(attemptId, csrfToken)
       setReviewCompleted(true)
+      void recordEvent('debrief_complete', { mode: 'official' }, csrfToken)
     } catch {
       setCompletionError(
         'The completion acknowledgement was not received. Retry the same action.',
@@ -499,6 +529,44 @@ export function FollowupExperience({
                 : completionStarted
                   ? 'Retry finish review'
                   : 'Finish review'}
+            </button>
+          </>
+        )}
+      </section>
+
+      <section className="fairness-section" aria-labelledby="fairness-title">
+        <h2 id="fairness-title">Fairness</h2>
+        {fairnessStatus === 'submitted' ? (
+          <p className="fairness-submitted">Your report has been recorded. Thank you.</p>
+        ) : (
+          <>
+            <p>If the case contained an error that affected your score, select a category.</p>
+            <fieldset className="fairness-options">
+              <legend className="visually-hidden">Fairness concern category</legend>
+              {fairnessCategories.map(({ key, label }) => (
+                <label key={key}>
+                  <input
+                    type="radio"
+                    name="fairness-category"
+                    value={key}
+                    checked={fairnessCategory === key}
+                    onChange={() => setFairnessCategory(key)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </fieldset>
+            {fairnessStatus === 'error' ? (
+              <p className="submission-error" role="alert">
+                The report could not be submitted. Please try again.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              disabled={!fairnessCategory || fairnessStatus === 'submitting'}
+              onClick={() => void submitFairnessReport()}
+            >
+              {fairnessStatus === 'submitting' ? 'Submitting...' : 'Submit report'}
             </button>
           </>
         )}
