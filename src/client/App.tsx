@@ -65,6 +65,45 @@ function loadMainIdempotencyKey(attemptId: string): string {
   return crypto.randomUUID()
 }
 
+interface MainDraft {
+  readonly evidence_ids: readonly string[]
+  readonly action_id: string
+  readonly qualifier_id: string
+  readonly confidence_id: string
+}
+
+function draftKey(attemptId: string): string {
+  return `roundcraft:draft:${attemptId}`
+}
+
+function loadDraft(attemptId: string): MainDraft | null {
+  try {
+    const raw = localStorage.getItem(draftKey(attemptId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as MainDraft
+    if (!Array.isArray(parsed.evidence_ids)) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function saveDraft(attemptId: string, draft: MainDraft): void {
+  try {
+    localStorage.setItem(draftKey(attemptId), JSON.stringify(draft))
+  } catch {
+    // Draft persistence is best-effort.
+  }
+}
+
+function clearDraft(attemptId: string): void {
+  try {
+    localStorage.removeItem(draftKey(attemptId))
+  } catch {
+    // Cleanup is best-effort.
+  }
+}
+
 interface AttemptExperienceProps {
   readonly data: AttemptData
   readonly csrfToken: string
@@ -118,17 +157,18 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
     setStageRaw(next)
     window.scrollTo(0, 0)
   }
+  const savedDraft = resumedCommit ? null : loadDraft(data.attempt.attempt_id)
   const [selectedEvidence, setSelectedEvidence] = useState<readonly string[]>(
-    resumedCommit?.main_answer.evidence_ids ?? [],
+    resumedCommit?.main_answer.evidence_ids ?? savedDraft?.evidence_ids ?? [],
   )
   const [selectedAction, setSelectedAction] = useState(
-    resumedCommit?.main_answer.action_id ?? '',
+    resumedCommit?.main_answer.action_id ?? savedDraft?.action_id ?? '',
   )
   const [selectedQualifier, setSelectedQualifier] = useState(
-    resumedCommit?.main_answer.qualifier_id ?? '',
+    resumedCommit?.main_answer.qualifier_id ?? savedDraft?.qualifier_id ?? '',
   )
   const [selectedConfidence, setSelectedConfidence] = useState(
-    resumedCommit?.main_answer.confidence_id ?? '',
+    resumedCommit?.main_answer.confidence_id ?? savedDraft?.confidence_id ?? '',
   )
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -152,6 +192,16 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
       // A blocked local draft must not block the official attempt.
     }
   }, [data.attempt.attempt_id])
+
+  useEffect(() => {
+    if (mainCommit) return
+    saveDraft(data.attempt.attempt_id, {
+      evidence_ids: selectedEvidence,
+      action_id: selectedAction,
+      qualifier_id: selectedQualifier,
+      confidence_id: selectedConfidence,
+    })
+  }, [data.attempt.attempt_id, mainCommit, selectedEvidence, selectedAction, selectedQualifier, selectedConfidence])
 
   function toggleEvidence(evidenceId: string): void {
     setSelectedEvidence((current) => {
@@ -210,6 +260,7 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
         },
       )
       setMainCommit(committed)
+      clearDraft(data.attempt.attempt_id)
       try {
         localStorage.removeItem(`roundcraft:main-key:${data.attempt.attempt_id}`)
       } catch {
