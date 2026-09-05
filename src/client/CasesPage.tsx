@@ -313,6 +313,9 @@ export function CasesPage() {
                 {meta.focus ? (
                   <p className="case-card-focus">{meta.focus}</p>
                 ) : null}
+                {meta.origin_label ? (
+                  <p className="case-card-origin">{meta.origin_label}</p>
+                ) : null}
               </div>
               <button
                 type="button"

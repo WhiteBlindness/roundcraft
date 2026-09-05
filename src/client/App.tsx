@@ -216,6 +216,15 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
   )
   const decisionStage = stage === 'call' || stage === 'review'
 
+  const stageOrder: readonly AttemptStage[] = ['brief', 'evidence', 'call', 'followup', 'debrief']
+  const currentIndex = stageOrder.indexOf(stage === 'review' ? 'call' : stage)
+
+  function stageStatus(index: number): 'completed' | 'current' | undefined {
+    if (index < currentIndex) return 'completed'
+    if (index === currentIndex) return 'current'
+    return undefined
+  }
+
   return (
     <div className="app-shell attempt-shell">
       <header className="attempt-header">
@@ -227,11 +236,11 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
           <strong>{brief.title}</strong>
         </div>
         <ol className="stage-track" aria-label="Case progress">
-          <li aria-current={stage === 'brief' ? 'step' : undefined}>Brief</li>
-          <li aria-current={stage === 'evidence' ? 'step' : undefined}>Evidence</li>
-          <li aria-current={decisionStage ? 'step' : undefined}>Decision</li>
-          <li aria-current={stage === 'followup' ? 'step' : undefined}>Follow-up</li>
-          <li aria-current={stage === 'debrief' ? 'step' : undefined}>Debrief</li>
+          <li aria-current={stage === 'brief' ? 'step' : undefined} data-status={stageStatus(0)}>Brief</li>
+          <li aria-current={stage === 'evidence' ? 'step' : undefined} data-status={stageStatus(1)}>Evidence</li>
+          <li aria-current={decisionStage ? 'step' : undefined} data-status={stageStatus(2)}>Decision</li>
+          <li aria-current={stage === 'followup' ? 'step' : undefined} data-status={stageStatus(3)}>Follow-up</li>
+          <li aria-current={stage === 'debrief' ? 'step' : undefined} data-status={stageStatus(4)}>Debrief</li>
         </ol>
       </header>
 

@@ -363,6 +363,11 @@ footer p {
   color: #0c5048;
 }
 
+.stage-track li[data-status="completed"] {
+  color: #0c5048;
+  border-color: rgb(12 80 72 / 35%);
+}
+
 .attempt-main {
   width: min(100% - 40px, 1320px);
   padding-block: clamp(48px, 7vw, 88px);
@@ -1187,6 +1192,13 @@ footer p {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 0.92rem;
   line-height: 1.5;
+}
+
+.case-card-origin {
+  margin: 0;
+  color: #7b8784;
+  font-size: 0.75rem;
+  font-style: italic;
 }
 
 .case-card button {
