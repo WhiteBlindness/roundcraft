@@ -1326,6 +1326,99 @@ footer p {
   font-family: inherit;
 }
 
+.practice-action-item {
+  display: block;
+}
+
+.practice-action-toggle {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid rgb(23 32 31 / 12%);
+  background: transparent;
+  color: #263431;
+  cursor: pointer;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.practice-action-toggle:hover {
+  color: #0c5048;
+}
+
+.practice-action-toggle strong {
+  color: inherit;
+  font-weight: 600;
+}
+
+.practice-action-toggle span {
+  color: #697773;
+  font-size: 0.78rem;
+  font-family: inherit;
+}
+
+.practice-qualifiers {
+  margin: 0 0 8px;
+  padding: 0 0 0 18px;
+  list-style: none;
+}
+
+.practice-qualifiers li {
+  padding: 6px 0;
+  border-top: 0;
+  color: #40504d;
+  font-size: 0.9rem;
+}
+
+.practice-qualifiers li::before {
+  content: "· ";
+  color: #9aa39f;
+}
+
+.practice-ledger {
+  padding: 28px 0;
+  border-top: 1px solid rgb(12 80 72 / 28%);
+}
+
+.practice-ledger dl {
+  display: grid;
+  margin: 0;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.practice-ledger dl div {
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+}
+
+.practice-ledger dl div + div {
+  padding-left: 24px;
+  border-left: 1px solid rgb(23 32 31 / 12%);
+}
+
+.practice-ledger dt {
+  color: #697773;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.practice-ledger dd {
+  margin: 0;
+  color: #113d38;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.95rem;
+}
+
 .practice-note {
   margin: 0;
   padding: 18px 20px;

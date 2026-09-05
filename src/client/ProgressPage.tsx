@@ -86,6 +86,7 @@ export function ProgressPage() {
 
   const totalScore = entries.reduce((sum, e) => sum + e.total_score, 0)
   const averageScore = Math.round(totalScore / entries.length)
+  const bestScore = Math.max(...entries.map((e) => e.total_score))
 
   return (
     <section className="progress-page" aria-labelledby="progress-title">
@@ -103,6 +104,10 @@ export function ProgressPage() {
             <dt>Average</dt>
             <dd>{averageScore}/100</dd>
           </div>
+          <div>
+            <dt>Best</dt>
+            <dd>{bestScore}/100</dd>
+          </div>
         </dl>
       </header>
 
@@ -110,7 +115,7 @@ export function ProgressPage() {
         <table className="progress-table">
           <thead>
             <tr>
-              <th>Edition</th>
+              <th>Case</th>
               <th>Date</th>
               <th>Total</th>
               <th>Main</th>

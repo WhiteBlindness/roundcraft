@@ -52,6 +52,12 @@ interface PracticeViewProps {
 }
 
 function PracticeView({ brief, editionLabel, onBack }: PracticeViewProps) {
+  const [expandedAction, setExpandedAction] = useState<string | null>(null)
+
+  function qualifierLabel(qualifierId: string): string {
+    return brief.qualifiers.find((q) => q.id === qualifierId)?.label ?? qualifierId
+  }
+
   return (
     <section className="practice-view" aria-labelledby="practice-title">
       <button className="back-action" type="button" onClick={onBack}>
@@ -87,15 +93,35 @@ function PracticeView({ brief, editionLabel, onBack }: PracticeViewProps) {
         <section>
           <h3>Actions ({brief.actions.length})</h3>
           <ul>
-            {brief.actions.map((action) => (
-              <li key={action.id}>
-                <strong>{action.label}</strong>
-                <span>
-                  {action.qualifierIds.length} qualifier
-                  {action.qualifierIds.length !== 1 ? 's' : ''}
-                </span>
-              </li>
-            ))}
+            {brief.actions.map((action) => {
+              const isExpanded = expandedAction === action.id
+
+              return (
+                <li key={action.id} className="practice-action-item">
+                  <button
+                    type="button"
+                    className="practice-action-toggle"
+                    aria-expanded={isExpanded}
+                    onClick={() =>
+                      setExpandedAction(isExpanded ? null : action.id)
+                    }
+                  >
+                    <strong>{action.label}</strong>
+                    <span>
+                      {action.qualifierIds.length} qualifier
+                      {action.qualifierIds.length !== 1 ? 's' : ''}
+                    </span>
+                  </button>
+                  {isExpanded ? (
+                    <ul className="practice-qualifiers">
+                      {action.qualifierIds.map((qId) => (
+                        <li key={qId}>{qualifierLabel(qId)}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         </section>
         <section>
@@ -107,6 +133,23 @@ function PracticeView({ brief, editionLabel, onBack }: PracticeViewProps) {
           </ul>
         </section>
       </div>
+
+      <aside className="practice-ledger" aria-label="Decision set summary">
+        <dl>
+          <div>
+            <dt>Available calls</dt>
+            <dd>{brief.actions.length}</dd>
+          </div>
+          <div>
+            <dt>Evidence signals</dt>
+            <dd>{brief.evidence.length}</dd>
+          </div>
+          <div>
+            <dt>Source</dt>
+            <dd>{brief.origin === 'synthetic' ? 'Synthetic' : 'Professional'}</dd>
+          </div>
+        </dl>
+      </aside>
 
       <p className="practice-note">
         Practice mode shows the brief only. Commit and scoring are not available
