@@ -338,6 +338,10 @@
   background: rgb(12 80 72 / 8%);
 }
 
+.share-action:active {
+  transform: scale(0.98);
+}
+
 .review-completion > button,
 .completion-actions > button:last-child {
   min-height: 52px;
@@ -348,11 +352,17 @@
   cursor: pointer;
   font: inherit;
   font-weight: 800;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
 
 .review-completion > button:hover,
 .completion-actions > button:last-child:hover {
   background: #f27a4f;
+}
+
+.review-completion > button:active:not(:disabled),
+.completion-actions > button:last-child:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .review-completion > button:disabled {

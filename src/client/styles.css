@@ -166,6 +166,10 @@ main {
   background: rgb(12 80 72 / 8%);
 }
 
+.secondary-action:active {
+  transform: scale(0.98);
+}
+
 .case-kicker {
   display: flex;
   grid-column: 1 / -1;
@@ -864,6 +868,15 @@ footer {
   color: #17201f;
   cursor: pointer;
   font-weight: 800;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.review-actions > button:last-child:hover:not(:disabled) {
+  background: #f27a4f;
+}
+
+.review-actions > button:last-child:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .review-actions button:disabled {
@@ -1653,6 +1666,10 @@ footer {
 
 .danger-button:hover {
   background: rgb(157 76 45 / 8%);
+}
+
+.danger-button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .danger-button:disabled {
