@@ -165,6 +165,14 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
   const [stage, setStageRaw] = useState<AttemptStage>(initialStage)
   const [draftNotice, setDraftNotice] = useState(hasDraft)
 
+  useEffect(() => {
+    if (stage === 'debrief') return
+
+    function warn(e: BeforeUnloadEvent) { e.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [stage])
+
   function setStage(next: AttemptStage): void {
     setStageRaw(next)
     setDraftNotice(false)
