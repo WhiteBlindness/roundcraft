@@ -147,6 +147,7 @@ export function FollowupExperience({
       void recordEvent('share_invoked', { mode: 'official', surface: 'clipboard' }, csrfToken)
     } catch {
       setShareStatus('error')
+      resetShareAfterDelay()
     }
   }
 
