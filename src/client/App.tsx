@@ -466,7 +466,7 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
             </section>
 
             <div className="decision-form">
-              <fieldset className="choice-group">
+              <fieldset className="choice-group" aria-required="true">
                 <legend>Your action</legend>
                 {brief.actions.map((action) => (
                   <label key={action.id}>
@@ -482,7 +482,7 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
                 ))}
               </fieldset>
 
-              <fieldset className="choice-group" disabled={!activeAction}>
+              <fieldset className="choice-group" aria-required="true" disabled={!activeAction}>
                 <legend>How you execute it</legend>
                 {validQualifiers.length ? (
                   validQualifiers.map((qualifier) => (

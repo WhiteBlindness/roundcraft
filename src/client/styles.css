@@ -15,6 +15,7 @@
 html {
   min-width: 320px;
   background: #efece4;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -411,6 +412,11 @@ footer {
 .stage-track li[data-status="completed"] {
   color: #0c5048;
   border-color: rgb(12 80 72 / 35%);
+}
+
+.stage-track li[data-status="completed"]::before {
+  content: "\2713 ";
+  font-size: 0.6rem;
 }
 
 .attempt-main {
