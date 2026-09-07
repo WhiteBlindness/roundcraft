@@ -428,7 +428,10 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
               })}
             </fieldset>
             <div className="attempt-actions">
-              <p role="status">
+              <p
+                className={!selectionMessage && selectedEvidence.length === 2 ? 'selection-ready' : undefined}
+                role="status"
+              >
                 {selectionMessage ?? `${selectedEvidence.length} of 2 selected`}
               </p>
               <button
