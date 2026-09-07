@@ -49,6 +49,7 @@ api.use('*', async (context, next) => {
   context.header('Permissions-Policy', 'camera=(), geolocation=(), microphone=()')
   context.header('Referrer-Policy', 'no-referrer')
   context.header('X-Content-Type-Options', 'nosniff')
+  context.header('X-Frame-Options', 'DENY')
 
   const isPublicToday =
     context.req.method === 'GET' && context.req.path === '/api/v1/today'
