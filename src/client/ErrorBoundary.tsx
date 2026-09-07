@@ -22,20 +22,22 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="app-shell">
-          <section className="page-state" aria-labelledby="error-title">
-            <p className="eyebrow">Error</p>
-            <h1 id="error-title">Something went wrong</h1>
-            <p className="case-intro">
-              The application encountered an unexpected error.
-            </p>
-            <button
-              className="secondary-action"
-              type="button"
-              onClick={() => window.location.reload()}
-            >
-              Reload
-            </button>
-          </section>
+          <main>
+            <section className="page-state" aria-labelledby="error-title">
+              <p className="eyebrow">Error</p>
+              <h1 id="error-title">Something went wrong</h1>
+              <p className="case-intro">
+                The application encountered an unexpected error.
+              </p>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => window.location.reload()}
+              >
+                Reload
+              </button>
+            </section>
+          </main>
         </div>
       )
     }
