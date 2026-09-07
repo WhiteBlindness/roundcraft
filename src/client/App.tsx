@@ -656,6 +656,10 @@ export function App() {
   }, [])
 
   useEffect(() => {
+    if (activeAttempt) {
+      document.title = 'Case in progress — Roundcraft'
+      return
+    }
     const titles: Record<AppPage, string> = {
       today: 'Today — Roundcraft',
       cases: 'Cases — Roundcraft',
@@ -664,7 +668,7 @@ export function App() {
       'not-found': 'Not found — Roundcraft',
     }
     document.title = titles[page]
-  }, [page])
+  }, [page, activeAttempt])
 
   useEffect(() => {
     function handlePopState(): void {
