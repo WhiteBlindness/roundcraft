@@ -976,8 +976,36 @@ export function App() {
       </main>
 
       <footer>
-        <p>Built for deliberate CS2 decisions, not reaction speed.</p>
-        <p>Roundcraft · Foundation build</p>
+        <div className="footer-nav">
+          <a
+            href="/"
+            onClick={(e) => handleNavClick(e, 'today')}
+          >
+            Today
+          </a>
+          <a
+            href="/cases"
+            onClick={(e) => handleNavClick(e, 'cases')}
+          >
+            Cases
+          </a>
+          <a
+            href="/progress"
+            onClick={(e) => handleNavClick(e, 'progress')}
+          >
+            Progress
+          </a>
+          <a
+            href="/settings"
+            onClick={(e) => handleNavClick(e, 'settings')}
+          >
+            Settings
+          </a>
+        </div>
+        <div className="footer-info">
+          <p>Built for deliberate CS2 decisions, not reaction speed.</p>
+          <p>Roundcraft · Foundation build</p>
+        </div>
       </footer>
     </div>
   )

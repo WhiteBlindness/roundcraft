@@ -308,9 +308,33 @@ footer {
   gap: 24px;
   padding-block: 24px;
   border-top: 1px solid rgb(23 32 31 / 16%);
+  flex-wrap: wrap;
 }
 
-footer p {
+.footer-nav {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-nav a {
+  color: #61706d;
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-nav a:hover {
+  color: #0c5048;
+}
+
+.footer-info {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.footer-info p {
   margin: 0;
 }
 
@@ -934,6 +958,12 @@ footer p {
   footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .footer-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
   .attempt-header {
