@@ -35,6 +35,7 @@ interface ProgressPageProps {
 
 export function ProgressPage({ onNavigateToday }: ProgressPageProps) {
   const [state, setState] = useState<ProgressState>({ kind: 'loading' })
+  const [loadKey, setLoadKey] = useState(0)
 
   useEffect(() => {
     let isCurrent = true
@@ -50,7 +51,7 @@ export function ProgressPage({ onNavigateToday }: ProgressPageProps) {
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [loadKey])
 
   if (state.kind === 'loading') {
     return (
@@ -101,17 +102,20 @@ export function ProgressPage({ onNavigateToday }: ProgressPageProps) {
     return (
       <section className="page-state" aria-labelledby="progress-error">
         <p className="eyebrow">Progress</p>
-        <h1 id="progress-error">No history yet</h1>
+        <h1 id="progress-error">History unavailable</h1>
         <p className="case-intro">
-          Complete your first official case to see your scored history here.
+          Your scored history could not be loaded.
         </p>
-        <a
-          className="inline-nav-link"
-          href="/"
-          onClick={(e) => { e.preventDefault(); onNavigateToday() }}
+        <button
+          className="secondary-action"
+          type="button"
+          onClick={() => {
+            setState({ kind: 'loading' })
+            setLoadKey((k) => k + 1)
+          }}
         >
-          Go to Today
-        </a>
+          Try again
+        </button>
       </section>
     )
   }

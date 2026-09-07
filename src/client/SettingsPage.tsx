@@ -127,9 +127,18 @@ export function SettingsPage() {
           ) : null}
 
           {deleteStatus === 'deleted' ? (
-            <p className="danger-status danger-success" role="status">
-              All data has been deleted. Reload the page to start fresh.
-            </p>
+            <div className="danger-confirm">
+              <p className="danger-status danger-success" role="status">
+                All data has been deleted.
+              </p>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => window.location.assign('/')}
+              >
+                Start fresh
+              </button>
+            </div>
           ) : null}
 
           {deleteStatus === 'error' ? (
