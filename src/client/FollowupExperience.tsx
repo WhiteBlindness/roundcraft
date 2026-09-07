@@ -99,6 +99,18 @@ export function FollowupExperience({
   const [fairnessCategory, setFairnessCategory] = useState<FairnessCategory | null>(null)
   const [fairnessStatus, setFairnessStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle')
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'shared' | 'error'>('idle')
+  const shareTimer = useRef<ReturnType<typeof setTimeout>>(null)
+
+  useEffect(() => {
+    return () => {
+      if (shareTimer.current) clearTimeout(shareTimer.current)
+    }
+  }, [])
+
+  function resetShareAfterDelay(): void {
+    if (shareTimer.current) clearTimeout(shareTimer.current)
+    shareTimer.current = setTimeout(() => setShareStatus('idle'), 3000)
+  }
 
   function buildShareText(): string {
     if (!result) return ''
@@ -120,6 +132,7 @@ export function FollowupExperience({
       try {
         await navigator.share({ text })
         setShareStatus('shared')
+        resetShareAfterDelay()
         void recordEvent('share_invoked', { mode: 'official', surface: 'web_share' }, csrfToken)
         return
       } catch {
@@ -130,6 +143,7 @@ export function FollowupExperience({
     try {
       await navigator.clipboard.writeText(text)
       setShareStatus('copied')
+      resetShareAfterDelay()
       void recordEvent('share_invoked', { mode: 'official', surface: 'clipboard' }, csrfToken)
     } catch {
       setShareStatus('error')
@@ -426,7 +440,7 @@ export function FollowupExperience({
         <p>This is the authored round record. It did not change because of your answer.</p>
       </header>
 
-      <ol className="continuation-list">
+      <ol className="continuation-list" aria-label="Round continuation events">
         {result.reveal.continuation.events.map((event) => (
           <li key={`${event.timestamp}-${event.action}`}>
             <time>{event.timestamp}</time>

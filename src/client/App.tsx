@@ -978,24 +978,28 @@ export function App() {
       <footer>
         <div className="footer-nav">
           <a
+            aria-current={page === 'today' ? 'page' : undefined}
             href="/"
             onClick={(e) => handleNavClick(e, 'today')}
           >
             Today
           </a>
           <a
+            aria-current={page === 'cases' ? 'page' : undefined}
             href="/cases"
             onClick={(e) => handleNavClick(e, 'cases')}
           >
             Cases
           </a>
           <a
+            aria-current={page === 'progress' ? 'page' : undefined}
             href="/progress"
             onClick={(e) => handleNavClick(e, 'progress')}
           >
             Progress
           </a>
           <a
+            aria-current={page === 'settings' ? 'page' : undefined}
             href="/settings"
             onClick={(e) => handleNavClick(e, 'settings')}
           >

@@ -325,7 +325,8 @@ footer {
   transition: color 0.15s ease;
 }
 
-.footer-nav a:hover {
+.footer-nav a:hover,
+.footer-nav a[aria-current="page"] {
   color: #0c5048;
 }
 
