@@ -1855,6 +1855,10 @@ footer {
   font-weight: 700;
 }
 
+.fairness-options label:hover {
+  background: rgb(23 32 31 / 3%);
+}
+
 .fairness-options label:has(input:checked) {
   border-color: #9d4c2d;
   background: rgb(157 76 45 / 8%);
@@ -1872,6 +1876,7 @@ footer {
   padding: 0 20px;
   border: 1px solid #697773;
   background: transparent;
+  transition: background 0.15s ease;
   color: #40504d;
   cursor: pointer;
   font-weight: 800;
