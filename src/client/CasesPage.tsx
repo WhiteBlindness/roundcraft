@@ -161,6 +161,7 @@ function PracticeView({ brief, editionLabel, onBack }: PracticeViewProps) {
 
 export function CasesPage() {
   const [state, setState] = useState<CasesState>({ kind: 'loading' })
+  const [loadKey, setLoadKey] = useState(0)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [practiceData, setPracticeData] = useState<{
     readonly attempt: PracticeAttemptData
@@ -188,7 +189,7 @@ export function CasesPage() {
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [loadKey])
 
   async function handleLoadMore(): Promise<void> {
     if (state.kind !== 'ready' || !state.nextCursor || isLoadingMore) return
@@ -275,15 +276,7 @@ export function CasesPage() {
           type="button"
           onClick={() => {
             setState({ kind: 'loading' })
-            loadCases()
-              .then((data) =>
-                setState({
-                  kind: 'ready',
-                  editions: data.editions,
-                  nextCursor: data.next_cursor ?? null,
-                }),
-              )
-              .catch(() => setState({ kind: 'error' }))
+            setLoadKey((k) => k + 1)
           }}
         >
           Try again
