@@ -1324,6 +1324,10 @@ footer {
   background: rgb(12 80 72 / 8%);
 }
 
+.case-card button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 .case-card button:disabled {
   cursor: wait;
   opacity: 0.55;
@@ -1888,6 +1892,10 @@ footer {
   background: rgb(23 32 31 / 4%);
 }
 
+.fairness-section > button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 .fairness-section > button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
@@ -2072,4 +2080,67 @@ footer {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+@media print {
+  .site-header,
+  footer,
+  .skip-link,
+  .back-action,
+  .attempt-actions,
+  .review-actions,
+  .review-completion button,
+  .completion-actions,
+  .fairness-section,
+  .case-actions button,
+  .offline-banner,
+  .draft-notice,
+  .stage-track,
+  .cases-pagination {
+    display: none !important;
+  }
+
+  :root,
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .app-shell {
+    min-height: auto;
+  }
+
+  main {
+    width: 100%;
+    padding-block: 0;
+  }
+
+  .attempt-main {
+    width: 100%;
+  }
+
+  .attempt-header {
+    width: 100%;
+    min-height: auto;
+    padding-block: 12px;
+    border-bottom: 1px solid #999;
+    grid-template-columns: 1fr;
+  }
+
+  .case-cover {
+    border: 1px solid #ccc;
+    box-shadow: none;
+  }
+
+  .page-state,
+  .case-state {
+    box-shadow: none;
+  }
+
+  .progress-table-wrap {
+    border-color: #ccc;
+  }
+
+  a { text-decoration: none; }
 }

@@ -170,6 +170,7 @@ export function ProgressPage({ onNavigateToday }: ProgressPageProps) {
 
       <div className="progress-table-wrap">
         <table className="progress-table">
+          <caption className="visually-hidden">Scored attempt history</caption>
           <thead>
             <tr>
               <th>Case</th>

@@ -414,3 +414,36 @@
     flex-direction: column;
   }
 }
+
+@media print {
+  .review-completion,
+  .share-action {
+    display: none !important;
+  }
+
+  .debrief-screen {
+    gap: 32px;
+  }
+
+  .debrief-opening h1 {
+    font-size: 2.4rem;
+  }
+
+  .comparison-grid {
+    border-color: #ccc;
+  }
+
+  .principle-card {
+    border-top-color: #999;
+    break-inside: avoid;
+  }
+
+  .result-summary {
+    border-top-color: #000;
+    break-inside: avoid;
+  }
+
+  .tactical-debrief > dl > div {
+    break-inside: avoid;
+  }
+}
