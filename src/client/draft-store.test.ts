@@ -101,5 +101,26 @@ describe('draft-store', () => {
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       )
     })
+
+    it('migrates a legacy localStorage draft to IndexedDB', async () => {
+      const attemptId = 'migrate_legacy'
+      const legacyKey = crypto.randomUUID()
+      localStorage.setItem(
+        `roundcraft:draft:${attemptId}`,
+        JSON.stringify(testDraft),
+      )
+      localStorage.setItem(`roundcraft:main-key:${attemptId}`, legacyKey)
+
+      const state = await loadDraftState(attemptId)
+      expect(state.draft).toEqual(testDraft)
+      expect(state.idempotencyKey).toBe(legacyKey)
+      expect(localStorage.getItem(`roundcraft:draft:${attemptId}`)).toBeNull()
+      expect(
+        localStorage.getItem(`roundcraft:main-key:${attemptId}`),
+      ).toBeNull()
+
+      const reloaded = await loadDraftState(attemptId)
+      expect(reloaded.draft).toEqual(testDraft)
+    })
   })
 })

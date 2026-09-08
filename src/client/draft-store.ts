@@ -173,12 +173,61 @@ export interface LoadedDraftState {
   readonly idempotencyKey: string
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function migrateFromLocalStorage(attemptId: string): {
+  draft: MainDraft | null
+  key: string | null
+} {
+  let draft: MainDraft | null = null
+  let key: string | null = null
+
+  try {
+    const raw = localStorage.getItem(`roundcraft:draft:${attemptId}`)
+    if (raw) {
+      const parsed = JSON.parse(raw) as MainDraft
+      if (Array.isArray(parsed.evidence_ids)) {
+        draft = parsed
+        localStorage.removeItem(`roundcraft:draft:${attemptId}`)
+      }
+    }
+  } catch {
+    // Ignore corrupt localStorage entries.
+  }
+
+  try {
+    const stored = localStorage.getItem(`roundcraft:main-key:${attemptId}`)
+    if (stored && UUID_PATTERN.test(stored)) {
+      key = stored
+      localStorage.removeItem(`roundcraft:main-key:${attemptId}`)
+    }
+  } catch {
+    // Ignore inaccessible localStorage.
+  }
+
+  return { draft, key }
+}
+
 export async function loadDraftState(
   attemptId: string,
 ): Promise<LoadedDraftState> {
-  const [draft, idempotencyKey] = await Promise.all([
+  let [draft, idempotencyKey] = await Promise.all([
     loadDraft(attemptId),
     loadIdempotencyKey(attemptId),
   ])
+
+  if (!draft) {
+    const legacy = migrateFromLocalStorage(attemptId)
+    if (legacy.draft) {
+      draft = legacy.draft
+      void saveDraft(attemptId, draft)
+    }
+    if (legacy.key) {
+      idempotencyKey = legacy.key
+      void saveIdempotencyKey(attemptId, idempotencyKey)
+    }
+  }
+
   return { draft, idempotencyKey }
 }
