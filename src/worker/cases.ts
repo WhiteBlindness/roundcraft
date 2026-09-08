@@ -1,5 +1,15 @@
+import { z } from 'zod'
+
 import type { Bindings } from './bindings'
 import { jsonError, jsonSuccess } from './http'
+
+const publicMetadataSchema = z.object({
+  case_number: z.number().int().positive(),
+  edition_date_utc: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  estimated_minutes: z.number().int().min(5).max(8),
+  focus: z.string().min(1).max(80),
+  origin_label: z.string().min(1).max(160),
+})
 
 const defaultLimit = 20
 const maxLimit = 50
@@ -68,11 +78,16 @@ export async function listCases(
 
   return jsonSuccess(
     {
-      editions: editions.map((row) => ({
-        edition_id: row.edition_id,
-        release_at: row.release_at,
-        metadata: JSON.parse(row.public_metadata_json) as unknown,
-      })),
+      editions: editions.map((row) => {
+        const parsed = publicMetadataSchema.safeParse(
+          JSON.parse(row.public_metadata_json),
+        )
+        return {
+          edition_id: row.edition_id,
+          release_at: row.release_at,
+          metadata: parsed.success ? parsed.data : null,
+        }
+      }),
       next_cursor: nextCursor,
     },
     requestId,
