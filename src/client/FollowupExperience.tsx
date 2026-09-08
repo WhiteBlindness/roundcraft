@@ -422,7 +422,7 @@ export function FollowupExperience({
           ) : null}
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !idempotencyKey}
             onClick={() => void lockFollowup()}
           >
             {isSubmitting
