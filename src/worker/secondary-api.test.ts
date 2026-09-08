@@ -247,6 +247,217 @@ async function getIdentityId(cookie: string): Promise<string> {
   return row!.identity_id
 }
 
+describe('Today API — authenticated status and edge cases', () => {
+  beforeEach(async () => {
+    await env.DB.exec(
+      `DELETE FROM analytics_events;
+       DELETE FROM fairness_reports;
+       DELETE FROM participation_credits;
+       DELETE FROM result_versions;
+       DELETE FROM idempotency_receipts;
+       DELETE FROM attempt_commits;
+       DELETE FROM attempts;
+       DELETE FROM anonymous_identities;
+       DELETE FROM case_rubrics;
+       DELETE FROM case_public_briefs;
+       DELETE FROM editions;
+       DELETE FROM case_revisions;
+       DELETE FROM cases;`,
+    )
+  })
+
+  it('returns 304 when the If-None-Match header matches the ETag', async () => {
+    const first = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/today`),
+      env,
+      executionContext,
+    )
+    const etag = first.headers.get('etag')!
+    expect(etag).toBeTruthy()
+
+    const second = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/today`, {
+        headers: { 'if-none-match': etag },
+      }),
+      env,
+      executionContext,
+    )
+
+    expect(second.status).toBe(304)
+  })
+
+  it('shows in_progress status for an authenticated user with an issued attempt', async () => {
+    await seedEditionWithBrief()
+    const { cookie } = await createIdentity()
+    const identityId = await getIdentityId(cookie)
+
+    await env.DB.prepare(
+      `INSERT INTO attempts (
+        attempt_id, identity_id, edition_id, case_revision, rubric_revision,
+        ruleset_revision, mode, state, sequence, assisted, issued_at, grace_end_at
+      ) VALUES (?, ?, 'edition_sec_001', 'case_revision_sec_001',
+        'rubric_sec_001', 'ruleset_v1', 'official', 'issued',
+        0, 0, ?, '2099-01-01T12:00:00.000Z')`,
+    )
+      .bind(
+        'in_progress_attempt_aaaaaaaaaaaaaaaaaaaaaaa',
+        identityId,
+        '2026-09-01T14:00:00.000Z',
+      )
+      .run()
+
+    const response = await worker.fetch(
+      authenticatedGet('/api/v1/today', cookie),
+      env,
+      executionContext,
+    )
+
+    expect(response.status).toBe(200)
+    const payload = await response.json<{
+      data: { edition: { status: string; primary_action: string } }
+    }>()
+    expect(payload.data.edition.status).toBe('in_progress')
+    expect(payload.data.edition.primary_action).toBe('continue')
+  })
+
+  it('shows decision_complete status when the attempt reached that state', async () => {
+    await seedEditionWithBrief()
+    const { cookie } = await createIdentity()
+    const identityId = await getIdentityId(cookie)
+
+    await env.DB.prepare(
+      `INSERT INTO attempts (
+        attempt_id, identity_id, edition_id, case_revision, rubric_revision,
+        ruleset_revision, mode, state, sequence, assisted, issued_at, grace_end_at
+      ) VALUES (?, ?, 'edition_sec_001', 'case_revision_sec_001',
+        'rubric_sec_001', 'ruleset_v1', 'official', 'decision_complete',
+        2, 0, ?, '2099-01-01T12:00:00.000Z')`,
+    )
+      .bind(
+        'decision_complete_attempt_aaaaaaaaaaaaaaaaa',
+        identityId,
+        '2026-09-01T14:00:00.000Z',
+      )
+      .run()
+
+    const response = await worker.fetch(
+      authenticatedGet('/api/v1/today', cookie),
+      env,
+      executionContext,
+    )
+
+    expect(response.status).toBe(200)
+    const payload = await response.json<{
+      data: { edition: { status: string; primary_action: string } }
+    }>()
+    expect(payload.data.edition.status).toBe('decision_complete')
+    expect(payload.data.edition.primary_action).toBe('view_debrief')
+  })
+
+  it('shows complete status when the attempt reached debrief_complete', async () => {
+    await seedEditionWithBrief()
+    const { cookie } = await createIdentity()
+    const identityId = await getIdentityId(cookie)
+
+    await env.DB.prepare(
+      `INSERT INTO attempts (
+        attempt_id, identity_id, edition_id, case_revision, rubric_revision,
+        ruleset_revision, mode, state, sequence, assisted, issued_at,
+        grace_end_at, debrief_completed_at
+      ) VALUES (?, ?, 'edition_sec_001', 'case_revision_sec_001',
+        'rubric_sec_001', 'ruleset_v1', 'official', 'debrief_complete',
+        3, 0, ?, '2099-01-01T12:00:00.000Z', ?)`,
+    )
+      .bind(
+        'debrief_complete_attempt_aaaaaaaaaaaaaaaaaa',
+        identityId,
+        '2026-09-01T14:00:00.000Z',
+        '2026-09-01T14:10:00.000Z',
+      )
+      .run()
+
+    const response = await worker.fetch(
+      authenticatedGet('/api/v1/today', cookie),
+      env,
+      executionContext,
+    )
+
+    expect(response.status).toBe(200)
+    const payload = await response.json<{
+      data: { edition: { status: string; primary_action: string } }
+    }>()
+    expect(payload.data.edition.status).toBe('complete')
+    expect(payload.data.edition.primary_action).toBe('review')
+  })
+
+  it('returns 503 when public_metadata_json is not valid JSON', async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO cases (case_id, origin, created_at)
+         VALUES ('case_bad_json', 'synthetic', '2026-09-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO case_revisions (
+          case_revision, case_id, schema_version, checksum, status, created_at
+        ) VALUES ('cr_bad_json', 'case_bad_json', 1, 'ck_bad_json', 'locked', '2026-09-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO editions (
+          edition_id, case_revision, release_at, official_end_at,
+          grace_end_at, publication_status, public_metadata_json, created_at
+        ) VALUES ('edition_bad_json', 'cr_bad_json', '2026-01-01T00:00:00.000Z',
+          '2099-01-01T00:00:00.000Z', '2099-01-01T12:00:00.000Z', 'released',
+          '{"valid": true}', '2026-09-01T00:00:00.000Z')`,
+      ),
+    ])
+    // The JSON is valid but doesn't match the publicMetadataSchema (missing required fields)
+    const response = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/today`),
+      env,
+      executionContext,
+    )
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'SERVICE_UNAVAILABLE' },
+    })
+  })
+
+  it('shows main_locked as in_progress', async () => {
+    await seedEditionWithBrief()
+    const { cookie } = await createIdentity()
+    const identityId = await getIdentityId(cookie)
+
+    await env.DB.prepare(
+      `INSERT INTO attempts (
+        attempt_id, identity_id, edition_id, case_revision, rubric_revision,
+        ruleset_revision, mode, state, sequence, assisted, issued_at, grace_end_at
+      ) VALUES (?, ?, 'edition_sec_001', 'case_revision_sec_001',
+        'rubric_sec_001', 'ruleset_v1', 'official', 'main_locked',
+        1, 0, ?, '2099-01-01T12:00:00.000Z')`,
+    )
+      .bind(
+        'main_locked_attempt_aaaaaaaaaaaaaaaaaaaaaaa',
+        identityId,
+        '2026-09-01T14:00:00.000Z',
+      )
+      .run()
+
+    const response = await worker.fetch(
+      authenticatedGet('/api/v1/today', cookie),
+      env,
+      executionContext,
+    )
+
+    expect(response.status).toBe(200)
+    const payload = await response.json<{
+      data: { edition: { status: string; primary_action: string } }
+    }>()
+    expect(payload.data.edition.status).toBe('in_progress')
+    expect(payload.data.edition.primary_action).toBe('continue')
+  })
+})
+
 describe('cases API', () => {
   beforeEach(async () => {
     await env.DB.exec(
