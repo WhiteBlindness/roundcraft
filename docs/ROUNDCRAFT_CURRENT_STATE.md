@@ -60,14 +60,14 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 - SPA: `not_found_handling: "single-page-application"`
 - `run_worker_first`: `/api/*`, `/`, `/today`, `/cases/*`, `/progress`, `/settings`
 
-### A.4 Resultados dos testes (04/09/2026)
+### A.4 Resultados dos testes (08/09/2026)
 
 | Conjunto | Ficheiros | Testes | Estado |
 |---|---|---|---|
 | Contrato | 1 | 29 | Passou |
 | Worker | 13 | 73 | Passou |
-| Cliente | 2 | 7 | Passou |
-| **Total** | **16** | **109** | **Todos passaram** |
+| Cliente | 8 | 46 | Passou |
+| **Total** | **22** | **148** | **Todos passaram** |
 
 ---
 
@@ -95,7 +95,7 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 | Fase 2 — Exploração de design | "Proposed for user selection" | Datado de 31/08/2026; Design A selecionado |
 | Fase 2B — Design selecionado | "Proposed for approval" | Datado de 31/08/2026; Editorial Tactical Desk |
 | Fase 3 — Arquitetura técnica | "Proposta para aprovação" | Datado de 01/09/2026; 1 068 linhas, em português |
-| Fase 4 — Implementação | Em curso (avançada) | 5 PRs fundidos + 6 endpoints secundários; fluxo completo |
+| Fase 4 — Implementação | Em curso (avançada) | 7 PRs fundidos; 13 rotas, IndexedDB drafts, 148 testes |
 
 ### B.3 Progressão da Fase 4
 
@@ -145,11 +145,11 @@ Desvios identificados entre os documentos de planeamento e a implementação atu
 | ~~D-05~~ | ~~`POST /events` — acontecimentos de produto~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `events.ts` implementado |
 | ~~D-06~~ | ~~`DELETE /history` — eliminação do histórico~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `history.ts` implementado |
 | D-07 | Turnstile adaptativo | Fase 3 §13.4 | Sem proteção progressiva contra automatização |
-| D-08 | IndexedDB para rascunhos locais | Fase 3 §16.3 | Sem persistência de rascunho fora de linha |
+| ~~D-08~~ | ~~IndexedDB para rascunhos locais~~ | ~~Fase 3 §16.3~~ | **Resolvido** — `draft-store.ts` com migração de localStorage |
 | D-09 | Tabelas de governação (case_sources, rights_records, etc.) | Fase 3 §8.1 | Não presentes na migração |
 | D-10 | Tabelas operacionais (retention_jobs, publication_audits) | Fase 3 §8.1 | Não presentes na migração |
 | D-11 | Tabelas de distribuição (distribution_rollups) | Fase 3 §8.1 | Não presentes na migração |
-| D-12 | Verificação ETag em GET /today | Fase 3 §12.1 | Sem revalidação por ETag |
+| ~~D-12~~ | ~~Verificação ETag em GET /today~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `today.ts` com ETag e `Cache-Control` |
 
 ### C.2 Desvios de configuração
 
@@ -220,7 +220,7 @@ Não foram identificadas lacunas materiais. A Fase 3 cobre exaustivamente todos 
 
 O repositório encontra-se num estado coerente e avançado. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre agora as 13 rotas da API (7 do fluxo principal + 6 endpoints secundários). As funcionalidades em falta (D-07 a D-12) são melhoramentos progressivos: Turnstile adaptativo, IndexedDB para rascunhos, tabelas de governação/operações/distribuição e ETag em GET /today.
 
-**Próximo marco:** testes de integração para os endpoints secundários e funcionalidades progressivas (D-07 a D-12).
+**Próximo marco:** funcionalidades progressivas restantes (D-07, D-09 a D-11) e melhoramentos de UX.
 
 ---
 
