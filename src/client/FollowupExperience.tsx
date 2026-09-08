@@ -11,20 +11,11 @@ import {
   type MainCommitData,
   recordEvent,
 } from './api'
-
-const idempotencyKeyPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-
-function loadFollowupIdempotencyKey(attemptId: string): string {
-  try {
-    const stored = localStorage.getItem(`roundcraft:followup-key:${attemptId}`)
-    if (stored && idempotencyKeyPattern.test(stored)) return stored
-  } catch {
-    // Storage is an optional recovery aid; the server remains authoritative.
-  }
-
-  return crypto.randomUUID()
-}
+import {
+  loadIdempotencyKey,
+  saveIdempotencyKey,
+  clearIdempotencyKey,
+} from './draft-store'
 
 function optionLabel(
   options: readonly { readonly id: string; readonly label: string }[],
@@ -92,7 +83,18 @@ export function FollowupExperience({
   const [isCompletingReview, setIsCompletingReview] = useState(false)
   const [completionStarted, setCompletionStarted] = useState(false)
   const [completionError, setCompletionError] = useState<string | null>(null)
-  const idempotencyKey = useRef(loadFollowupIdempotencyKey(attemptId))
+  const followupKeyId = `${attemptId}:followup`
+  const [idempotencyKey, setIdempotencyKey] = useState('')
+  useEffect(() => {
+    let cancelled = false
+    loadIdempotencyKey(followupKeyId).then((key) => {
+      if (!cancelled) {
+        setIdempotencyKey(key)
+        void saveIdempotencyKey(followupKeyId, key)
+      }
+    })
+    return () => { cancelled = true }
+  }, [followupKeyId])
   const answerHeading = useRef<HTMLHeadingElement>(null)
   const reviewHeading = useRef<HTMLHeadingElement>(null)
   const debriefHeading = useRef<HTMLHeadingElement>(null)
@@ -152,15 +154,15 @@ export function FollowupExperience({
   }
 
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        `roundcraft:followup-key:${attemptId}`,
-        idempotencyKey.current,
-      )
-    } catch {
-      // A blocked local recovery aid must not block the official attempt.
+    const raw = localStorage.getItem(`roundcraft:followup-key:${attemptId}`)
+    if (raw) {
+      try { localStorage.removeItem(`roundcraft:followup-key:${attemptId}`) } catch { /* best-effort */ }
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
+        setIdempotencyKey(raw)
+        void saveIdempotencyKey(followupKeyId, raw)
+      }
     }
-  }, [attemptId])
+  }, [attemptId, followupKeyId])
 
   useEffect(() => {
     if (stage === 'answer') answerHeading.current?.focus()
@@ -214,15 +216,11 @@ export function FollowupExperience({
       const committed = await commitFollowupAnswer(
         attemptId,
         csrfToken,
-        idempotencyKey.current,
+        idempotencyKey,
         selectedAnswer,
       )
       setResult(committed)
-      try {
-        localStorage.removeItem(`roundcraft:followup-key:${attemptId}`)
-      } catch {
-        // The accepted server state does not depend on local storage cleanup.
-      }
+      void clearIdempotencyKey(followupKeyId)
       setStage('debrief')
       void recordEvent('followup_committed', { mode: 'official' }, csrfToken)
       void recordEvent('decision_complete', { mode: 'official' }, csrfToken)
