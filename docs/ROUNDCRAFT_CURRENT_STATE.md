@@ -65,10 +65,10 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 | Conjunto | Ficheiros | Testes | Estado |
 |---|---|---|---|
 | Contrato | 1 | 29 | Passou |
-| Worker | 13 | 73 | Passou |
+| Worker | 14 | 96 | Passou |
 | Cliente | 7 | 46 | Passou |
 | E2E | 1 | 2 | Passou |
-| **Total** | **22** | **150** | **Todos passaram** |
+| **Total** | **23** | **173** | **Todos passaram** |
 
 ---
 
@@ -219,7 +219,7 @@ Não foram identificadas lacunas materiais. A Fase 3 cobre exaustivamente todos 
 
 ### D.3 Conclusão
 
-O repositório encontra-se num estado coerente e completo para o MVP. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre as 13 rotas da API, a SPA completa com IndexedDB, testes unitários (119), de contrato (29) e E2E (2). Os desvios restantes (D-07, D-09 a D-11) são funcionalidades pós-MVP: Turnstile adaptativo e tabelas de governação/operações/distribuição.
+O repositório encontra-se num estado coerente e completo para o MVP. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre as 13 rotas da API, a SPA completa com IndexedDB, testes unitários (142), de contrato (29) e E2E (2). Cobertura worker: 87% statements. Os desvios restantes (D-07, D-09 a D-11) são funcionalidades pós-MVP: Turnstile adaptativo e tabelas de governação/operações/distribuição.
 
 **Próximo marco:** decisões externas (§21.2) antes da beta — domínio, jurisdição, orçamento Cloudflare.
 
@@ -239,5 +239,5 @@ O repositório encontra-se num estado coerente e completo para o MVP. A Fase 3 e
 | 8 | Limitação de taxa configurada | Passou (3 limitadores nas rotas críticas) |
 | 9 | Contratos OpenAPI validados | Passou (29 testes de contrato) |
 | 10 | Migração D1 com restrições CHECK e UNIQUE | Passou (13 tabelas STRICT) |
-| 11 | Testes de concorrência para compromissos simultâneos | Passou (73 testes worker) |
+| 11 | Testes de concorrência para compromissos simultâneos | Passou (96 testes worker, cobertura 87%) |
 | 12 | Fase 3 cobre todos os tópicos exigidos | Passou (ver secção D.1) |
