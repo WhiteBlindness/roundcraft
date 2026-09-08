@@ -18,7 +18,6 @@ import {
   clearDraft as idbClearDraft,
   saveIdempotencyKey as idbSaveKey,
   clearIdempotencyKey as idbClearKey,
-  type MainDraft,
   type LoadedDraftState,
 } from './draft-store'
 import { FollowupExperience } from './FollowupExperience'

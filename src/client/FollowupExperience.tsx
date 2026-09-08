@@ -87,14 +87,33 @@ export function FollowupExperience({
   const [idempotencyKey, setIdempotencyKey] = useState('')
   useEffect(() => {
     let cancelled = false
-    loadIdempotencyKey(followupKeyId).then((key) => {
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+    function migrateLegacyKey(): string | null {
+      try {
+        const raw = localStorage.getItem(`roundcraft:followup-key:${attemptId}`)
+        if (raw && uuidPattern.test(raw)) {
+          localStorage.removeItem(`roundcraft:followup-key:${attemptId}`)
+          return raw
+        }
+      } catch { /* best-effort */ }
+      return null
+    }
+
+    const legacy = migrateLegacyKey()
+    const keyPromise = legacy
+      ? saveIdempotencyKey(followupKeyId, legacy).then(() => legacy)
+      : loadIdempotencyKey(followupKeyId)
+
+    keyPromise.then((key) => {
       if (!cancelled) {
         setIdempotencyKey(key)
-        void saveIdempotencyKey(followupKeyId, key)
+        if (!legacy) void saveIdempotencyKey(followupKeyId, key)
       }
     })
     return () => { cancelled = true }
-  }, [followupKeyId])
+  }, [attemptId, followupKeyId])
   const answerHeading = useRef<HTMLHeadingElement>(null)
   const reviewHeading = useRef<HTMLHeadingElement>(null)
   const debriefHeading = useRef<HTMLHeadingElement>(null)
@@ -152,17 +171,6 @@ export function FollowupExperience({
       resetShareAfterDelay()
     }
   }
-
-  useEffect(() => {
-    const raw = localStorage.getItem(`roundcraft:followup-key:${attemptId}`)
-    if (raw) {
-      try { localStorage.removeItem(`roundcraft:followup-key:${attemptId}`) } catch { /* best-effort */ }
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
-        setIdempotencyKey(raw)
-        void saveIdempotencyKey(followupKeyId, raw)
-      }
-    }
-  }, [attemptId, followupKeyId])
 
   useEffect(() => {
     if (stage === 'answer') answerHeading.current?.focus()
