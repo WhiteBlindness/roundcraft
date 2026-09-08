@@ -149,16 +149,25 @@ describe('FollowupExperience', () => {
 
   it('freezes a pending result and retries with the same key and body', async () => {
     const user = userEvent.setup()
+    const eventsResponse = Response.json({
+      ok: true,
+      data: { accepted: true },
+      error: null,
+      meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+    })
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
       .mockResolvedValueOnce(Response.json(resultResponse))
+      .mockResolvedValue(eventsResponse)
     vi.stubGlobal('fetch', fetchMock)
 
     render(
       <FollowupExperience
         attemptId={'b'.repeat(43)}
         csrfToken={'a'.repeat(43)}
+        caseNumber={1}
+        editionDate="2026-09-05"
         brief={brief}
         mainCommit={mainCommit}
         initialResult={null}
@@ -185,8 +194,11 @@ describe('FollowupExperience', () => {
         level: 1,
       }),
     ).toHaveFocus()
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock.mock.calls[0]?.[1]).toEqual(fetchMock.mock.calls[1]?.[1])
+    const apiCalls = fetchMock.mock.calls.filter(
+      (c) => !(c[0] as string).endsWith('/events'),
+    )
+    expect(apiCalls).toHaveLength(2)
+    expect(apiCalls[0]?.[1]).toEqual(apiCalls[1]?.[1])
   })
 
   it('records review completion only when Finish review is activated', async () => {
@@ -213,6 +225,8 @@ describe('FollowupExperience', () => {
       <FollowupExperience
         attemptId={'b'.repeat(43)}
         csrfToken={'a'.repeat(43)}
+        caseNumber={1}
+        editionDate="2026-09-05"
         brief={brief}
         mainCommit={mainCommit}
         initialResult={resultResponse.data as unknown as FollowupCommitData}
@@ -246,6 +260,12 @@ describe('FollowupExperience', () => {
 
   it('keeps the explicit completion available after a lost acknowledgement', async () => {
     const user = userEvent.setup()
+    const eventsResponse = Response.json({
+      ok: true,
+      data: { accepted: true },
+      error: null,
+      meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+    })
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
@@ -264,12 +284,15 @@ describe('FollowupExperience', () => {
           meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
         }),
       )
+      .mockResolvedValue(eventsResponse)
     vi.stubGlobal('fetch', fetchMock)
 
     render(
       <FollowupExperience
         attemptId={'b'.repeat(43)}
         csrfToken={'a'.repeat(43)}
+        caseNumber={1}
+        editionDate="2026-09-05"
         brief={brief}
         mainCommit={mainCommit}
         initialResult={resultResponse.data as unknown as FollowupCommitData}
@@ -286,7 +309,10 @@ describe('FollowupExperience', () => {
     )
 
     expect(await screen.findByText('Review complete')).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock.mock.calls[0]?.[1]).toEqual(fetchMock.mock.calls[1]?.[1])
+    const apiCalls = fetchMock.mock.calls.filter(
+      (c) => !(c[0] as string).endsWith('/events'),
+    )
+    expect(apiCalls).toHaveLength(2)
+    expect(apiCalls[0]?.[1]).toEqual(apiCalls[1]?.[1])
   })
 })

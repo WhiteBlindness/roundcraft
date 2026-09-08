@@ -20,7 +20,7 @@
             "required": [
               "edition_id", "state", "total_score",
               "display_main", "display_evidence", "display_followup",
-              "issued_at"
+              "issued_at", "metadata"
             ],
             "properties": {
               "edition_id": {
@@ -58,6 +58,9 @@
               "debrief_completed_at": {
                 "type": ["string", "null"],
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+              },
+              "metadata": {
+                "type": "object"
               }
             }
           }

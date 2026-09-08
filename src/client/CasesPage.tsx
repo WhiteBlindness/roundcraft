@@ -9,6 +9,24 @@ import {
 } from './api'
 import type { PublicBrief } from '../domain/public-brief'
 
+interface EditionMetadata {
+  readonly case_number?: number
+  readonly edition_date_utc?: string
+  readonly estimated_minutes?: number
+  readonly focus?: string
+  readonly origin_label?: string
+}
+
+function parseMetadata(raw: Record<string, unknown>): EditionMetadata {
+  return raw as EditionMetadata
+}
+
+function formatEditionDate(value: string): string {
+  const [year, month, day] = value.split('-')
+
+  return `${day}/${month}/${year}`
+}
+
 function formatReleaseDate(isoString: string): string {
   const date = new Date(isoString)
   const day = String(date.getUTCDate()).padStart(2, '0')
@@ -29,18 +47,24 @@ type CasesState =
 
 interface PracticeViewProps {
   readonly brief: PublicBrief
-  readonly editionId: string
+  readonly editionLabel: string
   readonly onBack: () => void
 }
 
-function PracticeView({ brief, editionId, onBack }: PracticeViewProps) {
+function PracticeView({ brief, editionLabel, onBack }: PracticeViewProps) {
+  const [expandedAction, setExpandedAction] = useState<string | null>(null)
+
+  function qualifierLabel(qualifierId: string): string {
+    return brief.qualifiers.find((q) => q.id === qualifierId)?.label ?? qualifierId
+  }
+
   return (
     <section className="practice-view" aria-labelledby="practice-title">
       <button className="back-action" type="button" onClick={onBack}>
         Back to cases
       </button>
       <header className="practice-header">
-        <p className="eyebrow">Practice mode · {editionId}</p>
+        <p className="eyebrow">Practice mode · {editionLabel}</p>
         <h1 id="practice-title">{brief.title}</h1>
         <p className="case-intro">{brief.focus}</p>
       </header>
@@ -69,15 +93,35 @@ function PracticeView({ brief, editionId, onBack }: PracticeViewProps) {
         <section>
           <h3>Actions ({brief.actions.length})</h3>
           <ul>
-            {brief.actions.map((action) => (
-              <li key={action.id}>
-                <strong>{action.label}</strong>
-                <span>
-                  {action.qualifierIds.length} qualifier
-                  {action.qualifierIds.length !== 1 ? 's' : ''}
-                </span>
-              </li>
-            ))}
+            {brief.actions.map((action) => {
+              const isExpanded = expandedAction === action.id
+
+              return (
+                <li key={action.id} className="practice-action-item">
+                  <button
+                    type="button"
+                    className="practice-action-toggle"
+                    aria-expanded={isExpanded}
+                    onClick={() =>
+                      setExpandedAction(isExpanded ? null : action.id)
+                    }
+                  >
+                    <strong>{action.label}</strong>
+                    <span>
+                      {action.qualifierIds.length} qualifier
+                      {action.qualifierIds.length !== 1 ? 's' : ''}
+                    </span>
+                  </button>
+                  {isExpanded ? (
+                    <ul className="practice-qualifiers">
+                      {action.qualifierIds.map((qId) => (
+                        <li key={qId}>{qualifierLabel(qId)}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         </section>
         <section>
@@ -90,6 +134,23 @@ function PracticeView({ brief, editionId, onBack }: PracticeViewProps) {
         </section>
       </div>
 
+      <aside className="practice-ledger" aria-label="Decision set summary">
+        <dl>
+          <div>
+            <dt>Available calls</dt>
+            <dd>{brief.actions.length}</dd>
+          </div>
+          <div>
+            <dt>Evidence signals</dt>
+            <dd>{brief.evidence.length}</dd>
+          </div>
+          <div>
+            <dt>Source</dt>
+            <dd>{brief.origin === 'synthetic' ? 'Synthetic' : 'Professional'}</dd>
+          </div>
+        </dl>
+      </aside>
+
       <p className="practice-note">
         Practice mode shows the brief only. Commit and scoring are not available
         in practice.
@@ -100,10 +161,12 @@ function PracticeView({ brief, editionId, onBack }: PracticeViewProps) {
 
 export function CasesPage() {
   const [state, setState] = useState<CasesState>({ kind: 'loading' })
+  const [loadKey, setLoadKey] = useState(0)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [practiceData, setPracticeData] = useState<PracticeAttemptData | null>(
-    null,
-  )
+  const [practiceData, setPracticeData] = useState<{
+    readonly attempt: PracticeAttemptData
+    readonly label: string
+  } | null>(null)
   const [startingPractice, setStartingPractice] = useState<string | null>(null)
   const [practiceError, setPracticeError] = useState<string | null>(null)
 
@@ -126,7 +189,7 @@ export function CasesPage() {
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [loadKey])
 
   async function handleLoadMore(): Promise<void> {
     if (state.kind !== 'ready' || !state.nextCursor || isLoadingMore) return
@@ -146,7 +209,7 @@ export function CasesPage() {
     }
   }
 
-  async function handlePractice(editionId: string): Promise<void> {
+  async function handlePractice(editionId: string, label: string): Promise<void> {
     setStartingPractice(editionId)
     setPracticeError(null)
 
@@ -156,7 +219,7 @@ export function CasesPage() {
         editionId,
         session.csrf_token,
       )
-      setPracticeData(attempt)
+      setPracticeData({ attempt, label })
     } catch {
       setPracticeError('The practice case could not be started.')
     } finally {
@@ -167,8 +230,8 @@ export function CasesPage() {
   if (practiceData) {
     return (
       <PracticeView
-        brief={practiceData.brief}
-        editionId={practiceData.attempt.edition_id}
+        brief={practiceData.attempt.brief}
+        editionLabel={practiceData.label}
         onBack={() => setPracticeData(null)}
       />
     )
@@ -176,9 +239,28 @@ export function CasesPage() {
 
   if (state.kind === 'loading') {
     return (
-      <section className="page-state" aria-live="polite">
-        <p className="eyebrow">Cases</p>
-        <h1>Loading archive</h1>
+      <section className="cases-page cases-skeleton" aria-live="polite" aria-busy="true">
+        <header className="cases-header">
+          <div>
+            <p className="eyebrow"><span className="skel skel-text-s">&nbsp;</span></p>
+            <h1><span className="skel skel-text-l">&nbsp;</span></h1>
+            <p className="case-intro"><span className="skel skel-text-l">&nbsp;</span></p>
+          </div>
+        </header>
+        <ul className="cases-list">
+          {[1, 2, 3].map((n) => (
+            <li key={n} className="case-card">
+              <div className="case-card-body">
+                <div className="case-card-top">
+                  <span className="skel skel-text-s">&nbsp;</span>
+                  <span className="skel skel-text-s">&nbsp;</span>
+                </div>
+                <p><span className="skel skel-text-m">&nbsp;</span></p>
+              </div>
+              <span className="skel skel-button">&nbsp;</span>
+            </li>
+          ))}
+        </ul>
       </section>
     )
   }
@@ -189,6 +271,16 @@ export function CasesPage() {
         <p className="eyebrow">Cases</p>
         <h1 id="cases-error">Archive unavailable</h1>
         <p className="case-intro">The case archive could not be loaded.</p>
+        <button
+          className="secondary-action"
+          type="button"
+          onClick={() => {
+            setState({ kind: 'loading' })
+            setLoadKey((k) => k + 1)
+          }}
+        >
+          Try again
+        </button>
       </section>
     )
   }
@@ -210,11 +302,13 @@ export function CasesPage() {
   return (
     <section className="cases-page" aria-labelledby="cases-title">
       <header className="cases-header">
-        <p className="eyebrow">Archive</p>
-        <h1 id="cases-title">Released cases</h1>
-        <p className="case-intro">
-          Browse past editions and start a practice attempt on any released case.
-        </p>
+        <div>
+          <p className="eyebrow">Archive</p>
+          <h1 id="cases-title">Released cases</h1>
+          <p className="case-intro">
+            Browse past editions and start a practice attempt on any released case.
+          </p>
+        </div>
       </header>
 
       {practiceError ? (
@@ -224,25 +318,47 @@ export function CasesPage() {
       ) : null}
 
       <ul className="cases-list">
-        {editions.map((edition) => (
-          <li key={edition.edition_id} className="case-card">
-            <div className="case-card-info">
-              <span className="case-card-id">{edition.edition_id}</span>
-              <span className="case-card-date">
-                {formatReleaseDate(edition.release_at)}
-              </span>
-            </div>
-            <button
-              type="button"
-              disabled={startingPractice === edition.edition_id}
-              onClick={() => void handlePractice(edition.edition_id)}
-            >
-              {startingPractice === edition.edition_id
-                ? 'Starting…'
-                : 'Practice'}
-            </button>
-          </li>
-        ))}
+        {editions.map((edition) => {
+          const meta = parseMetadata(edition.metadata)
+          const label = meta.case_number
+            ? `Case ${String(meta.case_number).padStart(3, '0')}`
+            : edition.edition_id
+
+          return (
+            <li key={edition.edition_id} className="case-card">
+              <div className="case-card-body">
+                <div className="case-card-top">
+                  <span className="case-card-id">{label}</span>
+                  <span className="case-card-date">
+                    {meta.edition_date_utc
+                      ? formatEditionDate(meta.edition_date_utc)
+                      : formatReleaseDate(edition.release_at)}
+                  </span>
+                  {meta.estimated_minutes ? (
+                    <span className="case-card-time">
+                      {meta.estimated_minutes} min
+                    </span>
+                  ) : null}
+                </div>
+                {meta.focus ? (
+                  <p className="case-card-focus">{meta.focus}</p>
+                ) : null}
+                {meta.origin_label ? (
+                  <p className="case-card-origin">{meta.origin_label}</p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                disabled={startingPractice === edition.edition_id}
+                onClick={() => void handlePractice(edition.edition_id, label)}
+              >
+                {startingPractice === edition.edition_id
+                  ? 'Starting…'
+                  : 'Practice'}
+              </button>
+            </li>
+          )
+        })}
       </ul>
 
       {nextCursor ? (

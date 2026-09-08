@@ -26,6 +26,59 @@ export function SettingsPage() {
         <p>Manage your data and preferences.</p>
       </div>
 
+      <section className="settings-section" aria-labelledby="about-title">
+        <h2 id="about-title">About Roundcraft</h2>
+        <div className="settings-about">
+          <p>
+            A deliberate-practice platform for CS2 tactical decision-making.
+            Study legitimate round states, commit to a line, then adapt when
+            information changes.
+          </p>
+          <dl className="about-details">
+            <div>
+              <dt>Identity</dt>
+              <dd>Anonymous, cookie-based</dd>
+            </div>
+            <div>
+              <dt>Scoring</dt>
+              <dd>Server-side only</dd>
+            </div>
+            <div>
+              <dt>Build</dt>
+              <dd>Foundation</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section className="settings-section" aria-labelledby="format-title">
+        <h2 id="format-title">How it works</h2>
+        <div className="settings-format">
+          <ol className="format-steps">
+            <li>
+              <strong>Read the brief</strong>
+              <p>Study the disclosed round state, facts and available actions.</p>
+            </li>
+            <li>
+              <strong>Choose evidence</strong>
+              <p>Select two signals that should carry the most weight.</p>
+            </li>
+            <li>
+              <strong>Commit a line</strong>
+              <p>Pick an action, qualifier and confidence level. This locks permanently.</p>
+            </li>
+            <li>
+              <strong>Adapt to change</strong>
+              <p>New information arrives. Decide whether to hold or change your line.</p>
+            </li>
+            <li>
+              <strong>Review the debrief</strong>
+              <p>See what actually happened, how your line was scored and why.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
       <section className="settings-section" aria-labelledby="data-title">
         <h2 id="data-title">Data management</h2>
         <div className="settings-danger-zone">
@@ -74,9 +127,18 @@ export function SettingsPage() {
           ) : null}
 
           {deleteStatus === 'deleted' ? (
-            <p className="danger-status danger-success" role="status">
-              All data has been deleted. Reload the page to start fresh.
-            </p>
+            <div className="danger-confirm">
+              <p className="danger-status danger-success" role="status">
+                All data has been deleted.
+              </p>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => window.location.assign('/')}
+              >
+                Start fresh
+              </button>
+            </div>
           ) : null}
 
           {deleteStatus === 'error' ? (

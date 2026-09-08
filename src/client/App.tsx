@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   createAttempt,
@@ -15,6 +15,23 @@ import { CasesPage } from './CasesPage'
 import { FollowupExperience } from './FollowupExperience'
 import { ProgressPage } from './ProgressPage'
 import { SettingsPage } from './SettingsPage'
+
+function useOnlineStatus(): boolean {
+  const [online, setOnline] = useState(navigator.onLine)
+
+  useEffect(() => {
+    function goOnline() { setOnline(true) }
+    function goOffline() { setOnline(false) }
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
+
+  return online
+}
 
 type TodayState =
   | { readonly kind: 'loading' }
@@ -48,9 +65,50 @@ function loadMainIdempotencyKey(attemptId: string): string {
   return crypto.randomUUID()
 }
 
+interface MainDraft {
+  readonly evidence_ids: readonly string[]
+  readonly action_id: string
+  readonly qualifier_id: string
+  readonly confidence_id: string
+}
+
+function draftKey(attemptId: string): string {
+  return `roundcraft:draft:${attemptId}`
+}
+
+function loadDraft(attemptId: string): MainDraft | null {
+  try {
+    const raw = localStorage.getItem(draftKey(attemptId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as MainDraft
+    if (!Array.isArray(parsed.evidence_ids)) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function saveDraft(attemptId: string, draft: MainDraft): void {
+  try {
+    localStorage.setItem(draftKey(attemptId), JSON.stringify(draft))
+  } catch {
+    // Draft persistence is best-effort.
+  }
+}
+
+function clearDraft(attemptId: string): void {
+  try {
+    localStorage.removeItem(draftKey(attemptId))
+  } catch {
+    // Cleanup is best-effort.
+  }
+}
+
 interface AttemptExperienceProps {
   readonly data: AttemptData
   readonly csrfToken: string
+  readonly caseNumber: number
+  readonly editionDate: string
   readonly onExit: () => void
 }
 
@@ -62,7 +120,7 @@ type AttemptStage =
   | 'followup'
   | 'debrief'
 
-function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) {
+function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }: AttemptExperienceProps) {
   const resumedCommit: MainCommitData | null =
     'main_answer' in data
       ? {
@@ -91,20 +149,46 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
           reveal: data.reveal,
         }
       : null
-  const [stage, setStage] = useState<AttemptStage>(
-    resumedResult ? 'debrief' : resumedCommit ? 'followup' : 'brief',
+  const savedDraft = resumedCommit ? null : loadDraft(data.attempt.attempt_id)
+  const hasDraft = savedDraft !== null && (
+    savedDraft.evidence_ids.length > 0 || savedDraft.action_id !== ''
   )
+
+  function initialStage(): AttemptStage {
+    if (resumedResult) return 'debrief'
+    if (resumedCommit) return 'followup'
+    if (savedDraft?.action_id) return 'call'
+    if (savedDraft && savedDraft.evidence_ids.length > 0) return 'evidence'
+    return 'brief'
+  }
+
+  const [stage, setStageRaw] = useState<AttemptStage>(initialStage)
+  const [draftNotice, setDraftNotice] = useState(hasDraft)
+
+  useEffect(() => {
+    if (stage === 'debrief') return
+
+    function warn(e: BeforeUnloadEvent) { e.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [stage])
+
+  function setStage(next: AttemptStage): void {
+    setStageRaw(next)
+    setDraftNotice(false)
+    window.scrollTo(0, 0)
+  }
   const [selectedEvidence, setSelectedEvidence] = useState<readonly string[]>(
-    resumedCommit?.main_answer.evidence_ids ?? [],
+    resumedCommit?.main_answer.evidence_ids ?? savedDraft?.evidence_ids ?? [],
   )
   const [selectedAction, setSelectedAction] = useState(
-    resumedCommit?.main_answer.action_id ?? '',
+    resumedCommit?.main_answer.action_id ?? savedDraft?.action_id ?? '',
   )
   const [selectedQualifier, setSelectedQualifier] = useState(
-    resumedCommit?.main_answer.qualifier_id ?? '',
+    resumedCommit?.main_answer.qualifier_id ?? savedDraft?.qualifier_id ?? '',
   )
   const [selectedConfidence, setSelectedConfidence] = useState(
-    resumedCommit?.main_answer.confidence_id ?? '',
+    resumedCommit?.main_answer.confidence_id ?? savedDraft?.confidence_id ?? '',
   )
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -128,6 +212,16 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
       // A blocked local draft must not block the official attempt.
     }
   }, [data.attempt.attempt_id])
+
+  useEffect(() => {
+    if (mainCommit) return
+    saveDraft(data.attempt.attempt_id, {
+      evidence_ids: selectedEvidence,
+      action_id: selectedAction,
+      qualifier_id: selectedQualifier,
+      confidence_id: selectedConfidence,
+    })
+  }, [data.attempt.attempt_id, mainCommit, selectedEvidence, selectedAction, selectedQualifier, selectedConfidence])
 
   function toggleEvidence(evidenceId: string): void {
     setSelectedEvidence((current) => {
@@ -186,6 +280,7 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
         },
       )
       setMainCommit(committed)
+      clearDraft(data.attempt.attempt_id)
       try {
         localStorage.removeItem(`roundcraft:main-key:${data.attempt.attempt_id}`)
       } catch {
@@ -214,6 +309,15 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
   )
   const decisionStage = stage === 'call' || stage === 'review'
 
+  const stageOrder: readonly AttemptStage[] = ['brief', 'evidence', 'call', 'followup', 'debrief']
+  const currentIndex = stageOrder.indexOf(stage === 'review' ? 'call' : stage)
+
+  function stageStatus(index: number): 'completed' | 'current' | undefined {
+    if (index < currentIndex) return 'completed'
+    if (index === currentIndex) return 'current'
+    return undefined
+  }
+
   return (
     <div className="app-shell attempt-shell">
       <header className="attempt-header">
@@ -225,13 +329,20 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
           <strong>{brief.title}</strong>
         </div>
         <ol className="stage-track" aria-label="Case progress">
-          <li aria-current={stage === 'brief' ? 'step' : undefined}>Brief</li>
-          <li aria-current={stage === 'evidence' ? 'step' : undefined}>Evidence</li>
-          <li aria-current={decisionStage ? 'step' : undefined}>Decision</li>
-          <li aria-current={stage === 'followup' ? 'step' : undefined}>Follow-up</li>
-          <li aria-current={stage === 'debrief' ? 'step' : undefined}>Debrief</li>
+          <li aria-current={stage === 'brief' ? 'step' : undefined} data-status={stageStatus(0)}>Brief</li>
+          <li aria-current={stage === 'evidence' ? 'step' : undefined} data-status={stageStatus(1)}>Evidence</li>
+          <li aria-current={decisionStage ? 'step' : undefined} data-status={stageStatus(2)}>Decision</li>
+          <li aria-current={stage === 'followup' ? 'step' : undefined} data-status={stageStatus(3)}>Follow-up</li>
+          <li aria-current={stage === 'debrief' ? 'step' : undefined} data-status={stageStatus(4)}>Debrief</li>
         </ol>
       </header>
+
+      {draftNotice ? (
+        <p className="draft-notice" role="status">
+          Your previous selections were restored.
+          <button type="button" onClick={() => setDraftNotice(false)}>Dismiss</button>
+        </p>
+      ) : null}
 
       <main className="attempt-main">
         {stage === 'brief' ? (
@@ -325,7 +436,10 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
               })}
             </fieldset>
             <div className="attempt-actions">
-              <p role="status">
+              <p
+                className={!selectionMessage && selectedEvidence.length === 2 ? 'selection-ready' : undefined}
+                role="status"
+              >
                 {selectionMessage ?? `${selectedEvidence.length} of 2 selected`}
               </p>
               <button
@@ -363,7 +477,7 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
             </section>
 
             <div className="decision-form">
-              <fieldset className="choice-group">
+              <fieldset className="choice-group" aria-required="true">
                 <legend>Your action</legend>
                 {brief.actions.map((action) => (
                   <label key={action.id}>
@@ -379,7 +493,7 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
                 ))}
               </fieldset>
 
-              <fieldset className="choice-group" disabled={!activeAction}>
+              <fieldset className="choice-group" aria-required="true" disabled={!activeAction}>
                 <legend>How you execute it</legend>
                 {validQualifiers.length ? (
                   validQualifiers.map((qualifier) => (
@@ -497,6 +611,8 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
           <FollowupExperience
             attemptId={data.attempt.attempt_id}
             csrfToken={csrfToken}
+            caseNumber={caseNumber}
+            editionDate={editionDate}
             brief={brief}
             mainCommit={mainCommit}
             initialResult={resumedResult}
@@ -512,37 +628,61 @@ function AttemptExperience({ data, csrfToken, onExit }: AttemptExperienceProps) 
   )
 }
 
-type AppPage = 'today' | 'cases' | 'progress' | 'settings'
+type AppPage = 'today' | 'cases' | 'progress' | 'settings' | 'not-found'
 
 function getInitialPage(): AppPage {
   const path = window.location.pathname
+  if (path === '/' || path === '') return 'today'
   if (path === '/cases') return 'cases'
   if (path === '/progress') return 'progress'
   if (path === '/settings') return 'settings'
 
-  return 'today'
+  return 'not-found'
 }
 
 export function App() {
+  const isOnline = useOnlineStatus()
   const [page, setPage] = useState<AppPage>(getInitialPage)
   const [today, setToday] = useState<TodayState>({ kind: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
+  const mainRef = useRef<HTMLElement>(null)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [activeAttempt, setActiveAttempt] = useState<{
     readonly data: AttemptData
     readonly csrfToken: string
+    readonly caseNumber: number
+    readonly editionDate: string
   } | null>(null)
 
-  function navigate(target: AppPage): void {
+  const navigate = useCallback((target: AppPage): void => {
     const path = target === 'today' ? '/' : `/${target}`
     window.history.pushState(null, '', path)
     setPage(target)
-  }
+    window.scrollTo(0, 0)
+    requestAnimationFrame(() => mainRef.current?.focus())
+  }, [])
+
+  useEffect(() => {
+    if (activeAttempt) {
+      document.title = 'Case in progress — Roundcraft'
+      return
+    }
+    const titles: Record<AppPage, string> = {
+      today: 'Today — Roundcraft',
+      cases: 'Cases — Roundcraft',
+      progress: 'Progress — Roundcraft',
+      settings: 'Settings — Roundcraft',
+      'not-found': 'Not found — Roundcraft',
+    }
+    document.title = titles[page]
+  }, [page, activeAttempt])
 
   useEffect(() => {
     function handlePopState(): void {
       setPage(getInitialPage())
+      window.scrollTo(0, 0)
+      requestAnimationFrame(() => mainRef.current?.focus())
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -566,6 +706,23 @@ export function App() {
     }
   }, [reloadKey])
 
+  useEffect(() => {
+    let hiddenAt: number | null = null
+    const staleThresholdMs = 5 * 60 * 1000
+
+    function handleVisibility() {
+      if (document.hidden) {
+        hiddenAt = Date.now()
+      } else if (hiddenAt && Date.now() - hiddenAt > staleThresholdMs) {
+        hiddenAt = null
+        setReloadKey((k) => k + 1)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
+
   async function handleStart(): Promise<void> {
     setIsCreatingSession(true)
     setStatusMessage(null)
@@ -578,7 +735,12 @@ export function App() {
         availableEdition.edition_id,
         session.csrf_token,
       )
-      setActiveAttempt({ data: attempt, csrfToken: session.csrf_token })
+      setActiveAttempt({
+        data: attempt,
+        csrfToken: session.csrf_token,
+        caseNumber: availableEdition.case_number,
+        editionDate: availableEdition.edition_date_utc,
+      })
       void recordEvent('attempt_issued', { edition_id: availableEdition.edition_id, mode: 'official' }, session.csrf_token)
     } catch {
       setStatusMessage('The case could not be started. Please try again.')
@@ -591,6 +753,34 @@ export function App() {
     today.kind === 'ready' && today.data.availability === 'available'
       ? today.data.edition
       : null
+
+  const primaryLabel = (() => {
+    if (!availableEdition) return 'Start case'
+    switch (availableEdition.primary_action) {
+      case 'continue':
+        return 'Continue case'
+      case 'view_debrief':
+        return 'View debrief'
+      case 'review':
+        return 'Review result'
+      default:
+        return 'Start case'
+    }
+  })()
+
+  const statusLabel = (() => {
+    if (!availableEdition) return ''
+    switch (availableEdition.status) {
+      case 'in_progress':
+        return 'In progress'
+      case 'decision_complete':
+        return 'Decision complete'
+      case 'complete':
+        return 'Complete'
+      default:
+        return ''
+    }
+  })()
 
   function handleNavClick(
     event: React.MouseEvent<HTMLAnchorElement>,
@@ -605,13 +795,25 @@ export function App() {
       <AttemptExperience
         data={activeAttempt.data}
         csrfToken={activeAttempt.csrfToken}
-        onExit={() => setActiveAttempt(null)}
+        caseNumber={activeAttempt.caseNumber}
+        editionDate={activeAttempt.editionDate}
+        onExit={() => {
+          setActiveAttempt(null)
+          setReloadKey((k) => k + 1)
+          window.scrollTo(0, 0)
+        }}
       />
     )
   }
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      {!isOnline ? (
+        <p className="offline-banner" role="alert">
+          You are offline. Some features may be unavailable.
+        </p>
+      ) : null}
       <header className="site-header">
         <a
           className="wordmark"
@@ -653,17 +855,49 @@ export function App() {
         </nav>
       </header>
 
-      <main>
+      <main id="main-content" ref={mainRef} tabIndex={-1}>
         {page === 'cases' ? <CasesPage /> : null}
-        {page === 'progress' ? <ProgressPage /> : null}
+        {page === 'progress' ? <ProgressPage onNavigateToday={() => navigate('today')} /> : null}
         {page === 'settings' ? <SettingsPage /> : null}
+
+        {page === 'not-found' ? (
+          <section className="page-state" aria-labelledby="not-found-title">
+            <p className="eyebrow">404</p>
+            <h1 id="not-found-title">Page not found</h1>
+            <p className="case-intro">
+              The page you are looking for does not exist.
+            </p>
+            <a
+              className="inline-nav-link"
+              href="/"
+              onClick={(e) => { e.preventDefault(); navigate('today') }}
+            >
+              Go to Today
+            </a>
+          </section>
+        ) : null}
 
         {page === 'today' ? (
           <>
             {today.kind === 'loading' ? (
-              <section className="case-state" aria-live="polite">
-                <p className="eyebrow">Today</p>
-                <h1>Loading current case</h1>
+              <section className="case-cover case-skeleton" aria-live="polite" aria-busy="true">
+                <div className="case-kicker">
+                  <span className="skel skel-text-s">&nbsp;</span>
+                  <span className="skel skel-text-s">&nbsp;</span>
+                </div>
+                <div className="case-copy">
+                  <p className="eyebrow"><span className="skel skel-text-m">&nbsp;</span></p>
+                  <h1><span className="skel skel-text-l">&nbsp;</span></h1>
+                  <p className="case-intro"><span className="skel skel-text-l">&nbsp;</span></p>
+                </div>
+                <dl className="case-metadata">
+                  <div><dt className="skel skel-text-s">&nbsp;</dt><dd className="skel skel-text-m">&nbsp;</dd></div>
+                  <div><dt className="skel skel-text-s">&nbsp;</dt><dd className="skel skel-text-m">&nbsp;</dd></div>
+                  <div><dt className="skel skel-text-s">&nbsp;</dt><dd className="skel skel-text-m">&nbsp;</dd></div>
+                </dl>
+                <div className="case-actions">
+                  <span className="skel skel-button">&nbsp;</span>
+                </div>
               </section>
             ) : null}
 
@@ -726,6 +960,12 @@ export function App() {
                     <dt>Edition</dt>
                     <dd>{formatEditionDate(availableEdition.edition_date_utc)}</dd>
                   </div>
+                  {statusLabel ? (
+                    <div>
+                      <dt>Status</dt>
+                      <dd><span className="status-badge" data-status={availableEdition.status}>{statusLabel}</span></dd>
+                    </div>
+                  ) : null}
                 </dl>
 
                 <div className="case-actions">
@@ -734,7 +974,7 @@ export function App() {
                     disabled={isCreatingSession}
                     onClick={() => void handleStart()}
                   >
-                    {isCreatingSession ? 'Starting case' : 'Start case'}
+                    {isCreatingSession ? 'Loading…' : primaryLabel}
                   </button>
                   <p>{availableEdition.origin_label}</p>
                 </div>
@@ -751,8 +991,40 @@ export function App() {
       </main>
 
       <footer>
-        <p>Built for deliberate CS2 decisions, not reaction speed.</p>
-        <p>Roundcraft · Foundation build</p>
+        <div className="footer-nav">
+          <a
+            aria-current={page === 'today' ? 'page' : undefined}
+            href="/"
+            onClick={(e) => handleNavClick(e, 'today')}
+          >
+            Today
+          </a>
+          <a
+            aria-current={page === 'cases' ? 'page' : undefined}
+            href="/cases"
+            onClick={(e) => handleNavClick(e, 'cases')}
+          >
+            Cases
+          </a>
+          <a
+            aria-current={page === 'progress' ? 'page' : undefined}
+            href="/progress"
+            onClick={(e) => handleNavClick(e, 'progress')}
+          >
+            Progress
+          </a>
+          <a
+            aria-current={page === 'settings' ? 'page' : undefined}
+            href="/settings"
+            onClick={(e) => handleNavClick(e, 'settings')}
+          >
+            Settings
+          </a>
+        </div>
+        <div className="footer-info">
+          <p>Built for deliberate CS2 decisions, not reaction speed.</p>
+          <p>Roundcraft · Foundation build</p>
+        </div>
       </footer>
     </div>
   )

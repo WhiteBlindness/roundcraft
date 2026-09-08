@@ -113,6 +113,9 @@ describe('App', () => {
         }),
       )
       .mockResolvedValueOnce(
+        Response.json({ ok: true, data: { accepted: true }, error: null, meta: { request_id: crypto.randomUUID(), api_version: 'v1' } }),
+      )
+      .mockResolvedValueOnce(
         Response.json({
           ok: true,
           data: {
@@ -150,6 +153,9 @@ describe('App', () => {
           error: null,
           meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
         }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ ok: true, data: { accepted: true }, error: null, meta: { request_id: crypto.randomUUID(), api_version: 'v1' } }),
       )
       .mockResolvedValueOnce(
         Response.json({
@@ -226,6 +232,14 @@ describe('App', () => {
                 'When new information invalidates the route assumption, refresh the decision before committing the remaining time.',
             },
           },
+          error: null,
+          meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+        }),
+      )
+      .mockResolvedValue(
+        Response.json({
+          ok: true,
+          data: { accepted: true },
           error: null,
           meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
         }),
@@ -323,7 +337,7 @@ describe('App', () => {
       body: JSON.stringify({ edition_id: 'edition_001' }),
     })
     expect(fetchMock).toHaveBeenNthCalledWith(
-      4,
+      5,
       `/api/v1/attempts/${'b'.repeat(43)}/main-commit`,
       {
         method: 'POST',
@@ -344,7 +358,7 @@ describe('App', () => {
       },
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
-      5,
+      7,
       `/api/v1/attempts/${'b'.repeat(43)}/followup-commit`,
       {
         method: 'POST',
