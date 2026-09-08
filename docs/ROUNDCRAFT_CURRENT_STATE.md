@@ -1,8 +1,8 @@
 # Roundcraft — estado atual do repositório
 
-**Data:** 05/09/2026
+**Data:** 08/09/2026
 **Ramo:** `claude/roundcraft-phase-3-recovery-7atkq2`
-**HEAD:** pendente (Fase 4 — endpoints secundários)
+**HEAD:** MVP completo (Fase 4 — todas as funcionalidades do MVP implementadas)
 
 ---
 
@@ -66,8 +66,9 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 |---|---|---|---|
 | Contrato | 1 | 29 | Passou |
 | Worker | 13 | 73 | Passou |
-| Cliente | 8 | 46 | Passou |
-| **Total** | **22** | **148** | **Todos passaram** |
+| Cliente | 7 | 46 | Passou |
+| E2E | 1 | 2 | Passou |
+| **Total** | **22** | **150** | **Todos passaram** |
 
 ---
 
@@ -95,7 +96,7 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 | Fase 2 — Exploração de design | "Proposed for user selection" | Datado de 31/08/2026; Design A selecionado |
 | Fase 2B — Design selecionado | "Proposed for approval" | Datado de 31/08/2026; Editorial Tactical Desk |
 | Fase 3 — Arquitetura técnica | "Proposta para aprovação" | Datado de 01/09/2026; 1 068 linhas, em português |
-| Fase 4 — Implementação | Em curso (avançada) | 7 PRs fundidos; 13 rotas, IndexedDB drafts, 148 testes |
+| Fase 4 — Implementação | MVP completo | 7 PRs fundidos + PR #8; 13 rotas, IndexedDB drafts, E2E, 150 testes |
 
 ### B.3 Progressão da Fase 4
 
@@ -156,7 +157,7 @@ Desvios identificados entre os documentos de planeamento e a implementação atu
 | ID | Descrição | Observação |
 |---|---|---|
 | C-01 | `wrangler.jsonc` contém `database_id` de produção | A Fase 3 §2.2 proíbe criação de recursos; o ID pode ter sido criado por conveniência de desenvolvimento |
-| C-02 | Falta `X-Frame-Options: DENY` nos cabeçalhos | A CSP tem `frame-ancestors 'none'`, que é equivalente, mas o cabeçalho redundante é uma boa prática |
+| ~~C-02~~ | ~~Falta `X-Frame-Options: DENY` nos cabeçalhos~~ | **Resolvido** — cabeçalho adicionado no middleware |
 | C-03 | `Referrer-Policy: no-referrer` vs. `strict-origin-when-cross-origin` | A Fase 3 §13.3 propõe `strict-origin-when-cross-origin` ou mais restrita; `no-referrer` é mais restrita |
 | C-04 | Falta `Strict-Transport-Security` | Fase 3 §13.3 nota que deve ser configurado na zona após domínio estável — correto adiar |
 
@@ -218,9 +219,9 @@ Não foram identificadas lacunas materiais. A Fase 3 cobre exaustivamente todos 
 
 ### D.3 Conclusão
 
-O repositório encontra-se num estado coerente e avançado. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre agora as 13 rotas da API (7 do fluxo principal + 6 endpoints secundários). As funcionalidades em falta (D-07 a D-12) são melhoramentos progressivos: Turnstile adaptativo, IndexedDB para rascunhos, tabelas de governação/operações/distribuição e ETag em GET /today.
+O repositório encontra-se num estado coerente e completo para o MVP. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre as 13 rotas da API, a SPA completa com IndexedDB, testes unitários (119), de contrato (29) e E2E (2). Os desvios restantes (D-07, D-09 a D-11) são funcionalidades pós-MVP: Turnstile adaptativo e tabelas de governação/operações/distribuição.
 
-**Próximo marco:** funcionalidades progressivas restantes (D-07, D-09 a D-11) e melhoramentos de UX.
+**Próximo marco:** decisões externas (§21.2) antes da beta — domínio, jurisdição, orçamento Cloudflare.
 
 ---
 
