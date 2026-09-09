@@ -12,6 +12,14 @@ import {
   type TodayData,
 } from './api'
 import { CasesPage } from './CasesPage'
+import {
+  loadDraftState,
+  saveDraft as idbSaveDraft,
+  clearDraft as idbClearDraft,
+  saveIdempotencyKey as idbSaveKey,
+  clearIdempotencyKey as idbClearKey,
+  type LoadedDraftState,
+} from './draft-store'
 import { FollowupExperience } from './FollowupExperience'
 import { ProgressPage } from './ProgressPage'
 import { SettingsPage } from './SettingsPage'
@@ -51,19 +59,6 @@ const factLabels = {
   unknown: 'Unknown',
 } as const
 
-const idempotencyKeyPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-
-function loadMainIdempotencyKey(attemptId: string): string {
-  try {
-    const stored = localStorage.getItem(`roundcraft:main-key:${attemptId}`)
-    if (stored && idempotencyKeyPattern.test(stored)) return stored
-  } catch {
-    // Storage is an optional draft aid; the server remains authoritative.
-  }
-
-  return crypto.randomUUID()
-}
 
 interface MainDraft {
   readonly evidence_ids: readonly string[]
@@ -120,7 +115,49 @@ type AttemptStage =
   | 'followup'
   | 'debrief'
 
-function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }: AttemptExperienceProps) {
+function AttemptExperience(props: AttemptExperienceProps) {
+  const { data } = props
+  const hasServerState = 'main_answer' in data
+  const [draftState, setDraftState] = useState<LoadedDraftState | null>(
+    hasServerState ? { draft: null, idempotencyKey: crypto.randomUUID() } : null,
+  )
+
+  useEffect(() => {
+    if (hasServerState) return
+    let cancelled = false
+    loadDraftState(data.attempt.attempt_id).then((state) => {
+      if (!cancelled) setDraftState(state)
+    })
+    return () => { cancelled = true }
+  }, [hasServerState, data.attempt.attempt_id])
+
+  if (!draftState) {
+    return (
+      <div className="app-shell attempt-shell">
+        <header className="attempt-header">
+          <span className="back-action">&nbsp;</span>
+          <div className="attempt-context">
+            <span>Official attempt</span>
+            <strong>Restoring progress…</strong>
+          </div>
+        </header>
+        <main className="attempt-main">
+          <section className="brief-screen" aria-busy="true">
+            <p className="eyebrow">Loading your saved selections…</p>
+          </section>
+        </main>
+      </div>
+    )
+  }
+
+  return <AttemptExperienceReady {...props} loadedDraft={draftState} />
+}
+
+interface AttemptExperienceReadyProps extends AttemptExperienceProps {
+  readonly loadedDraft: LoadedDraftState
+}
+
+function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onExit, loadedDraft }: AttemptExperienceReadyProps) {
   const resumedCommit: MainCommitData | null =
     'main_answer' in data
       ? {
@@ -149,7 +186,7 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
           reveal: data.reveal,
         }
       : null
-  const savedDraft = resumedCommit ? null : loadDraft(data.attempt.attempt_id)
+  const savedDraft = resumedCommit ? null : loadedDraft.draft
   const hasDraft = savedDraft !== null && (
     savedDraft.evidence_ids.length > 0 || savedDraft.action_id !== ''
   )
@@ -197,25 +234,16 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
   const [mainCommit, setMainCommit] = useState<MainCommitData | null>(
     resumedCommit,
   )
-  const idempotencyKey = useRef(
-    loadMainIdempotencyKey(data.attempt.attempt_id),
-  )
+  const idempotencyKey = useRef(loadedDraft.idempotencyKey)
   const { brief } = data
 
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        `roundcraft:main-key:${data.attempt.attempt_id}`,
-        idempotencyKey.current,
-      )
-    } catch {
-      // A blocked local draft must not block the official attempt.
-    }
+    void idbSaveKey(data.attempt.attempt_id, idempotencyKey.current)
   }, [data.attempt.attempt_id])
 
   useEffect(() => {
     if (mainCommit) return
-    saveDraft(data.attempt.attempt_id, {
+    void idbSaveDraft(data.attempt.attempt_id, {
       evidence_ids: selectedEvidence,
       action_id: selectedAction,
       qualifier_id: selectedQualifier,
@@ -280,12 +308,8 @@ function AttemptExperience({ data, csrfToken, caseNumber, editionDate, onExit }:
         },
       )
       setMainCommit(committed)
-      clearDraft(data.attempt.attempt_id)
-      try {
-        localStorage.removeItem(`roundcraft:main-key:${data.attempt.attempt_id}`)
-      } catch {
-        // The accepted server state does not depend on local storage cleanup.
-      }
+      void idbClearDraft(data.attempt.attempt_id)
+      void idbClearKey(data.attempt.attempt_id)
       setStage('followup')
       void recordEvent('main_committed', { edition_id: data.attempt.edition_id, mode: 'official' }, csrfToken)
     } catch {

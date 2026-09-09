@@ -49,6 +49,7 @@ api.use('*', async (context, next) => {
   context.header('Permissions-Policy', 'camera=(), geolocation=(), microphone=()')
   context.header('Referrer-Policy', 'no-referrer')
   context.header('X-Content-Type-Options', 'nosniff')
+  context.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
   context.header('X-Frame-Options', 'DENY')
 
   const isPublicToday =
@@ -64,7 +65,7 @@ api.get('/api/v1/health', (context) =>
     ok: true,
     data: {
       status: 'ok',
-      environment: context.env.APP_ENV,
+      version: '1',
     },
     error: null,
     meta: {

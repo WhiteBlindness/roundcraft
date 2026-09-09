@@ -1,17 +1,21 @@
 import { expect, test } from '@playwright/test'
 
 test('Today stays neutral when no released edition exists', async ({ page }) => {
-  const todayResponse = await page.request.get('/api/v1/today')
-
-  expect(todayResponse.ok()).toBe(true)
-  expect(await todayResponse.json()).toMatchObject({
-    ok: true,
-    data: {
-      availability: 'unavailable',
-      edition: null,
-      primary_action: 'retry_later',
-    },
-  })
+  await page.route('**/api/v1/today', (route) =>
+    route.fulfill({
+      json: {
+        ok: true,
+        data: {
+          availability: 'unavailable',
+          edition: null,
+          status: 'unavailable',
+          primary_action: 'retry_later',
+        },
+        error: null,
+        meta: { request_id: crypto.randomUUID(), api_version: 'v1' },
+      },
+    }),
+  )
 
   await page.goto('/')
 

@@ -13,7 +13,7 @@ describe('Roundcraft Worker', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       ok: true,
-      data: { status: 'ok', environment: 'production' },
+      data: { status: 'ok', version: '1' },
       error: null,
       meta: {
         api_version: 'v1',
@@ -21,6 +21,9 @@ describe('Roundcraft Worker', () => {
       },
     })
     expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(response.headers.get('strict-transport-security')).toBe(
+      'max-age=31536000; includeSubDomains',
+    )
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     expect(response.headers.get('content-security-policy')).toContain(
       "script-src 'self'",

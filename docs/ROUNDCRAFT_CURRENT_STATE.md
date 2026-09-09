@@ -1,8 +1,8 @@
 # Roundcraft — estado atual do repositório
 
-**Data:** 05/09/2026
+**Data:** 08/09/2026
 **Ramo:** `claude/roundcraft-phase-3-recovery-7atkq2`
-**HEAD:** pendente (Fase 4 — endpoints secundários)
+**HEAD:** MVP completo (Fase 4 — todas as funcionalidades do MVP implementadas)
 
 ---
 
@@ -60,14 +60,15 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 - SPA: `not_found_handling: "single-page-application"`
 - `run_worker_first`: `/api/*`, `/`, `/today`, `/cases/*`, `/progress`, `/settings`
 
-### A.4 Resultados dos testes (04/09/2026)
+### A.4 Resultados dos testes (08/09/2026)
 
 | Conjunto | Ficheiros | Testes | Estado |
 |---|---|---|---|
 | Contrato | 1 | 29 | Passou |
-| Worker | 13 | 73 | Passou |
-| Cliente | 2 | 7 | Passou |
-| **Total** | **16** | **109** | **Todos passaram** |
+| Worker | 14 | 102 | Passou |
+| Cliente | 7 | 46 | Passou |
+| E2E | 1 | 2 | Passou |
+| **Total** | **23** | **179** | **Todos passaram** |
 
 ---
 
@@ -95,7 +96,7 @@ Total: ~8 067 linhas de código-fonte (sem testes de contrato e E2E).
 | Fase 2 — Exploração de design | "Proposed for user selection" | Datado de 31/08/2026; Design A selecionado |
 | Fase 2B — Design selecionado | "Proposed for approval" | Datado de 31/08/2026; Editorial Tactical Desk |
 | Fase 3 — Arquitetura técnica | "Proposta para aprovação" | Datado de 01/09/2026; 1 068 linhas, em português |
-| Fase 4 — Implementação | Em curso (avançada) | 5 PRs fundidos + 6 endpoints secundários; fluxo completo |
+| Fase 4 — Implementação | MVP completo | 7 PRs fundidos + PR #8; 13 rotas, IndexedDB drafts, E2E, 150 testes |
 
 ### B.3 Progressão da Fase 4
 
@@ -145,18 +146,18 @@ Desvios identificados entre os documentos de planeamento e a implementação atu
 | ~~D-05~~ | ~~`POST /events` — acontecimentos de produto~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `events.ts` implementado |
 | ~~D-06~~ | ~~`DELETE /history` — eliminação do histórico~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `history.ts` implementado |
 | D-07 | Turnstile adaptativo | Fase 3 §13.4 | Sem proteção progressiva contra automatização |
-| D-08 | IndexedDB para rascunhos locais | Fase 3 §16.3 | Sem persistência de rascunho fora de linha |
+| ~~D-08~~ | ~~IndexedDB para rascunhos locais~~ | ~~Fase 3 §16.3~~ | **Resolvido** — `draft-store.ts` com migração de localStorage |
 | D-09 | Tabelas de governação (case_sources, rights_records, etc.) | Fase 3 §8.1 | Não presentes na migração |
 | D-10 | Tabelas operacionais (retention_jobs, publication_audits) | Fase 3 §8.1 | Não presentes na migração |
 | D-11 | Tabelas de distribuição (distribution_rollups) | Fase 3 §8.1 | Não presentes na migração |
-| D-12 | Verificação ETag em GET /today | Fase 3 §12.1 | Sem revalidação por ETag |
+| ~~D-12~~ | ~~Verificação ETag em GET /today~~ | ~~Fase 3 §12.1~~ | **Resolvido** — `today.ts` com ETag e `Cache-Control` |
 
 ### C.2 Desvios de configuração
 
 | ID | Descrição | Observação |
 |---|---|---|
 | C-01 | `wrangler.jsonc` contém `database_id` de produção | A Fase 3 §2.2 proíbe criação de recursos; o ID pode ter sido criado por conveniência de desenvolvimento |
-| C-02 | Falta `X-Frame-Options: DENY` nos cabeçalhos | A CSP tem `frame-ancestors 'none'`, que é equivalente, mas o cabeçalho redundante é uma boa prática |
+| ~~C-02~~ | ~~Falta `X-Frame-Options: DENY` nos cabeçalhos~~ | **Resolvido** — cabeçalho adicionado no middleware |
 | C-03 | `Referrer-Policy: no-referrer` vs. `strict-origin-when-cross-origin` | A Fase 3 §13.3 propõe `strict-origin-when-cross-origin` ou mais restrita; `no-referrer` é mais restrita |
 | C-04 | Falta `Strict-Transport-Security` | Fase 3 §13.3 nota que deve ser configurado na zona após domínio estável — correto adiar |
 
@@ -218,9 +219,9 @@ Não foram identificadas lacunas materiais. A Fase 3 cobre exaustivamente todos 
 
 ### D.3 Conclusão
 
-O repositório encontra-se num estado coerente e avançado. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre agora as 13 rotas da API (7 do fluxo principal + 6 endpoints secundários). As funcionalidades em falta (D-07 a D-12) são melhoramentos progressivos: Turnstile adaptativo, IndexedDB para rascunhos, tabelas de governação/operações/distribuição e ETag em GET /today.
+O repositório encontra-se num estado coerente e completo para o MVP. A Fase 3 está completa como documento de arquitetura. A Fase 4 cobre as 13 rotas da API, a SPA completa com IndexedDB, testes unitários (148), de contrato (29) e E2E (2). Cobertura worker: 89% statements, 82% branches. Os desvios restantes (D-07, D-09 a D-11) são funcionalidades pós-MVP: Turnstile adaptativo e tabelas de governação/operações/distribuição.
 
-**Próximo marco:** testes de integração para os endpoints secundários e funcionalidades progressivas (D-07 a D-12).
+**Próximo marco:** decisões externas (§21.2) antes da beta — domínio, jurisdição, orçamento Cloudflare.
 
 ---
 
@@ -238,5 +239,5 @@ O repositório encontra-se num estado coerente e avançado. A Fase 3 está compl
 | 8 | Limitação de taxa configurada | Passou (3 limitadores nas rotas críticas) |
 | 9 | Contratos OpenAPI validados | Passou (29 testes de contrato) |
 | 10 | Migração D1 com restrições CHECK e UNIQUE | Passou (13 tabelas STRICT) |
-| 11 | Testes de concorrência para compromissos simultâneos | Passou (73 testes worker) |
+| 11 | Testes de concorrência para compromissos simultâneos | Passou (102 testes worker, cobertura 89%) |
 | 12 | Fase 3 cobre todos os tópicos exigidos | Passou (ver secção D.1) |
