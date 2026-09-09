@@ -60,45 +60,6 @@ const factLabels = {
 } as const
 
 
-interface MainDraft {
-  readonly evidence_ids: readonly string[]
-  readonly action_id: string
-  readonly qualifier_id: string
-  readonly confidence_id: string
-}
-
-function draftKey(attemptId: string): string {
-  return `roundcraft:draft:${attemptId}`
-}
-
-function loadDraft(attemptId: string): MainDraft | null {
-  try {
-    const raw = localStorage.getItem(draftKey(attemptId))
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as MainDraft
-    if (!Array.isArray(parsed.evidence_ids)) return null
-    return parsed
-  } catch {
-    return null
-  }
-}
-
-function saveDraft(attemptId: string, draft: MainDraft): void {
-  try {
-    localStorage.setItem(draftKey(attemptId), JSON.stringify(draft))
-  } catch {
-    // Draft persistence is best-effort.
-  }
-}
-
-function clearDraft(attemptId: string): void {
-  try {
-    localStorage.removeItem(draftKey(attemptId))
-  } catch {
-    // Cleanup is best-effort.
-  }
-}
-
 interface AttemptExperienceProps {
   readonly data: AttemptData
   readonly csrfToken: string
