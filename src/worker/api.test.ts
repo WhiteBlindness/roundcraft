@@ -72,7 +72,18 @@ async function seedCurrentEdition() {
 describe('session and Today API', () => {
   beforeEach(async () => {
     await env.DB.exec(
-      `DELETE FROM anonymous_identities;
+      `DELETE FROM analytics_events;
+       DELETE FROM fairness_reports;
+       DELETE FROM participation_credits;
+       DELETE FROM result_versions;
+       DELETE FROM idempotency_receipts;
+       DELETE FROM attempt_commits;
+       DELETE FROM attempts;
+       DELETE FROM anonymous_identities;
+       DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
+       DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
        DELETE FROM cases;`,
