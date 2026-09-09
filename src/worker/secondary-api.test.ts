@@ -259,6 +259,8 @@ describe('Today API — authenticated status and edge cases', () => {
        DELETE FROM attempts;
        DELETE FROM anonymous_identities;
        DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
        DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
@@ -470,6 +472,8 @@ describe('cases API', () => {
        DELETE FROM attempts;
        DELETE FROM anonymous_identities;
        DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
        DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
@@ -539,6 +543,8 @@ describe('progress API', () => {
        DELETE FROM attempts;
        DELETE FROM anonymous_identities;
        DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
        DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
@@ -622,6 +628,8 @@ describe('history deletion API', () => {
        DELETE FROM attempts;
        DELETE FROM anonymous_identities;
        DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
        DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
@@ -705,6 +713,8 @@ describe('events API', () => {
        DELETE FROM attempts;
        DELETE FROM anonymous_identities;
        DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
        DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
@@ -816,6 +826,8 @@ describe('fairness reports API', () => {
        DELETE FROM attempts;
        DELETE FROM anonymous_identities;
        DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
        DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
@@ -914,6 +926,8 @@ describe('practice attempts API', () => {
        DELETE FROM attempts;
        DELETE FROM anonymous_identities;
        DELETE FROM case_rubrics;
+       DELETE FROM case_reveals;
+       DELETE FROM case_followups;
        DELETE FROM case_public_briefs;
        DELETE FROM editions;
        DELETE FROM case_revisions;
