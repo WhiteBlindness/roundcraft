@@ -12,6 +12,7 @@ import {
   type TodayData,
 } from './api'
 import { CasesPage } from './CasesPage'
+import { CookieConsent } from './CookieConsent'
 import {
   loadDraftState,
   saveDraft as idbSaveDraft,
@@ -21,6 +22,12 @@ import {
   type LoadedDraftState,
 } from './draft-store'
 import { FollowupExperience } from './FollowupExperience'
+import {
+  PrivacyPolicyPage,
+  TermsPage,
+  CookiesPolicyPage,
+  RefundPolicyPage,
+} from './LegalPages'
 import { ProgressPage } from './ProgressPage'
 import { SettingsPage } from './SettingsPage'
 
@@ -613,7 +620,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
   )
 }
 
-type AppPage = 'today' | 'cases' | 'progress' | 'settings' | 'not-found'
+type AppPage = 'today' | 'cases' | 'progress' | 'settings' | 'privacy' | 'terms' | 'cookies' | 'refund' | 'not-found'
 
 function getInitialPage(): AppPage {
   const path = window.location.pathname
@@ -621,6 +628,10 @@ function getInitialPage(): AppPage {
   if (path === '/cases') return 'cases'
   if (path === '/progress') return 'progress'
   if (path === '/settings') return 'settings'
+  if (path === '/privacy') return 'privacy'
+  if (path === '/terms') return 'terms'
+  if (path === '/cookies') return 'cookies'
+  if (path === '/refund') return 'refund'
 
   return 'not-found'
 }
@@ -658,6 +669,10 @@ export function App() {
       cases: 'Cases — Roundcraft',
       progress: 'Progress — Roundcraft',
       settings: 'Settings — Roundcraft',
+      privacy: 'Privacy policy — Roundcraft',
+      terms: 'Terms and conditions — Roundcraft',
+      cookies: 'Cookies policy — Roundcraft',
+      refund: 'Refund policy — Roundcraft',
       'not-found': 'Not found — Roundcraft',
     }
     document.title = titles[page]
@@ -844,6 +859,10 @@ export function App() {
         {page === 'cases' ? <CasesPage /> : null}
         {page === 'progress' ? <ProgressPage onNavigateToday={() => navigate('today')} /> : null}
         {page === 'settings' ? <SettingsPage /> : null}
+        {page === 'privacy' ? <PrivacyPolicyPage /> : null}
+        {page === 'terms' ? <TermsPage /> : null}
+        {page === 'cookies' ? <CookiesPolicyPage /> : null}
+        {page === 'refund' ? <RefundPolicyPage /> : null}
 
         {page === 'not-found' ? (
           <section className="page-state" aria-labelledby="not-found-title">
@@ -1006,11 +1025,18 @@ export function App() {
             Settings
           </a>
         </div>
+        <div className="footer-legal">
+          <a href="/privacy" onClick={(e) => handleNavClick(e, 'privacy')}>Privacy</a>
+          <a href="/terms" onClick={(e) => handleNavClick(e, 'terms')}>Terms</a>
+          <a href="/cookies" onClick={(e) => handleNavClick(e, 'cookies')}>Cookies</a>
+          <a href="/refund" onClick={(e) => handleNavClick(e, 'refund')}>Refund</a>
+        </div>
         <div className="footer-info">
           <p>Built for deliberate CS2 decisions, not reaction speed.</p>
-          <p>Roundcraft · Foundation build</p>
+          <p>Roundcraft · Independent project · <a href="mailto:contact@roundcraft.gg">contact@roundcraft.gg</a></p>
         </div>
       </footer>
+      <CookieConsent />
     </div>
   )
 }
