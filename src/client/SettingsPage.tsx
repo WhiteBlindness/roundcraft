@@ -1,11 +1,37 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { createSession, deleteHistory } from './api'
 
 type DeleteStatus = 'idle' | 'confirming' | 'deleting' | 'deleted' | 'error'
+type ThemePref = 'system' | 'light' | 'dark'
+
+const themeKey = 'roundcraft_theme'
+
+function readThemePref(): ThemePref {
+  try {
+    const v = localStorage.getItem(themeKey)
+    if (v === 'light' || v === 'dark') return v
+  } catch { /* private browsing */ }
+  return 'system'
+}
+
+function applyTheme(pref: ThemePref) {
+  const root = document.documentElement
+  if (pref === 'system') {
+    delete root.dataset.theme
+  } else {
+    root.dataset.theme = pref
+  }
+  try { localStorage.setItem(themeKey, pref) } catch { /* ignore */ }
+}
 
 export function SettingsPage() {
   const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>('idle')
+  const [theme, setTheme] = useState<ThemePref>(readThemePref)
+
+  useEffect(() => { applyTheme(theme) }, [theme])
+
+  const pickTheme = useCallback((pref: ThemePref) => setTheme(pref), [])
 
   async function handleDelete(): Promise<void> {
     setDeleteStatus('deleting')
@@ -25,6 +51,25 @@ export function SettingsPage() {
         <h1>Settings</h1>
         <p>Manage your data and preferences.</p>
       </div>
+
+      <section className="settings-section" aria-labelledby="theme-title">
+        <h2 id="theme-title">Appearance</h2>
+        <fieldset className="theme-picker" aria-label="Colour theme">
+          {(['system', 'light', 'dark'] as const).map((opt) => (
+            <label key={opt} className={theme === opt ? 'active' : ''}>
+              <input
+                type="radio"
+                name="theme"
+                value={opt}
+                checked={theme === opt}
+                onChange={() => pickTheme(opt)}
+              />
+              <span className="theme-swatch" data-swatch={opt} />
+              <span>{opt === 'system' ? 'System' : opt === 'light' ? 'Light' : 'Dark'}</span>
+            </label>
+          ))}
+        </fieldset>
+      </section>
 
       <section className="settings-section" aria-labelledby="about-title">
         <h2 id="about-title">About Roundcraft</h2>
