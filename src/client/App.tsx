@@ -203,6 +203,10 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
     resumedCommit,
   )
   const idempotencyKey = useRef(loadedDraft.idempotencyKey)
+  const briefHeading = useRef<HTMLHeadingElement>(null)
+  const evidenceHeading = useRef<HTMLHeadingElement>(null)
+  const callHeading = useRef<HTMLHeadingElement>(null)
+  const reviewHeading = useRef<HTMLHeadingElement>(null)
   const { brief } = data
 
   useEffect(() => {
@@ -218,6 +222,13 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
       confidence_id: selectedConfidence,
     })
   }, [data.attempt.attempt_id, mainCommit, selectedEvidence, selectedAction, selectedQualifier, selectedConfidence])
+
+  useEffect(() => {
+    if (stage === 'brief') briefHeading.current?.focus()
+    else if (stage === 'evidence') evidenceHeading.current?.focus()
+    else if (stage === 'call') callHeading.current?.focus()
+    else if (stage === 'review') reviewHeading.current?.focus()
+  }, [stage])
 
   function toggleEvidence(evidenceId: string): void {
     setSelectedEvidence((current) => {
@@ -382,7 +393,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
         {stage === 'brief' ? (
           <section className="brief-screen" aria-labelledby="brief-title">
             <div className="brief-introduction">
-              <h1 id="brief-title">Read the round</h1>
+              <h1 id="brief-title" ref={briefHeading} tabIndex={-1}>Read the round</h1>
               <p>{brief.focus}</p>
             </div>
 
@@ -444,7 +455,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
               Back to briefing
             </button>
             <div className="evidence-heading">
-              <h1 id="evidence-title">Choose two signals</h1>
+              <h1 id="evidence-title" ref={evidenceHeading} tabIndex={-1}>Choose two signals</h1>
               <p>
                 Select the two facts that should carry the most weight in your
                 decision.
@@ -497,7 +508,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
               Back to evidence
             </button>
             <div className="decision-heading">
-              <h1 id="call-title">Make the call</h1>
+              <h1 id="call-title" ref={callHeading} tabIndex={-1}>Make the call</h1>
               <p>Choose one operational line and state how you would execute it.</p>
             </div>
 
@@ -584,7 +595,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
         {stage === 'review' ? (
           <section className="review-screen" aria-labelledby="review-title">
             <div className="decision-heading">
-              <h1 id="review-title">Review your line</h1>
+              <h1 id="review-title" ref={reviewHeading} tabIndex={-1}>Review your line</h1>
               <p>Check the official line before it becomes permanent.</p>
             </div>
 
