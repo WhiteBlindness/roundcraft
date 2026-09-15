@@ -273,6 +273,43 @@ export function FollowupExperience({
     }
   }
 
+  const followupKeyRef = useRef<((e: KeyboardEvent) => void) | null>(null)
+  followupKeyRef.current = (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.altKey || e.metaKey) return
+    const el = e.target as HTMLElement
+    if (el instanceof HTMLTextAreaElement) return
+    if (el instanceof HTMLInputElement && el.type !== 'checkbox' && el.type !== 'radio') return
+    if (el.isContentEditable) return
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (stage === 'answer' && selectedAnswer) setStage('review')
+      else if (stage === 'review' && !isSubmitting && idempotencyKey) void lockFollowup()
+      else if (stage === 'debrief' && !reviewCompleted && !isCompletingReview) void finishReview()
+      return
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      if (stage === 'review' && !submissionStarted) setStage('answer')
+      return
+    }
+
+    if (stage === 'answer' && followup.type === 'new_information') {
+      const num = parseInt(e.key, 10)
+      const item = num >= 1 ? followup.responses[num - 1] : undefined
+      if (item) {
+        e.preventDefault()
+        setResponseId(item.id)
+      }
+    }
+  }
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => followupKeyRef.current?.(e)
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   const lockedLine = (
     <div className="locked-line">
       <span>Main locked</span>

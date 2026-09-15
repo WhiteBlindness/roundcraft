@@ -299,6 +299,48 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
       selectedQualifier &&
       selectedConfidence,
   )
+
+  const attemptKeyRef = useRef<((e: KeyboardEvent) => void) | null>(null)
+  attemptKeyRef.current = (e: KeyboardEvent) => {
+    if (stage === 'followup' || stage === 'debrief') return
+    if (e.ctrlKey || e.altKey || e.metaKey) return
+    const el = e.target as HTMLElement
+    if (el instanceof HTMLTextAreaElement) return
+    if (el instanceof HTMLInputElement && el.type !== 'checkbox' && el.type !== 'radio') return
+    if (el.isContentEditable) return
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (stage === 'brief') setStage('evidence')
+      else if (stage === 'evidence' && selectedEvidence.length === 2) setStage('call')
+      else if (stage === 'call' && canReview) setStage('review')
+      else if (stage === 'review' && !isSubmitting) void lockMainCall()
+      return
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      if (stage === 'evidence') setStage('brief')
+      else if (stage === 'call') setStage('evidence')
+      else if (stage === 'review' && !submissionStarted) setStage('call')
+      return
+    }
+
+    if (stage === 'evidence') {
+      const num = parseInt(e.key, 10)
+      const item = num >= 1 ? brief.evidence[num - 1] : undefined
+      if (item) {
+        e.preventDefault()
+        toggleEvidence(item.id)
+      }
+    }
+  }
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => attemptKeyRef.current?.(e)
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   const decisionStage = stage === 'call' || stage === 'review'
 
   const stageOrder: readonly AttemptStage[] = ['brief', 'evidence', 'call', 'followup', 'debrief']
