@@ -460,6 +460,7 @@ test('keyboard shortcuts navigate the attempt flow', async ({ page }) => {
 
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Choose two signals' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose two signals' })).toBeFocused()
 
   await page.keyboard.press('1')
   await expect(page.getByRole('checkbox', { name: 'Bomb location' })).toBeChecked()
