@@ -4,7 +4,7 @@
   "description": "Deliberate-practice platform for CS2 tactical decision-making.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8f6ef",
+  "background_color": "#efece4",
   "theme_color": "#0c5048",
   "icons": [
     {
