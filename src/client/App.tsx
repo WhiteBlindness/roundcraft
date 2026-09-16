@@ -389,6 +389,14 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
           <li aria-current={stage === 'followup' ? 'step' : undefined} data-status={stageStatus(3)}>Follow-up</li>
           <li aria-current={stage === 'debrief' ? 'step' : undefined} data-status={stageStatus(4)}>Debrief</li>
         </ol>
+        <button
+          className="shortcuts-hint"
+          type="button"
+          aria-label="Keyboard shortcuts"
+          onClick={() => setShowShortcuts(true)}
+        >
+          <kbd>?</kbd> Shortcuts
+        </button>
       </header>
 
       {draftNotice ? (

@@ -407,7 +407,7 @@ footer {
   margin-inline: auto;
   align-items: center;
   border-bottom: 1px solid rgb(var(--ch-dark) / 20%);
-  grid-template-columns: minmax(140px, 0.7fr) minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(140px, 0.7fr) minmax(180px, 1fr) auto auto;
 }
 
 .back-action {
@@ -474,6 +474,29 @@ footer {
 .stage-track li[data-status="completed"]::before {
   content: "\2713 ";
   font-size: 0.6rem;
+}
+
+.shortcuts-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  transition: color 0.15s ease;
+}
+
+.shortcuts-hint:hover {
+  color: var(--text-secondary);
+}
+
+.shortcuts-hint kbd {
+  font-size: 0.65rem;
+  padding: 1px 5px;
 }
 
 .attempt-main {
@@ -1164,6 +1187,10 @@ kbd {
 
   .attempt-context {
     text-align: right;
+  }
+
+  .shortcuts-hint {
+    display: none;
   }
 
   .stage-track {
@@ -2531,6 +2558,8 @@ kbd {
   .offline-banner,
   .draft-notice,
   .stage-track,
+  .shortcuts-hint,
+  .shortcuts-overlay,
   .cases-pagination {
     display: none !important;
   }
