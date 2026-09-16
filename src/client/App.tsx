@@ -202,6 +202,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
   const [mainCommit, setMainCommit] = useState<MainCommitData | null>(
     resumedCommit,
   )
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const idempotencyKey = useRef(loadedDraft.idempotencyKey)
   const briefHeading = useRef<HTMLHeadingElement>(null)
   const evidenceHeading = useRef<HTMLHeadingElement>(null)
@@ -313,12 +314,19 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
 
   const attemptKeyRef = useRef<((e: KeyboardEvent) => void) | null>(null)
   attemptKeyRef.current = (e: KeyboardEvent) => {
-    if (stage === 'followup' || stage === 'debrief') return
     if (e.ctrlKey || e.altKey || e.metaKey) return
     const el = e.target as HTMLElement
     if (el instanceof HTMLTextAreaElement) return
     if (el instanceof HTMLInputElement && el.type !== 'checkbox' && el.type !== 'radio') return
     if (el.isContentEditable) return
+
+    if (e.key === '?') {
+      e.preventDefault()
+      setShowShortcuts(s => !s)
+      return
+    }
+
+    if (stage === 'followup' || stage === 'debrief') return
 
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -331,6 +339,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
 
     if (e.key === 'Escape') {
       e.preventDefault()
+      if (showShortcuts) { setShowShortcuts(false); return }
       if (stage === 'evidence') setStage('brief')
       else if (stage === 'call') setStage('evidence')
       else if (stage === 'review' && !submissionStarted) setStage('call')
@@ -669,6 +678,52 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
           />
         ) : null}
       </main>
+
+      {showShortcuts ? (
+        <div
+          className="shortcuts-overlay"
+          role="dialog"
+          aria-label="Keyboard shortcuts"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div className="shortcuts-panel" onClick={e => e.stopPropagation()}>
+            <div className="shortcuts-header">
+              <h2>Keyboard shortcuts</h2>
+              <button type="button" aria-label="Close" onClick={() => setShowShortcuts(false)}>
+                &times;
+              </button>
+            </div>
+            <dl className="shortcuts-list">
+              <div>
+                <dt><kbd>Enter</kbd></dt>
+                <dd>{stage === 'debrief' ? 'Finish review' : 'Advance to next stage'}</dd>
+              </div>
+              {stage !== 'followup' && stage !== 'debrief' ? (
+                <div>
+                  <dt><kbd>Esc</kbd></dt>
+                  <dd>Go back to previous stage</dd>
+                </div>
+              ) : null}
+              {stage === 'evidence' ? (
+                <div>
+                  <dt><kbd>1</kbd>&ndash;<kbd>5</kbd></dt>
+                  <dd>Toggle evidence signal</dd>
+                </div>
+              ) : null}
+              {stage === 'followup' && mainCommit?.followup.type === 'new_information' ? (
+                <div>
+                  <dt><kbd>1</kbd>&ndash;<kbd>4</kbd></dt>
+                  <dd>Select response</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt><kbd>?</kbd></dt>
+                <dd>Show / hide this panel</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

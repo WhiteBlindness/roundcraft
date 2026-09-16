@@ -491,6 +491,104 @@ footer {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Keyboard shortcuts panel ── */
+
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 40%);
+  animation: overlay-in 0.15s ease-out;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.shortcuts-panel {
+  width: min(90vw, 360px);
+  border: 1px solid rgb(var(--ch-dark) / 15%);
+  background: var(--bg-surface);
+  box-shadow: 0 16px 48px rgb(var(--ch-shadow) / 20%);
+}
+
+.shortcuts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgb(var(--ch-dark) / 12%);
+}
+
+.shortcuts-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 750;
+  color: var(--text-heading);
+}
+
+.shortcuts-header button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.3rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.shortcuts-header button:hover {
+  color: var(--text-heading);
+}
+
+.shortcuts-list {
+  margin: 0;
+  padding: 12px 20px;
+}
+
+.shortcuts-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgb(var(--ch-dark) / 6%);
+}
+
+.shortcuts-list div:last-child {
+  border-bottom: 0;
+}
+
+.shortcuts-list dt {
+  display: flex;
+  gap: 4px;
+  font-weight: 700;
+}
+
+.shortcuts-list dd {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 24px;
+  padding: 2px 7px;
+  border: 1px solid rgb(var(--ch-dark) / 20%);
+  border-radius: 4px;
+  background: rgb(var(--ch-dark) / 5%);
+  color: var(--text-heading);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.5;
+}
+
 .brief-screen,
 .evidence-screen,
 .decision-screen,
