@@ -61,4 +61,4 @@ npm run test:e2e
 
 ## Estado
 
-O projecto continua em desenvolvimento. A aplicação e a pipeline de deploy não têm um URL público verificado; por isso, este README não apresenta uma ligação de demonstração.
+O projeto continua em desenvolvimento. A aplicação e a pipeline de deploy não têm um URL público verificado; por isso, este README não apresenta uma ligação de demonstração.
