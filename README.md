@@ -1,43 +1,43 @@
 # Roundcraft
 
-Plataforma de treino para leitura táctica de rondas de Counter-Strike 2. O jogador analisa informação incompleta, toma uma decisão fundamentada e revê a evidência que a explica.
+A practice tool for reading Counter-Strike 2 rounds. Players assess incomplete information, make a reasoned decision, then review the evidence behind it.
 
-**Estado:** em desenvolvimento. Não há demonstração pública verificada.
+**Status:** In development. No public demo has been verified.
 
-## Porque existe
+## Why it exists
 
-A maioria dos jogos de navegador sobre Counter-Strike testa memória ou reconhecimento. Roundcraft explora uma pergunta mais próxima da decisão real: com a informação disponível naquele momento, que leitura da ronda é defensável e que evidência a sustenta?
+Most browser games about Counter-Strike test memory or recognition. Roundcraft explores a question closer to an in-game decision: given what is known at that moment, which interpretation is defensible, and what evidence supports it?
 
-## Como funciona
+## How it works
 
-A interface React comunica com uma API Hono executada num Cloudflare Worker. Os contratos e os dados de entrada são validados com Zod. O servidor conserva a autoridade sobre o estado da ronda, as tentativas e a pontuação; a base de dados Cloudflare D1 dá persistência ao fluxo.
+The React client communicates with an Hono API on a Cloudflare Worker. Zod validates input and API contracts. The server owns round state, attempts, and scoring. Cloudflare D1 persists the application data.
 
 ```mermaid
 flowchart LR
-    A[Interface React] --> B[API Hono no Cloudflare Worker]
-    B --> C[Validação Zod e contratos OpenAPI]
-    C --> D[Regras de ronda e pontuação no servidor]
+    A[React client] --> B[Hono API on Cloudflare Worker]
+    B --> C[Zod validation and OpenAPI contracts]
+    C --> D[Server-side round and scoring rules]
     D --> E[Cloudflare D1]
-    D --> F[Resposta validada para a interface]
+    D --> F[Validated response to client]
 ```
 
-A estrutura separa a interface, as regras do servidor e os contratos HTTP. Os exemplos de pedidos válidos e inválidos tornam os limites da API verificáveis.
+The project separates the client, server rules, and HTTP contracts. Examples of valid and invalid requests make API boundaries easier to verify.
 
-## Destaques de engenharia
+## Engineering highlights
 
-- **Autoridade no servidor:** o cliente não decide o resultado final nem a pontuação.
-- **Contratos explícitos:** esquemas, respostas de erro e exemplos acompanham a API.
-- **Persistência com D1:** o estado da plataforma pode sobreviver ao fim de uma sessão.
-- **Testes por camada:** contratos, Worker, cliente e fluxos de navegador têm comandos separados.
-- **Deploy controlado:** a configuração actual não publica um endereço de demonstração; os fluxos de produção ainda estão em desenvolvimento.
+- **Server-authoritative scoring:** the client cannot decide the outcome or final score.
+- **Explicit contracts:** schemas, error responses, and request examples document the API.
+- **Persistent state:** D1 supports state that can survive beyond a single session.
+- **Layered tests:** contracts, Worker, client, and browser flows have separate commands.
+- **Deployment status is clear:** production deployment remains in development, so this README does not claim a public demo.
 
-## Tecnologias
+## Stack
 
 TypeScript · React · Vite · Hono · Zod · Cloudflare Workers · Cloudflare D1 · Vitest · Playwright
 
-## Executar localmente
+## Run locally
 
-Requer Node.js 22 ou superior.
+Requires Node.js 22 or later.
 
 ```bash
 npm ci
@@ -45,9 +45,9 @@ npm run db:migrate:local
 npm run dev
 ```
 
-Consulta `.dev.vars.example` antes de configurar variáveis locais. Não coloques credenciais em ficheiros versionados.
+Review `.dev.vars.example` before setting local variables. Do not commit credentials.
 
-## Verificações
+## Checks
 
 ```bash
 npm test
@@ -57,8 +57,4 @@ npm run build
 npm run test:e2e
 ```
 
-`npm test` executa os testes de contratos, Worker e cliente. Os testes não dependem de uma demonstração pública.
-
-## Estado
-
-O projeto continua em desenvolvimento. A aplicação e a pipeline de deploy não têm um URL público verificado; por isso, este README não apresenta uma ligação de demonstração.
+`npm test` runs the contract, Worker, and client tests. The suite does not require a public deployment.
