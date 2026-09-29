@@ -35,6 +35,14 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('explains the official scoring split', () => {
+    render(<SettingsPage />)
+
+    expect(screen.getByText(/50 for your main call/)).toBeInTheDocument()
+    expect(screen.queryByText('Foundation')).toBeNull()
+    expect(screen.queryByText('Server-side only')).toBeNull()
+  })
+
   it('requires confirmation before deleting history', async () => {
     const user = userEvent.setup()
     render(<SettingsPage />)

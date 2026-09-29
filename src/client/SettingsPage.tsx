@@ -85,12 +85,8 @@ export function SettingsPage() {
               <dd>Anonymous, cookie-based</dd>
             </div>
             <div>
-              <dt>Scoring</dt>
-              <dd>Server-side only</dd>
-            </div>
-            <div>
-              <dt>Build</dt>
-              <dd>Foundation</dd>
+              <dt>Storage</dt>
+              <dd>One session cookie, drafts on this device</dd>
             </div>
           </dl>
         </div>
@@ -121,6 +117,15 @@ export function SettingsPage() {
               <p>See what actually happened, how your line was scored and why.</p>
             </li>
           </ol>
+          <div className="settings-scoring">
+            <strong>Official scoring</strong>
+            <p>
+              Each official case is worth 100 points: 50 for your main call,
+              20 for your evidence choice and 30 for the follow-up. Scores are
+              deterministic and calculated on the server. You get one official
+              attempt per case; practice attempts are unscored.
+            </p>
+          </div>
         </div>
       </section>
 

@@ -1,0 +1,123 @@
+/* Reading aids inside the attempt flow: fact-state legend and evidence-stage recap. */
+
+.fact-legend,
+.facts-recap {
+  margin-top: 14px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.fact-legend summary,
+.facts-recap summary {
+  width: fit-content;
+  min-height: 24px;
+  color: var(--brand-teal);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.fact-legend dl {
+  display: grid;
+  margin: 12px 0 0;
+  gap: 8px;
+}
+
+.fact-legend dl > div {
+  display: grid;
+  align-items: baseline;
+  gap: 12px;
+  grid-template-columns: 100px 1fr;
+}
+
+.fact-legend dd {
+  margin: 0;
+}
+
+.facts-recap {
+  margin-top: 0;
+  padding: 14px 18px;
+  border: 1px solid rgb(var(--ch-dark) / 14%);
+  background: var(--bg-surface);
+}
+
+.facts-recap ul {
+  display: grid;
+  margin: 12px 0 0;
+  padding: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.facts-recap li {
+  display: grid;
+  align-items: baseline;
+  gap: 12px;
+  grid-template-columns: 100px 1fr;
+}
+
+.facts-recap li p {
+  margin: 0;
+  color: var(--text-body);
+}
+
+.fact-legend [data-status],
+.facts-recap [data-status] {
+  color: var(--brand-teal);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fact-legend [data-status="last_seen"],
+.facts-recap [data-status="last_seen"] {
+  color: var(--accent-dark-orange);
+}
+
+.fact-legend [data-status="inferred"],
+.fact-legend [data-status="unknown"],
+.facts-recap [data-status="inferred"],
+.facts-recap [data-status="unknown"] {
+  color: var(--text-label);
+}
+
+.fact-legend [data-status="inferred"],
+.facts-recap [data-status="inferred"] {
+  padding-bottom: 1px;
+  border-bottom: 2px dashed currentColor;
+}
+
+.fact-legend [data-status="unknown"],
+.facts-recap [data-status="unknown"] {
+  padding: 1px 6px;
+  border: 1px dotted currentColor;
+}
+
+@media (max-width: 760px) {
+  .fact-legend dl > div,
+  .facts-recap li {
+    gap: 4px;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .fact-legend,
+  .facts-recap {
+    display: none;
+  }
+}
+
+.score-explainer {
+  max-width: 62ch;
+  margin: 18px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  grid-column: 1 / -1;
+}
+
+.evidence-chosen {
+  color: var(--brand-teal);
+  font-weight: 800;
+}

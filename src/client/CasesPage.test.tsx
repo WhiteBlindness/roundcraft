@@ -63,7 +63,7 @@ describe('CasesPage', () => {
     render(<CasesPage />)
 
     expect(
-      await screen.findByRole('heading', { name: 'No released editions' }),
+      await screen.findByRole('heading', { name: 'No released cases yet' }),
     ).toBeInTheDocument()
   })
 
@@ -86,7 +86,7 @@ describe('CasesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Try again' }))
 
     expect(
-      await screen.findByRole('heading', { name: 'No released editions' }),
+      await screen.findByRole('heading', { name: 'No released cases yet' }),
     ).toBeInTheDocument()
   })
 

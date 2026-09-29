@@ -416,6 +416,12 @@ export async function loadProgress(): Promise<ProgressData> {
     credentials: 'same-origin',
     headers: { accept: 'application/json' },
   })
+
+  // A first-time visitor has no session yet: treat 401 as an empty history.
+  if (response.status === 401) {
+    return { entries: [] }
+  }
+
   const payload = await parseResponse(response, progressResponseSchema)
 
   return payload.data

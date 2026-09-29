@@ -478,7 +478,7 @@ describe('App', () => {
     )
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'The case could not be started. Please try again.',
+      'The case could not be started. Try again in a moment',
     )
   })
 })

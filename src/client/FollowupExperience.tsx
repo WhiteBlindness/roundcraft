@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import type { PublicBrief } from '../domain/public-brief'
 import {
@@ -11,6 +11,7 @@ import {
   type MainCommitData,
   recordEvent,
 } from './api'
+import { isActivatableTarget, isInsideDialog, isTextEntryTarget } from './keyboard'
 import {
   loadIdempotencyKey,
   saveIdempotencyKey,
@@ -273,25 +274,24 @@ export function FollowupExperience({
     }
   }
 
-  const followupKeyRef = useRef<((e: KeyboardEvent) => void) | null>(null)
-  followupKeyRef.current = (e: KeyboardEvent) => {
-    if (e.ctrlKey || e.altKey || e.metaKey) return
-    const el = e.target as HTMLElement
-    if (el instanceof HTMLTextAreaElement) return
-    if (el instanceof HTMLInputElement && el.type !== 'checkbox' && el.type !== 'radio') return
-    if (el.isContentEditable) return
+  const onFollowupKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return
+    if (isTextEntryTarget(e.target) || isInsideDialog(e.target)) return
 
     if (e.key === 'Enter') {
-      e.preventDefault()
-      if (stage === 'answer' && selectedAnswer) setStage('review')
-      else if (stage === 'review' && !isSubmitting && idempotencyKey) void lockFollowup()
-      else if (stage === 'debrief' && !reviewCompleted && !isCompletingReview) void finishReview()
+      if (isActivatableTarget(e.target)) return
+      if (stage === 'answer' && selectedAnswer) {
+        e.preventDefault()
+        setStage('review')
+      }
       return
     }
 
     if (e.key === 'Escape') {
-      e.preventDefault()
-      if (stage === 'review' && !submissionStarted) setStage('answer')
+      if (stage === 'review' && !submissionStarted) {
+        e.preventDefault()
+        setStage('answer')
+      }
       return
     }
 
@@ -303,11 +303,10 @@ export function FollowupExperience({
         setResponseId(item.id)
       }
     }
-  }
+  })
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => followupKeyRef.current?.(e)
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('keydown', onFollowupKeyDown)
+    return () => window.removeEventListener('keydown', onFollowupKeyDown)
   }, [])
 
   const lockedLine = (
@@ -517,6 +516,12 @@ export function FollowupExperience({
           </div>
           <div><dt>Participation</dt><dd>Awarded</dd></div>
         </dl>
+        <p className="score-explainer">
+          Main call (50) rates your action and qualifier against the case rubric.
+          Evidence (20) rates the two signals you chose as support for that call.
+          Follow-up (30) rates how you adapted to the new information. Scores are
+          calculated on the server and never change on refresh.
+        </p>
       </section>
 
       <section className="comparison-section" aria-labelledby="comparison-title">
@@ -530,6 +535,12 @@ export function FollowupExperience({
                 brief.qualifiers,
                 mainCommit.main_answer.qualifier_id,
               )}
+            </p>
+            <p>
+              Evidence:{' '}
+              {mainCommit.main_answer.evidence_ids
+                .map((id) => optionLabel(brief.evidence, id))
+                .join(' · ')}
             </p>
             <p>{selectedAnswerLabel}</p>
           </article>
@@ -554,7 +565,12 @@ export function FollowupExperience({
             <dd>
               <ul>
                 {result.reveal.debrief.evidenceReview.map((item) => (
-                  <li key={item.evidenceId}>{item.explanation}</li>
+                  <li key={item.evidenceId}>
+                    {mainCommit.main_answer.evidence_ids.includes(item.evidenceId) ? (
+                      <strong className="evidence-chosen">You chose this · </strong>
+                    ) : null}
+                    {item.explanation}
+                  </li>
                 ))}
               </ul>
             </dd>

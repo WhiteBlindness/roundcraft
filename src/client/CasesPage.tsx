@@ -291,9 +291,9 @@ export function CasesPage() {
     return (
       <section className="page-state" aria-labelledby="cases-empty">
         <p className="eyebrow">Cases</p>
-        <h1 id="cases-empty">No released editions</h1>
+        <h1 id="cases-empty">No released cases yet</h1>
         <p className="case-intro">
-          Released editions will appear here once published.
+          Released cases will appear here once they are published.
         </p>
       </section>
     )

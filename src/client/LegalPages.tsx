@@ -19,142 +19,110 @@ function LegalPageShell({ title, lastUpdated, children }: LegalPageShellProps) {
   )
 }
 
+const issuesUrl = 'https://github.com/WhiteBlindness/roundcraft/issues'
+const lastUpdated = '29/09/2026'
+
+function ContactSection() {
+  return (
+    <section>
+      <h2>Questions and requests</h2>
+      <p>
+        Roundcraft is an independent, non-commercial project in closed beta. It
+        has no published operator address or contact mailbox yet. For questions,
+        use the public{' '}
+        <a href={issuesUrl} rel="noreferrer noopener" target="_blank">
+          issue tracker
+        </a>
+        {' '}(please do not post personal information there). To remove your
+        data, use <strong>Delete history</strong> in{' '}
+        <a href="/settings">Settings</a>.
+      </p>
+    </section>
+  )
+}
+
 export function PrivacyPolicyPage() {
   return (
-    <LegalPageShell title="Privacy policy" lastUpdated="14/09/2026">
+    <LegalPageShell title="Privacy policy" lastUpdated={lastUpdated}>
       <section>
         <h2>Overview</h2>
         <p>
-          Roundcraft is a free tactical decision-making training platform for
-          Counter-Strike 2. We are committed to protecting your privacy and
-          processing only the minimum data necessary for the service to function.
+          Roundcraft is a free CS2 game-sense training app. It has no accounts,
+          no payments, no advertising and no third-party analytics or scripts.
+          This page describes what the app stores.
         </p>
       </section>
 
       <section>
-        <h2>Data controller</h2>
-        <p>
-          Roundcraft is operated as an independent project. For questions about
-          your data, contact us at{' '}
-          <a href="mailto:privacy@roundcraft.gg">privacy@roundcraft.gg</a>.
-        </p>
-      </section>
-
-      <section>
-        <h2>Data we collect</h2>
-        <p>We collect only what is necessary to provide the service:</p>
+        <h2>What is stored</h2>
         <ul>
           <li>
-            <strong>Anonymous session identifier</strong> — a randomly generated
-            token stored in a secure, HTTP-only cookie. It contains no personal
-            information and cannot be used to identify you.
+            <strong>Anonymous session</strong>: a random identifier kept in one
+            strictly necessary cookie, <code>__Host-roundcraft</code>. It
+            expires 90 days after it is created.
           </li>
           <li>
-            <strong>Game state</strong> — your tactical decisions, answers, and
-            progress within cases. This is linked to your anonymous session, not
-            to any personal identity.
+            <strong>Attempts and scores</strong>: your answers and results,
+            linked to that anonymous session only.
           </li>
           <li>
-            <strong>Usage events</strong> — anonymous interaction events (e.g.
-            case started, decision submitted) retained for 90 days to improve
-            the service. No IP addresses, device fingerprints, or personal data
-            are included.
+            <strong>Usage events</strong>: our own first-party endpoint records
+            an event name, the case (edition) id, the mode and a few small
+            properties. Events carry no IP address and no user identifier, and
+            are kept for 90 days.
           </li>
           <li>
-            <strong>Local draft storage</strong> — in-progress work is saved in
-            your browser's IndexedDB. This data never leaves your device.
+            <strong>Drafts and theme, on your device</strong>: in-progress
+            answers are saved in your browser's IndexedDB and your theme choice
+            in localStorage (<code>roundcraft_theme</code>). Neither is sent to
+            a server.
           </li>
         </ul>
       </section>
 
       <section>
-        <h2>Data we do not collect</h2>
-        <ul>
-          <li>Names, email addresses, or account credentials</li>
-          <li>IP addresses (at the application level)</li>
-          <li>Device fingerprints or tracking identifiers</li>
-          <li>Payment or financial information</li>
-          <li>Location data</li>
-        </ul>
+        <h2>IP addresses</h2>
         <p>
-          Note: our hosting provider (Cloudflare) may process IP addresses at
-          the infrastructure level for security and performance purposes, in
-          accordance with their own privacy policy.
+          The rate limiter reads your IP address from the request, briefly, to
+          count requests. The application does not store it. Cloudflare hosts
+          the service and may process IP addresses as the hosting provider under
+          its own policies.
         </p>
       </section>
 
       <section>
-        <h2>Cookies</h2>
+        <h2>What we do not collect</h2>
         <p>
-          We use a single essential cookie (<code>__Host-roundcraft</code>) to
-          maintain your anonymous session. This cookie is:
-        </p>
-        <ul>
-          <li>HTTP-only (not accessible to JavaScript)</li>
-          <li>Secure (transmitted only over HTTPS)</li>
-          <li>SameSite=Strict (not sent with cross-site requests)</li>
-          <li>Valid for 90 days</li>
-        </ul>
-        <p>
-          We do not use any tracking, advertising, or analytics cookies. See
-          our <a href="/cookies">cookies policy</a> for full details.
+          Names, email addresses, passwords, payment details, advertising
+          identifiers or fingerprints. We do not sell your data or share it with advertisers.
         </p>
       </section>
 
       <section>
-        <h2>Third-party services</h2>
+        <h2>Deleting your data</h2>
         <p>
-          Roundcraft is hosted on Cloudflare Workers with Cloudflare D1 as the
-          database. No third-party analytics, advertising, or social media
-          services are embedded in the application.
+          <strong>Delete history</strong> in <a href="/settings">Settings</a>{' '}
+          removes your attempts, scores and session data from the service. You
+          can also clear the cookie, localStorage and IndexedDB in your browser.
+          See the <a href="/cookies">cookies policy</a> for details.
         </p>
-      </section>
-
-      <section>
-        <h2>Data retention</h2>
-        <ul>
-          <li>Session identifiers expire after 90 days of inactivity.</li>
-          <li>Usage events are automatically deleted after 90 days.</li>
-          <li>Game state is retained as long as the session is active.</li>
-          <li>Local drafts persist in your browser until you clear them.</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>Your rights</h2>
-        <p>
-          Because we do not collect personal data, most data subject rights
-          under the GDPR (access, rectification, portability) do not apply in
-          the traditional sense. However:
-        </p>
-        <ul>
-          <li>
-            You can delete all your game history through the Settings page.
-          </li>
-          <li>
-            You can clear your browser cookies and IndexedDB data at any time.
-          </li>
-          <li>
-            You can contact us at{' '}
-            <a href="mailto:privacy@roundcraft.gg">privacy@roundcraft.gg</a>{' '}
-            with any privacy questions.
-          </li>
-        </ul>
       </section>
 
       <section>
         <h2>Children</h2>
         <p>
-          Roundcraft is not directed at children under 16. We do not knowingly
-          collect data from children.
+          Roundcraft is not directed at children under 16 and does not
+          knowingly collect their data.
         </p>
       </section>
 
+      <ContactSection />
+
       <section>
-        <h2>Changes to this policy</h2>
+        <h2>Changes</h2>
         <p>
-          We may update this policy to reflect changes in our practices. The
-          date at the top of this page indicates the last revision.
+          This is a closed beta and this policy may change. The date at the top
+          shows the last revision.
         </p>
       </section>
     </LegalPageShell>
@@ -163,91 +131,58 @@ export function PrivacyPolicyPage() {
 
 export function TermsPage() {
   return (
-    <LegalPageShell title="Terms and conditions" lastUpdated="14/09/2026">
+    <LegalPageShell title="Terms and conditions" lastUpdated={lastUpdated}>
       <section>
-        <h2>Acceptance of terms</h2>
+        <h2>The service</h2>
         <p>
-          By accessing and using Roundcraft, you agree to these terms and
-          conditions. If you do not agree, please do not use the service.
+          Roundcraft is a free, independent, non-commercial CS2 game-sense
+          training tool, currently in closed beta. It presents round scenarios,
+          asks you to commit to a call and gives scored feedback. There are no
+          payments, purchases or subscriptions.
         </p>
       </section>
 
       <section>
-        <h2>Description of service</h2>
-        <p>
-          Roundcraft is a free, browser-based tactical decision-making training
-          tool for Counter-Strike 2. The service presents tactical scenarios
-          where users make and commit decisions, receiving scored feedback on
-          their performance.
-        </p>
-      </section>
-
-      <section>
-        <h2>User obligations</h2>
+        <h2>Using it</h2>
         <ul>
-          <li>Use the service for its intended purpose of tactical training.</li>
-          <li>Do not attempt to circumvent security measures or rate limits.</li>
-          <li>Do not use automated tools to interact with the service.</li>
-          <li>Do not reverse-engineer the scoring system or case content.</li>
+          <li>Use it for personal training and be considerate of other users.</li>
+          <li>
+            Do not try to disrupt the service, bypass its security measures or
+            rate limits, or use automated tools against it.
+          </li>
+          <li>
+            Official attempts are meant to be your own work; sharing answers
+            defeats the point of the practice.
+          </li>
         </ul>
       </section>
 
       <section>
-        <h2>Intellectual property</h2>
+        <h2>Beta status and availability</h2>
         <p>
-          All case content, scoring rubrics, and tactical scenarios are the
-          intellectual property of Roundcraft. You may not reproduce,
-          distribute, or create derivative works from this content without
-          permission.
-        </p>
-        <p>
-          Counter-Strike 2 is a trademark of Valve Corporation. Roundcraft is
-          an independent project and is not affiliated with, endorsed by, or
-          sponsored by Valve Corporation.
+          The service is provided as is, without warranties. It may change, be
+          unavailable or be discontinued, and data may be reset during the beta.
+          Scores are training feedback, not a guarantee of in-game improvement.
+          To the extent the law allows, we are not liable for losses arising from
+          using it.
         </p>
       </section>
 
       <section>
-        <h2>Service availability</h2>
+        <h2>Trademarks</h2>
         <p>
-          Roundcraft is provided on an "as is" basis. We do not guarantee
-          uninterrupted availability and may modify or discontinue the service
-          at any time without notice.
+          Counter-Strike and CS2 are trademarks of Valve Corporation. Roundcraft
+          is not affiliated with, endorsed by or sponsored by Valve.
         </p>
       </section>
 
-      <section>
-        <h2>Limitation of liability</h2>
-        <p>
-          Roundcraft is a training tool and does not guarantee improvement in
-          competitive performance. We shall not be liable for any indirect,
-          incidental, or consequential damages arising from the use of this
-          service.
-        </p>
-      </section>
+      <ContactSection />
 
       <section>
-        <h2>Fair play</h2>
+        <h2>Changes</h2>
         <p>
-          Cases are designed to be completed individually. Sharing answers or
-          case content before the edition expires undermines the integrity of
-          the platform and may result in restrictions.
-        </p>
-      </section>
-
-      <section>
-        <h2>Modifications</h2>
-        <p>
-          We reserve the right to modify these terms. Continued use of the
-          service after changes constitutes acceptance of the updated terms.
-        </p>
-      </section>
-
-      <section>
-        <h2>Governing law</h2>
-        <p>
-          These terms are governed by applicable law. Any disputes shall be
-          resolved through the competent courts.
+          These terms may change during the beta. Continuing to use the service
+          after a change means you accept the updated terms.
         </p>
       </section>
     </LegalPageShell>
@@ -256,18 +191,13 @@ export function TermsPage() {
 
 export function CookiesPolicyPage() {
   return (
-    <LegalPageShell title="Cookies policy" lastUpdated="14/09/2026">
+    <LegalPageShell title="Cookies policy" lastUpdated={lastUpdated}>
       <section>
-        <h2>What are cookies</h2>
+        <h2>One cookie, strictly necessary</h2>
         <p>
-          Cookies are small text files stored on your device by your browser.
-          They allow websites to maintain state between page visits.
+          Roundcraft sets a single cookie to keep your anonymous session. It is
+          needed for the service to work, so no consent banner is shown.
         </p>
-      </section>
-
-      <section>
-        <h2>Cookies we use</h2>
-        <p>Roundcraft uses a single essential cookie:</p>
         <div className="legal-table-wrap">
           <table className="legal-table">
             <thead>
@@ -282,87 +212,53 @@ export function CookiesPolicyPage() {
               <tr>
                 <td><code>__Host-roundcraft</code></td>
                 <td>Anonymous session identifier</td>
-                <td>Essential</td>
-                <td>90 days</td>
+                <td>Strictly necessary, first-party, HttpOnly, Secure</td>
+                <td>Expires 90 days after it is created</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p>
-          This cookie is strictly necessary for the service to function. It
-          does not contain personal information and cannot be used to track you
-          across websites.
+          There are no analytics, advertising, social media or other third-party
+          cookies.
         </p>
       </section>
 
       <section>
-        <h2>Cookies we do not use</h2>
+        <h2>Other browser storage</h2>
         <ul>
-          <li>No analytics cookies</li>
-          <li>No advertising or remarketing cookies</li>
-          <li>No social media cookies</li>
-          <li>No third-party cookies of any kind</li>
+          <li>
+            <strong>localStorage</strong>: <code>roundcraft_theme</code> stores
+            your light, dark or system theme choice.
+          </li>
+          <li>
+            <strong>IndexedDB</strong>: in-progress draft answers, so you can
+            resume. This stays on your device.
+          </li>
         </ul>
-      </section>
-
-      <section>
-        <h2>Local storage</h2>
         <p>
-          Roundcraft uses your browser's IndexedDB to save draft progress
-          (in-progress selections) locally. This data stays on your device and
-          is never transmitted to our servers. You can clear it through your
-          browser settings.
-        </p>
-        <p>
-          A small localStorage entry records your cookie consent preference.
+          Neither is sent to a server or shared with third parties. Clear them
+          in your browser settings at any time.
         </p>
       </section>
 
       <section>
-        <h2>Managing cookies</h2>
+        <h2>First-party usage events</h2>
         <p>
-          You can delete or block cookies through your browser settings.
-          Blocking the session cookie will prevent you from using case features
-          that require a session.
-        </p>
-      </section>
-    </LegalPageShell>
-  )
-}
-
-export function RefundPolicyPage() {
-  return (
-    <LegalPageShell title="Refund policy" lastUpdated="14/09/2026">
-      <section>
-        <h2>Free service</h2>
-        <p>
-          Roundcraft is currently provided entirely free of charge. There are
-          no purchases, subscriptions, or paid features.
+          The app sends small usage events to its own endpoint: event name, case
+          id, mode and a few properties, kept for 90 days with no IP address and
+          no user identifier. This does not use cookies or third-party services.
+          See the <a href="/privacy">privacy policy</a>.
         </p>
       </section>
 
       <section>
-        <h2>No payments collected</h2>
+        <h2>Managing the cookie</h2>
         <p>
-          Because no payment is required to use Roundcraft, there are no
-          transactions to refund. We do not collect any payment information,
-          credit card details, or billing data.
-        </p>
-      </section>
-
-      <section>
-        <h2>Future changes</h2>
-        <p>
-          If paid features are introduced in the future, this policy will be
-          updated to include refund terms before any payments are accepted.
-        </p>
-      </section>
-
-      <section>
-        <h2>Contact</h2>
-        <p>
-          If you have questions about this policy, contact us at{' '}
-          <a href="mailto:support@roundcraft.gg">support@roundcraft.gg</a>.
+          You can delete or block cookies in your browser. Without the session
+          cookie you cannot start or continue official attempts. To also remove
+          your history from the service, use <strong>Delete history</strong> in{' '}
+          <a href="/settings">Settings</a>.
         </p>
       </section>
     </LegalPageShell>

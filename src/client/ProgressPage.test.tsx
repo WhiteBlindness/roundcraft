@@ -53,11 +53,40 @@ describe('ProgressPage', () => {
     render(<ProgressPage onNavigateToday={onNavigate} />)
 
     expect(
-      await screen.findByRole('heading', { name: 'No scored rounds' }),
+      await screen.findByRole('heading', { name: 'No scored cases yet' }),
     ).toBeInTheDocument()
 
     const link = screen.getByText('Go to Today')
     expect(link).toBeInTheDocument()
+  })
+
+  it('treats a 401 (no session yet) as an empty history, not an error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        jsonResponse(
+          {
+            ok: false,
+            data: null,
+            error: { code: 'SESSION_INVALID', message: 'No session' },
+            meta: validMeta(),
+          },
+          401,
+        ),
+      ),
+    )
+
+    const onNavigate = vi.fn()
+    const user = userEvent.setup()
+    render(<ProgressPage onNavigateToday={onNavigate} />)
+
+    expect(
+      await screen.findByRole('heading', { name: 'No scored cases yet' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('History unavailable')).toBeNull()
+
+    await user.click(screen.getByText('Go to Today'))
+    expect(onNavigate).toHaveBeenCalledTimes(1)
   })
 
   it('shows error state with retry', async () => {
@@ -84,7 +113,7 @@ describe('ProgressPage', () => {
     await user.click(screen.getByRole('button', { name: 'Try again' }))
 
     expect(
-      await screen.findByRole('heading', { name: 'No scored rounds' }),
+      await screen.findByRole('heading', { name: 'No scored cases yet' }),
     ).toBeInTheDocument()
   })
 

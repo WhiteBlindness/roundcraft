@@ -126,9 +126,9 @@ export function ProgressPage({ onNavigateToday }: ProgressPageProps) {
     return (
       <section className="page-state" aria-labelledby="progress-empty">
         <p className="eyebrow">Progress</p>
-        <h1 id="progress-empty">No scored rounds</h1>
+        <h1 id="progress-empty">No scored cases yet</h1>
         <p className="case-intro">
-          Complete an official case to see your scored history here.
+          Complete today&rsquo;s official case to see your scored history here.
         </p>
         <a
           className="inline-nav-link"

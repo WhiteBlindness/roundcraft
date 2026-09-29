@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import {
   createAttempt,
@@ -12,7 +12,6 @@ import {
   type TodayData,
 } from './api'
 import { CasesPage } from './CasesPage'
-import { CookieConsent } from './CookieConsent'
 import {
   loadDraftState,
   saveDraft as idbSaveDraft,
@@ -22,11 +21,12 @@ import {
   type LoadedDraftState,
 } from './draft-store'
 import { FollowupExperience } from './FollowupExperience'
+import './attempt-aids.css'
+import { isActivatableTarget, isInsideDialog, isTextEntryTarget } from './keyboard'
 import {
   PrivacyPolicyPage,
   TermsPage,
   CookiesPolicyPage,
-  RefundPolicyPage,
 } from './LegalPages'
 import { ProgressPage } from './ProgressPage'
 import { SettingsPage } from './SettingsPage'
@@ -65,6 +65,29 @@ const factLabels = {
   inferred: 'Inferred',
   unknown: 'Unknown',
 } as const
+
+const factMeanings: readonly { readonly status: keyof typeof factLabels; readonly meaning: string }[] = [
+  { status: 'confirmed', meaning: 'True at the current moment of the round.' },
+  { status: 'last_seen', meaning: 'Observed earlier and not reconfirmed. It may be stale.' },
+  { status: 'inferred', meaning: 'A supported reading of the evidence, not an observation.' },
+  { status: 'unknown', meaning: 'Deliberately unavailable. Plan around the gap.' },
+]
+
+function FactLegend() {
+  return (
+    <details className="fact-legend">
+      <summary>What the fact labels mean</summary>
+      <dl>
+        {factMeanings.map(({ status, meaning }) => (
+          <div key={status}>
+            <dt><span data-status={status}>{factLabels[status]}</span></dt>
+            <dd>{meaning}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  )
+}
 
 
 interface AttemptExperienceProps {
@@ -203,6 +226,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
     resumedCommit,
   )
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const shortcutsDialog = useRef<HTMLDialogElement>(null)
   const idempotencyKey = useRef(loadedDraft.idempotencyKey)
   const briefHeading = useRef<HTMLHeadingElement>(null)
   const evidenceHeading = useRef<HTMLHeadingElement>(null)
@@ -312,34 +336,31 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
       selectedConfidence,
   )
 
-  const attemptKeyRef = useRef<((e: KeyboardEvent) => void) | null>(null)
-  attemptKeyRef.current = (e: KeyboardEvent) => {
-    if (e.ctrlKey || e.altKey || e.metaKey) return
-    const el = e.target as HTMLElement
-    if (el instanceof HTMLTextAreaElement) return
-    if (el instanceof HTMLInputElement && el.type !== 'checkbox' && el.type !== 'radio') return
-    if (el.isContentEditable) return
+  const onAttemptKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return
+    if (isTextEntryTarget(e.target)) return
 
     if (e.key === '?') {
       e.preventDefault()
-      setShowShortcuts(s => !s)
+      if (showShortcuts) shortcutsDialog.current?.close()
+      else setShowShortcuts(true)
       return
     }
 
+    if (showShortcuts || isInsideDialog(e.target)) return
     if (stage === 'followup' || stage === 'debrief') return
 
     if (e.key === 'Enter') {
+      if (isActivatableTarget(e.target)) return
       e.preventDefault()
       if (stage === 'brief') setStage('evidence')
       else if (stage === 'evidence' && selectedEvidence.length === 2) setStage('call')
       else if (stage === 'call' && canReview) setStage('review')
-      else if (stage === 'review' && !isSubmitting) void lockMainCall()
       return
     }
 
     if (e.key === 'Escape') {
       e.preventDefault()
-      if (showShortcuts) { setShowShortcuts(false); return }
       if (stage === 'evidence') setStage('brief')
       else if (stage === 'call') setStage('evidence')
       else if (stage === 'review' && !submissionStarted) setStage('call')
@@ -354,11 +375,10 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
         toggleEvidence(item.id)
       }
     }
-  }
+  })
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => attemptKeyRef.current?.(e)
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('keydown', onAttemptKeyDown)
+    return () => window.removeEventListener('keydown', onAttemptKeyDown)
   }, [])
 
   const decisionStage = stage === 'call' || stage === 'review'
@@ -419,6 +439,7 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
                 <header>
                   <h2>{brief.title}</h2>
                   <p>Separate what is known from what is merely suggested.</p>
+                  <FactLegend />
                 </header>
                 <ul>
                   {brief.facts.map((fact) => (
@@ -478,6 +499,17 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
                 decision.
               </p>
             </div>
+            <details className="facts-recap">
+              <summary>Round facts ({brief.facts.length})</summary>
+              <ul>
+                {brief.facts.map((fact) => (
+                  <li key={fact.id}>
+                    <span data-status={fact.status}>{factLabels[fact.status]}</span>
+                    <p>{fact.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </details>
             <fieldset className="evidence-options">
               <legend className="visually-hidden">Available evidence</legend>
               {brief.evidence.map((evidence, index) => {
@@ -688,55 +720,92 @@ function AttemptExperienceReady({ data, csrfToken, caseNumber, editionDate, onEx
       </main>
 
       {showShortcuts ? (
-        <div
-          className="shortcuts-overlay"
-          role="dialog"
-          aria-label="Keyboard shortcuts"
-          onClick={() => setShowShortcuts(false)}
-        >
-          <div className="shortcuts-panel" onClick={e => e.stopPropagation()}>
-            <div className="shortcuts-header">
-              <h2>Keyboard shortcuts</h2>
-              <button type="button" aria-label="Close" onClick={() => setShowShortcuts(false)}>
-                &times;
-              </button>
-            </div>
-            <dl className="shortcuts-list">
-              <div>
-                <dt><kbd>Enter</kbd></dt>
-                <dd>{stage === 'debrief' ? 'Finish review' : 'Advance to next stage'}</dd>
-              </div>
-              {stage !== 'followup' && stage !== 'debrief' ? (
-                <div>
-                  <dt><kbd>Esc</kbd></dt>
-                  <dd>Go back to previous stage</dd>
-                </div>
-              ) : null}
-              {stage === 'evidence' ? (
-                <div>
-                  <dt><kbd>1</kbd>&ndash;<kbd>5</kbd></dt>
-                  <dd>Toggle evidence signal</dd>
-                </div>
-              ) : null}
-              {stage === 'followup' && mainCommit?.followup.type === 'new_information' ? (
-                <div>
-                  <dt><kbd>1</kbd>&ndash;<kbd>4</kbd></dt>
-                  <dd>Select response</dd>
-                </div>
-              ) : null}
-              <div>
-                <dt><kbd>?</kbd></dt>
-                <dd>Show / hide this panel</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
+        <ShortcutsDialog
+          dialogRef={shortcutsDialog}
+          stage={stage}
+          hasNumberedResponses={mainCommit?.followup.type === 'new_information'}
+          onClose={() => setShowShortcuts(false)}
+        />
       ) : null}
     </div>
   )
 }
 
-type AppPage = 'today' | 'cases' | 'progress' | 'settings' | 'privacy' | 'terms' | 'cookies' | 'refund' | 'not-found'
+function ShortcutsDialog({
+  dialogRef,
+  stage,
+  hasNumberedResponses,
+  onClose,
+}: {
+  readonly dialogRef: React.RefObject<HTMLDialogElement | null>
+  readonly stage: AttemptStage
+  readonly hasNumberedResponses: boolean
+  readonly onClose: () => void
+}) {
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    // No cleanup: closing here would fire `close` during StrictMode's
+    // simulated unmount; removing the element from the DOM closes it anyway.
+    if (!dialog.open) dialog.showModal()
+  }, [dialogRef])
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="shortcuts-dialog"
+      aria-labelledby="shortcuts-title"
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) e.currentTarget.close()
+      }}
+    >
+      <div className="shortcuts-panel">
+        <div className="shortcuts-header">
+          <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+          <button
+            type="button"
+            aria-label="Close keyboard shortcuts"
+            onClick={() => dialogRef.current?.close()}
+          >
+            &times;
+          </button>
+        </div>
+        <dl className="shortcuts-list">
+          <div>
+            <dt><kbd>Enter</kbd></dt>
+            <dd>Continue to the next step. Enter never locks a decision.</dd>
+          </div>
+          {stage !== 'debrief' ? (
+            <div>
+              <dt><kbd>Esc</kbd></dt>
+              <dd>Go back one step, before locking</dd>
+            </div>
+          ) : null}
+          {stage === 'evidence' ? (
+            <div>
+              <dt><kbd>1</kbd>&ndash;<kbd>5</kbd></dt>
+              <dd>Toggle an evidence signal</dd>
+            </div>
+          ) : null}
+          {stage === 'followup' && hasNumberedResponses ? (
+            <div>
+              <dt><kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>&hellip;</dt>
+              <dd>Choose a response</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt><kbd>?</kbd></dt>
+            <dd>Show or hide this panel</dd>
+          </div>
+        </dl>
+        <p className="shortcuts-note">Locking a call always needs the Lock button.</p>
+      </div>
+    </dialog>
+  )
+}
+
+type AppPage = 'today' | 'cases' | 'progress' | 'settings' | 'privacy' | 'terms' | 'cookies' | 'not-found'
 
 function getInitialPage(): AppPage {
   const path = window.location.pathname
@@ -747,7 +816,6 @@ function getInitialPage(): AppPage {
   if (path === '/privacy') return 'privacy'
   if (path === '/terms') return 'terms'
   if (path === '/cookies') return 'cookies'
-  if (path === '/refund') return 'refund'
 
   return 'not-found'
 }
@@ -788,7 +856,6 @@ export function App() {
       privacy: 'Privacy policy — Roundcraft',
       terms: 'Terms and conditions — Roundcraft',
       cookies: 'Cookies policy — Roundcraft',
-      refund: 'Refund policy — Roundcraft',
       'not-found': 'Not found — Roundcraft',
     }
     document.title = titles[page]
@@ -859,7 +926,11 @@ export function App() {
       })
       void recordEvent('attempt_issued', { edition_id: availableEdition.edition_id, mode: 'official' }, session.csrf_token)
     } catch {
-      setStatusMessage('The case could not be started. Please try again.')
+      setStatusMessage(
+        navigator.onLine
+          ? 'The case could not be started. Try again in a moment; if it keeps failing, report an issue from the footer.'
+          : 'You appear to be offline. Reconnect, then start the case again.',
+      )
     } finally {
       setIsCreatingSession(false)
     }
@@ -978,7 +1049,6 @@ export function App() {
         {page === 'privacy' ? <PrivacyPolicyPage /> : null}
         {page === 'terms' ? <TermsPage /> : null}
         {page === 'cookies' ? <CookiesPolicyPage /> : null}
-        {page === 'refund' ? <RefundPolicyPage /> : null}
 
         {page === 'not-found' ? (
           <section className="page-state" aria-labelledby="not-found-title">
@@ -1145,14 +1215,12 @@ export function App() {
           <a href="/privacy" onClick={(e) => handleNavClick(e, 'privacy')}>Privacy</a>
           <a href="/terms" onClick={(e) => handleNavClick(e, 'terms')}>Terms</a>
           <a href="/cookies" onClick={(e) => handleNavClick(e, 'cookies')}>Cookies</a>
-          <a href="/refund" onClick={(e) => handleNavClick(e, 'refund')}>Refund</a>
         </div>
         <div className="footer-info">
           <p>Built for deliberate CS2 decisions, not reaction speed.</p>
-          <p>Roundcraft · Independent project · <a href="mailto:contact@roundcraft.gg">contact@roundcraft.gg</a></p>
+          <p>Roundcraft · Independent project in closed beta · <a href="https://github.com/WhiteBlindness/roundcraft/issues">Report an issue</a></p>
         </div>
       </footer>
-      <CookieConsent />
     </div>
   )
 }
