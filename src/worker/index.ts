@@ -11,6 +11,8 @@ import { recordEvent } from './events'
 import { createFairnessReport } from './fairness-reports'
 import { commitFollowupAnswer } from './followup-commit'
 import { deleteHistory } from './history'
+import { jsonError } from './http'
+import { errorLogFields, logEvent, requestLogContext } from './log'
 import { createPracticeAttempt } from './practice-attempts'
 import { commitMainAnswer } from './main-commit'
 import { getProgress } from './progress'
@@ -18,7 +20,12 @@ import { enforceRateLimit } from './rate-limit'
 import { createOrRenewSession } from './session'
 import { getToday } from './today'
 
-const api = new Hono<{ Bindings: Bindings }>()
+interface AppEnvironment {
+  Bindings: Bindings
+  Variables: { requestId: string }
+}
+
+const api = new Hono<AppEnvironment>()
 
 function createContentSecurityPolicy(environment: string): string {
   const isLocal = environment === 'local'
@@ -40,7 +47,19 @@ function createContentSecurityPolicy(environment: string): string {
 }
 
 api.use('*', async (context, next) => {
+  // One request id per request, shared by the response envelope and the logs.
+  context.set('requestId', crypto.randomUUID())
+
   await next()
+
+  // Errors thrown by handlers are logged (with detail) by onError; every other
+  // 5xx, such as a handled 503, gets a generic event here so none is invisible.
+  if (context.res.status >= 500 && !context.error) {
+    logEvent('error', 'http_5xx', {
+      ...requestLogContext(context.req.raw, context.get('requestId')),
+      status: context.res.status,
+    })
+  }
 
   context.header(
     'Content-Security-Policy',
@@ -69,14 +88,14 @@ api.get('/api/v1/health', (context) =>
     },
     error: null,
     meta: {
-      request_id: crypto.randomUUID(),
+      request_id: context.get('requestId'),
       api_version: 'v1',
     },
   }),
 )
 
 api.post('/api/v1/session', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.SESSION_RATE_LIMITER,
@@ -90,7 +109,7 @@ api.post('/api/v1/session', async (context) => {
 })
 
 api.get('/api/v1/today', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.TODAY_RATE_LIMITER,
@@ -102,7 +121,7 @@ api.get('/api/v1/today', async (context) => {
 })
 
 api.post('/api/v1/attempts', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -114,7 +133,7 @@ api.post('/api/v1/attempts', async (context) => {
 })
 
 api.get('/api/v1/attempts/:attemptId', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -134,7 +153,7 @@ api.get('/api/v1/attempts/:attemptId', async (context) => {
 })
 
 api.post('/api/v1/attempts/:attemptId/main-commit', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -154,7 +173,7 @@ api.post('/api/v1/attempts/:attemptId/main-commit', async (context) => {
 })
 
 api.post('/api/v1/attempts/:attemptId/followup-commit', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -174,7 +193,7 @@ api.post('/api/v1/attempts/:attemptId/followup-commit', async (context) => {
 })
 
 api.post('/api/v1/attempts/:attemptId/debrief-complete', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -194,7 +213,7 @@ api.post('/api/v1/attempts/:attemptId/debrief-complete', async (context) => {
 })
 
 api.post('/api/v1/practice-attempts', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -208,7 +227,7 @@ api.post('/api/v1/practice-attempts', async (context) => {
 })
 
 api.delete('/api/v1/history', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -220,7 +239,7 @@ api.delete('/api/v1/history', async (context) => {
 })
 
 api.get('/api/v1/progress', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -232,7 +251,7 @@ api.get('/api/v1/progress', async (context) => {
 })
 
 api.get('/api/v1/cases', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.TODAY_RATE_LIMITER,
@@ -244,7 +263,7 @@ api.get('/api/v1/cases', async (context) => {
 })
 
 api.post('/api/v1/fairness-reports', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -258,7 +277,7 @@ api.post('/api/v1/fairness-reports', async (context) => {
 })
 
 api.post('/api/v1/events', async (context) => {
-  const requestId = crypto.randomUUID()
+  const requestId = context.get('requestId')
   const limited = await enforceRateLimit(
     context.req.raw,
     context.env.ATTEMPT_RATE_LIMITER,
@@ -269,26 +288,42 @@ api.post('/api/v1/events', async (context) => {
   return limited ?? recordEvent(context.req.raw, context.env, requestId)
 })
 
+api.all('/api/*', (context) =>
+  jsonError(
+    404,
+    'NOT_FOUND',
+    'The requested resource is unavailable.',
+    context.get('requestId'),
+  ),
+)
+
 api.all('*', async (context) => {
   if (!context.env.ASSETS) {
-    return context.json(
-      {
-        ok: false,
-        data: null,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'The requested resource is unavailable.',
-        },
-        meta: {
-          request_id: crypto.randomUUID(),
-          api_version: 'v1',
-        },
-      },
+    return jsonError(
       404,
+      'NOT_FOUND',
+      'The requested resource is unavailable.',
+      context.get('requestId'),
     )
   }
 
   return context.env.ASSETS.fetch(context.req.raw)
+})
+
+api.onError((error, context) => {
+  const requestId = context.get('requestId') ?? crypto.randomUUID()
+
+  logEvent('error', 'unhandled_error', {
+    ...requestLogContext(context.req.raw, requestId),
+    ...errorLogFields(error),
+  })
+
+  return jsonError(
+    500,
+    'INTERNAL_ERROR',
+    'An unexpected error occurred.',
+    requestId,
+  )
 })
 
 export default api

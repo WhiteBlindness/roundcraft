@@ -57,6 +57,16 @@
       "message": "The submitted data is invalid."
     },
     {
+      "code": "NOT_FOUND",
+      "status": 404,
+      "message": "The requested resource is unavailable."
+    },
+    {
+      "code": "INTERNAL_ERROR",
+      "status": 500,
+      "message": "An unexpected error occurred."
+    },
+    {
       "code": "SERVICE_UNAVAILABLE",
       "status": 503,
       "message": "The service is temporarily unavailable."

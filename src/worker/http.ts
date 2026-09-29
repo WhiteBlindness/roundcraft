@@ -15,6 +15,8 @@ export type ApiErrorCode =
   | 'VERSION_CONFLICT'
   | 'ATTEMPT_STATE_CONFLICT'
   | 'VALIDATION_ERROR'
+  | 'NOT_FOUND'
+  | 'INTERNAL_ERROR'
   | 'SERVICE_UNAVAILABLE'
 
 export function apiMeta(requestId: string): ApiMeta {

@@ -15,9 +15,13 @@
       "/api/*",
       "/",
       "/today",
+      "/cases",
       "/cases/*",
       "/progress",
-      "/settings"
+      "/settings",
+      "/privacy",
+      "/terms",
+      "/cookies"
     ]
   },
   "d1_databases": [

@@ -19,6 +19,12 @@ import {
 } from './identity'
 import { encodeBase64Url, jsonError, jsonSuccess } from './http'
 import {
+  logEvent,
+  requestLogContext,
+  type LogContext,
+} from './log'
+import { playableRevisionSql } from './playable'
+import {
   acceptsStateChangingHeaders,
   maximumStateChangingBodyBytes,
 } from './request-protection'
@@ -185,9 +191,21 @@ async function loadDecisionProjection(
 async function authorizedAttemptProjection(
   record: AttemptProjectionRecord,
   database: D1Database,
+  logContext: LogContext,
 ) {
+  const unavailable = (payload: string): null => {
+    logEvent('error', 'content_unavailable', {
+      ...logContext,
+      edition_id: record.edition_id,
+      state: record.state,
+      payload,
+    })
+
+    return null
+  }
+
   const brief = parseBrief(record.payload_json)
-  if (!brief) return null
+  if (!brief) return unavailable('public_brief')
 
   if (record.state === 'issued') {
     return { attempt: publicAttempt(record), brief } as const
@@ -199,7 +217,8 @@ async function authorizedAttemptProjection(
       ? parseFollowup(record.followup_json)
       : null
 
-    if (!mainAnswer || !followup) return null
+    if (!mainAnswer) return unavailable('main_answer')
+    if (!followup) return unavailable('public_followup')
 
     return {
       attempt: publicAttempt(record),
@@ -219,7 +238,9 @@ async function authorizedAttemptProjection(
       : null
     const decision = await loadDecisionProjection(database, record.attempt_id)
 
-    if (!mainAnswer || !followup || !decision) return null
+    if (!mainAnswer) return unavailable('main_answer')
+    if (!followup) return unavailable('public_followup')
+    if (!decision) return unavailable('decision_projection')
 
     try {
       const followupAnswer = followupAnswerSchema.parse(
@@ -241,11 +262,11 @@ async function authorizedAttemptProjection(
         reveal,
       } as const
     } catch {
-      return null
+      return unavailable('result_snapshot')
     }
   }
 
-  return null
+  return unavailable('state')
 }
 
 async function loadEdition(
@@ -266,8 +287,7 @@ async function loadEdition(
        INNER JOIN case_public_briefs b ON b.case_revision = e.case_revision
        INNER JOIN case_rubrics r ON r.case_revision = e.case_revision
        WHERE e.edition_id = ?
-         AND e.publication_status = 'released'
-         AND cr.status = 'locked'
+         AND ${playableRevisionSql}
          AND e.release_at <= ?
          AND e.official_end_at > ?
        LIMIT 1`,
@@ -456,7 +476,11 @@ export async function createOrResumeAttempt(
       )
     }
 
-    const existingProjection = await authorizedAttemptProjection(existing, env.DB)
+    const existingProjection = await authorizedAttemptProjection(
+      existing,
+      env.DB,
+      requestLogContext(request, requestId),
+    )
     if (!existingProjection) {
       return jsonError(
         503,
@@ -476,7 +500,11 @@ export async function createOrResumeAttempt(
 
   const record = await issueOrLoadAttempt(env.DB, identity, edition, now)
   const projection = record
-    ? await authorizedAttemptProjection(record, env.DB)
+    ? await authorizedAttemptProjection(
+        record,
+        env.DB,
+        requestLogContext(request, requestId),
+      )
     : null
   if (!projection) {
     return jsonError(503, 'SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.', requestId)
@@ -513,7 +541,11 @@ export async function getAttempt(
     return jsonError(410, 'ATTEMPT_EXPIRED', 'The attempt is no longer active.', requestId)
   }
 
-  const projection = await authorizedAttemptProjection(record, env.DB)
+  const projection = await authorizedAttemptProjection(
+        record,
+        env.DB,
+        requestLogContext(request, requestId),
+      )
   if (!projection) {
     return jsonError(503, 'SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.', requestId)
   }

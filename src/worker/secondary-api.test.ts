@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:test'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import worker from './index'
 
@@ -460,6 +460,10 @@ describe('Today API — authenticated status and edge cases', () => {
   })
 })
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('cases API', () => {
   beforeEach(async () => {
     await env.DB.exec(
@@ -528,6 +532,48 @@ describe('cases API', () => {
       data: { editions: unknown[]; next_cursor: string | null }
     }>()
     expect(payload.data.editions).toHaveLength(1)
+  })
+
+  it('degrades a malformed metadata row to null instead of failing the list', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const rows = [
+      {
+        edition_id: 'edition_bad_row',
+        release_at: '2026-01-01T00:00:00.000Z',
+        public_metadata_json: '{not json',
+      },
+    ]
+    const stubEnv = {
+      APP_ENV: 'test',
+      DB: {
+        prepare: () => ({
+          bind: () => ({ all: () => Promise.resolve({ results: rows }) }),
+        }),
+      } as unknown as D1Database,
+    }
+
+    const response = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/cases`),
+      stubEnv,
+      executionContext,
+    )
+    const payload = await response.json<{
+      data: { editions: Array<{ edition_id: string; metadata: unknown }> }
+    }>()
+
+    expect(response.status).toBe(200)
+    expect(payload.data.editions).toEqual([
+      {
+        edition_id: 'edition_bad_row',
+        release_at: '2026-01-01T00:00:00.000Z',
+        metadata: null,
+      },
+    ])
+    expect(JSON.parse(String(errorSpy.mock.calls[0]?.[0]))).toMatchObject({
+      event: 'content_unavailable',
+      edition_id: 'edition_bad_row',
+      payload: 'public_metadata',
+    })
   })
 })
 
@@ -612,6 +658,98 @@ describe('progress API', () => {
       display_main: 45,
       display_evidence: 16,
       display_followup: 28,
+    })
+  })
+
+  it('exposes only approved public metadata fields', async () => {
+    await seedEditionWithBrief()
+    await env.DB.prepare(
+      `UPDATE editions SET public_metadata_json = ? WHERE edition_id = 'edition_sec_001'`,
+    )
+      .bind(
+        JSON.stringify({
+          case_number: 3,
+          edition_date_utc: '2026-09-01',
+          estimated_minutes: 6,
+          focus: 'Information',
+          origin_label: 'Synthetic scenario.',
+          hidden_answer: 'must never leave D1',
+        }),
+      )
+      .run()
+    const { cookie } = await createIdentity()
+    await seedAttemptWithResult(await getIdentityId(cookie))
+
+    const response = await worker.fetch(
+      authenticatedGet('/api/v1/progress', cookie),
+      env,
+      executionContext,
+    )
+    const text = await response.text()
+
+    expect(response.status).toBe(200)
+    expect(text).not.toContain('hidden_answer')
+    expect(JSON.parse(text).data.entries[0].metadata).toEqual({
+      case_number: 3,
+      edition_date_utc: '2026-09-01',
+      estimated_minutes: 6,
+      focus: 'Information',
+      origin_label: 'Synthetic scenario.',
+    })
+  })
+
+  it('degrades malformed metadata to an empty object instead of a bare 500', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await seedEditionWithBrief()
+    const { cookie } = await createIdentity()
+    await seedAttemptWithResult(await getIdentityId(cookie))
+    const realDb = env.DB
+    const stubEnv = {
+      APP_ENV: env.APP_ENV,
+      IDENTITY_PEPPER: env.IDENTITY_PEPPER,
+      DB: {
+        prepare: (sql: string) =>
+          sql.includes('FROM attempts a')
+            ? {
+                bind: () => ({
+                  all: () =>
+                    Promise.resolve({
+                      results: [
+                        {
+                          edition_id: 'edition_sec_001',
+                          state: 'debrief_complete',
+                          total_score: 89,
+                          display_main: 45,
+                          display_evidence: 16,
+                          display_followup: 28,
+                          issued_at: '2026-09-01T14:00:00.000Z',
+                          debrief_completed_at: null,
+                          public_metadata_json: '{not json',
+                        },
+                      ],
+                    }),
+                }),
+              }
+            : realDb.prepare(sql),
+      } as unknown as D1Database,
+    }
+
+    const response = await worker.fetch(
+      authenticatedGet('/api/v1/progress', cookie),
+      stubEnv,
+      executionContext,
+    )
+    const payload = await response.json<{
+      data: { entries: Array<{ metadata: unknown; total_score: number }> }
+    }>()
+
+    expect(response.status).toBe(200)
+    expect(payload.data.entries).toHaveLength(1)
+    expect(payload.data.entries[0]).toMatchObject({ metadata: {}, total_score: 89 })
+    expect(JSON.parse(String(errorSpy.mock.calls[0]?.[0]))).toMatchObject({
+      event: 'content_unavailable',
+      edition_id: 'edition_sec_001',
+      route: 'GET /api/v1/progress',
     })
   })
 })

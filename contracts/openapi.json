@@ -57,7 +57,11 @@
         "summary": "Return only the current public edition cover",
         "responses": {
           "200": {
-            "description": "Current public cover or neutral unavailable state",
+            "description": "Current public cover or neutral unavailable state. Varies by session, so it is sent with Cache-Control: private, no-cache and an ETag for revalidation.",
+            "headers": {
+              "Cache-Control": { "schema": { "const": "private, no-cache" } },
+              "ETag": { "schema": { "type": "string" } }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "./schemas/today-response.json" },
@@ -162,6 +166,7 @@
       "post": {
         "operationId": "commitMainAnswer",
         "summary": "Immutably lock the main answer and release the public follow-up",
+        "description": "The answer is locked only when the server can score it. If the edition content cannot score the submitted answer, the call returns 503 SERVICE_UNAVAILABLE and the attempt stays unlocked.",
         "parameters": [
           {
             "name": "attempt_id",
@@ -713,6 +718,8 @@
                         "VERSION_CONFLICT",
                         "ATTEMPT_STATE_CONFLICT",
                         "VALIDATION_ERROR",
+                        "NOT_FOUND",
+                        "INTERNAL_ERROR",
                         "SERVICE_UNAVAILABLE"
                       ]
                     },

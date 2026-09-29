@@ -1,6 +1,11 @@
+import type { PublicFollowup } from './public-followup'
 import { describe, expect, it } from 'vitest'
 
-import { scoringInputFor, serverRubricSchema } from './server-rubric'
+import {
+  rubricCoversMainAnswer,
+  scoringInputFor,
+  serverRubricSchema,
+} from './server-rubric'
 
 const rubric = {
   schemaVersion: 1,
@@ -117,5 +122,46 @@ describe('server rubric', () => {
         },
       ),
     ).toBeNull()
+  })
+})
+
+describe('rubricCoversMainAnswer', () => {
+  const followup = {
+    schemaVersion: 1,
+    caseRevision: 'case_revision_001',
+    type: 'new_information',
+    updates: [],
+    responses: [
+      { id: 'keep_original', label: 'Keep the original line' },
+      { id: 'change_mid', label: 'Change through mid' },
+    ],
+  } as unknown as PublicFollowup
+  const answer = {
+    action_id: 'regroup_a',
+    qualifier_id: 'quiet',
+    evidence_ids: ['utility', 'bomb_location'],
+    confidence_id: 'fairly_sure',
+  }
+
+  it('accepts a covered action, qualifier and unordered evidence pair', () => {
+    expect(rubricCoversMainAnswer(serverRubricSchema.parse(rubric), answer, followup)).toBe(true)
+  })
+
+  it.each([
+    ['unknown qualifier', { ...answer, qualifier_id: 'fast' }],
+    ['unknown action', { ...answer, action_id: 'hold_shape' }],
+    ['uncovered evidence pair', { ...answer, evidence_ids: ['clock', 'spacing'] }],
+    ['half-covered evidence pair', { ...answer, evidence_ids: ['bomb_location', 'clock'] }],
+  ])('rejects an answer with an %s', (_label, candidate) => {
+    expect(rubricCoversMainAnswer(serverRubricSchema.parse(rubric), candidate, followup)).toBe(false)
+  })
+
+  it('rejects when a published follow-up response has no rubric cell', () => {
+    const extended = {
+      ...followup,
+      responses: [...(followup as { responses: unknown[] }).responses, { id: 'save', label: 'Save' }],
+    } as unknown as PublicFollowup
+
+    expect(rubricCoversMainAnswer(serverRubricSchema.parse(rubric), answer, extended)).toBe(false)
   })
 })

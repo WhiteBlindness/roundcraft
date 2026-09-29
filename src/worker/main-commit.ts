@@ -1,6 +1,7 @@
 import {
   isPublishedMainAnswer,
   mainCommitBodySchema,
+  type MainAnswer,
   type MainCommitBody,
 } from '../domain/main-answer'
 import { publicBriefSchema, type PublicBrief } from '../domain/public-brief'
@@ -8,9 +9,15 @@ import {
   publicFollowupSchema,
   type PublicFollowup,
 } from '../domain/public-followup'
+import {
+  rubricCoversMainAnswer,
+  serverRubricSchema,
+  type ServerRubric,
+} from '../domain/server-rubric'
 import type { Bindings } from './bindings'
 import { authenticateIdentity, verifyCsrfToken } from './identity'
 import { apiMeta, jsonError, sha256Base64Url } from './http'
+import { errorLogFields, logEvent, requestLogContext } from './log'
 import {
   acceptsStateChangingHeaders,
   maximumStateChangingBodyBytes,
@@ -22,6 +29,9 @@ const idempotencyKeyPattern =
 
 interface MainCommitProjectionRecord {
   readonly attempt_id: string
+  readonly edition_id: string
+  readonly case_revision: string
+  readonly rubric_revision: string
   readonly state:
     | 'issued'
     | 'main_locked'
@@ -31,6 +41,8 @@ interface MainCommitProjectionRecord {
   readonly grace_end_at: string
   readonly payload_json: string
   readonly followup_json: string
+  /** Server-only. Parsed to check scoring coverage; never serialised. */
+  readonly rubric_json: string | null
 }
 
 interface IdempotencyReceiptRecord {
@@ -69,6 +81,36 @@ function parseFollowup(payloadJson: string): PublicFollowup | null {
   }
 }
 
+function parseRubric(payloadJson: string): ServerRubric | null {
+  try {
+    return serverRubricSchema.parse(JSON.parse(payloadJson))
+  } catch {
+    return null
+  }
+}
+
+type RubricProblem = 'missing' | 'invalid' | 'revision_mismatch' | 'not_covered'
+
+function rubricProblemFor(
+  record: MainCommitProjectionRecord,
+  mainAnswer: MainAnswer,
+  followup: PublicFollowup,
+): RubricProblem | null {
+  if (!record.rubric_json) return 'missing'
+
+  const rubric = parseRubric(record.rubric_json)
+  if (!rubric) return 'invalid'
+
+  if (
+    rubric.caseRevision !== record.case_revision ||
+    rubric.rubricRevision !== record.rubric_revision
+  ) {
+    return 'revision_mismatch'
+  }
+
+  return rubricCoversMainAnswer(rubric, mainAnswer, followup) ? null : 'not_covered'
+}
+
 async function loadOwnedAttempt(
   database: D1Database,
   identityId: string,
@@ -78,15 +120,20 @@ async function loadOwnedAttempt(
     .prepare(
       `SELECT
          a.attempt_id,
+         a.edition_id,
+         a.case_revision,
+         a.rubric_revision,
          a.state,
          a.sequence,
          a.grace_end_at,
          b.payload_json,
-         f.payload_json AS followup_json
+         f.payload_json AS followup_json,
+         r.payload_json AS rubric_json
        FROM attempts a
        INNER JOIN editions e ON e.edition_id = a.edition_id
        INNER JOIN case_public_briefs b ON b.case_revision = a.case_revision
        INNER JOIN case_followups f ON f.case_revision = a.case_revision
+       LEFT JOIN case_rubrics r ON r.rubric_revision = a.rubric_revision
        WHERE a.attempt_id = ?
          AND a.identity_id = ?
          AND a.mode = 'official'
@@ -183,6 +230,7 @@ export async function commitMainAnswer(
     )
   }
 
+  const logContext = requestLogContext(request, requestId)
   const requestHash = await sha256Base64Url(JSON.stringify(body))
   const record = await loadOwnedAttempt(env.DB, identity.identityId, attemptId)
   if (!record) {
@@ -197,6 +245,11 @@ export async function commitMainAnswer(
   const existingReceipt = await loadReceipt(env.DB, attemptId, idempotencyKey)
   if (existingReceipt) {
     if (existingReceipt.request_hash !== requestHash) {
+      logEvent('warn', 'idempotency_key_reused', {
+        ...logContext,
+        phase: 'main',
+      })
+
       return jsonError(
         409,
         'IDEMPOTENCY_KEY_REUSED',
@@ -218,6 +271,12 @@ export async function commitMainAnswer(
   }
 
   if (record.state !== 'issued') {
+    logEvent('warn', 'attempt_state_conflict', {
+      ...logContext,
+      phase: 'main',
+      state: record.state,
+    })
+
     return jsonError(
       409,
       'ATTEMPT_STATE_CONFLICT',
@@ -227,6 +286,11 @@ export async function commitMainAnswer(
   }
 
   if (ifMatch !== `"${record.sequence}"`) {
+    logEvent('info', 'attempt_version_conflict', {
+      ...logContext,
+      phase: 'main',
+    })
+
     return jsonError(
       409,
       'VERSION_CONFLICT',
@@ -238,6 +302,12 @@ export async function commitMainAnswer(
   const brief = parseBrief(record.payload_json)
   const followup = parseFollowup(record.followup_json)
   if (!brief || !followup) {
+    logEvent('error', 'content_unavailable', {
+      ...logContext,
+      edition_id: record.edition_id,
+      payload: brief ? 'public_followup' : 'public_brief',
+    })
+
     return jsonError(
       503,
       'SERVICE_UNAVAILABLE',
@@ -264,13 +334,35 @@ export async function commitMainAnswer(
     )
   }
 
-  const acceptedAt = new Date().toISOString()
   const mainAnswer = {
     action_id: body.action_id,
     qualifier_id: body.qualifier_id,
     evidence_ids: body.evidence_ids,
     confidence_id: body.confidence_id,
   } as const
+
+  // The main answer is irreversible, so refuse to lock it unless the server
+  // rubric can later score it. The rubric is parsed here only to check
+  // coverage and is never serialised into any response.
+  const rubricProblem = rubricProblemFor(record, mainAnswer, followup)
+
+  if (rubricProblem) {
+    logEvent('error', 'main_commit_rubric_rejected', {
+      ...logContext,
+      edition_id: record.edition_id,
+      payload: 'rubric',
+      reason: rubricProblem,
+    })
+
+    return jsonError(
+      503,
+      'SERVICE_UNAVAILABLE',
+      'The service is temporarily unavailable.',
+      requestId,
+    )
+  }
+
+  const acceptedAt = new Date().toISOString()
   const responseSnapshot = {
     ok: true,
     data: {
@@ -335,7 +427,12 @@ export async function commitMainAnswer(
     if (results[0]?.meta.changes !== 1) {
       throw new Error('Main commitment lost the conditional update')
     }
-  } catch {
+  } catch (error) {
+    logEvent('error', 'main_commit_batch_failed', {
+      ...logContext,
+      ...errorLogFields(error),
+    })
+
     const winningReceipt = await loadReceipt(env.DB, attemptId, idempotencyKey)
 
     if (winningReceipt?.request_hash === requestHash) {
@@ -343,6 +440,11 @@ export async function commitMainAnswer(
     }
 
     if (winningReceipt) {
+      logEvent('warn', 'idempotency_key_reused', {
+        ...logContext,
+        phase: 'main',
+      })
+
       return jsonError(
         409,
         'IDEMPOTENCY_KEY_REUSED',
@@ -350,6 +452,12 @@ export async function commitMainAnswer(
         requestId,
       )
     }
+
+    logEvent('warn', 'attempt_state_conflict', {
+      ...logContext,
+      phase: 'main',
+      reason: 'batch_rejected',
+    })
 
     return jsonError(
       409,

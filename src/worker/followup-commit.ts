@@ -20,6 +20,12 @@ import type { Bindings } from './bindings'
 import { authenticateIdentity, verifyCsrfToken } from './identity'
 import { apiMeta, jsonError, sha256Base64Url } from './http'
 import {
+  errorLogFields,
+  logEvent,
+  requestLogContext,
+  type LogContext,
+} from './log'
+import {
   acceptsStateChangingHeaders,
   maximumStateChangingBodyBytes,
 } from './request-protection'
@@ -172,7 +178,10 @@ async function loadReceipt(
     .first<IdempotencyReceiptRecord>()
 }
 
-function storedResponse(receipt: IdempotencyReceiptRecord): Response | null {
+function storedResponse(
+  receipt: IdempotencyReceiptRecord,
+  logContext: LogContext,
+): Response | null {
   try {
     followupCommitSnapshotSchema.parse(
       JSON.parse(receipt.response_snapshot_json),
@@ -183,6 +192,11 @@ function storedResponse(receipt: IdempotencyReceiptRecord): Response | null {
       headers: { 'content-type': 'application/json', etag: '"2"' },
     })
   } catch {
+    logEvent('error', 'content_unavailable', {
+      ...logContext,
+      payload: 'idempotency_receipt',
+    })
+
     return null
   }
 }
@@ -226,6 +240,7 @@ export async function commitFollowupAnswer(
     return jsonError(422, 'VALIDATION_ERROR', 'The submitted data is invalid.', requestId)
   }
 
+  const logContext = requestLogContext(request, requestId)
   const requestHash = await sha256Base64Url(JSON.stringify(body))
   const record = await loadOwnedAttempt(env.DB, identity.identityId, attemptId)
   if (!record) {
@@ -235,6 +250,11 @@ export async function commitFollowupAnswer(
   const existingReceipt = await loadReceipt(env.DB, attemptId, idempotencyKey)
   if (existingReceipt) {
     if (existingReceipt.request_hash !== requestHash) {
+      logEvent('warn', 'idempotency_key_reused', {
+        ...logContext,
+        phase: 'followup',
+      })
+
       return jsonError(
         409,
         'IDEMPOTENCY_KEY_REUSED',
@@ -243,13 +263,19 @@ export async function commitFollowupAnswer(
       )
     }
 
-    return storedResponse(existingReceipt) ?? serviceUnavailable(requestId)
+    return storedResponse(existingReceipt, logContext) ?? serviceUnavailable(requestId)
   }
 
   if (record.grace_end_at <= new Date().toISOString()) {
     return jsonError(410, 'ATTEMPT_EXPIRED', 'The attempt is no longer active.', requestId)
   }
   if (record.state !== 'main_locked') {
+    logEvent('warn', 'attempt_state_conflict', {
+      ...logContext,
+      phase: 'followup',
+      state: record.state,
+    })
+
     return jsonError(
       409,
       'ATTEMPT_STATE_CONFLICT',
@@ -258,6 +284,11 @@ export async function commitFollowupAnswer(
     )
   }
   if (ifMatch !== `"${record.sequence}"`) {
+    logEvent('info', 'attempt_version_conflict', {
+      ...logContext,
+      phase: 'followup',
+    })
+
     return jsonError(
       409,
       'VERSION_CONFLICT',
@@ -269,7 +300,19 @@ export async function commitFollowupAnswer(
   const mainAnswer = parseMainAnswer(record.main_answer_json)
   const followup = parseFollowup(record.followup_json)
   const rubric = parseRubric(record.rubric_json)
-  if (!mainAnswer || !followup || !rubric) return serviceUnavailable(requestId)
+  if (!mainAnswer || !followup || !rubric) {
+    logEvent('error', 'content_unavailable', {
+      ...logContext,
+      edition_id: record.edition_id,
+      payload: !mainAnswer
+        ? 'main_answer'
+        : !followup
+          ? 'public_followup'
+          : 'rubric',
+    })
+
+    return serviceUnavailable(requestId)
+  }
 
   if (body.case_revision !== record.case_revision) {
     return jsonError(
@@ -283,6 +326,13 @@ export async function commitFollowupAnswer(
     rubric.caseRevision !== record.case_revision ||
     rubric.rubricRevision !== record.rubric_revision
   ) {
+    logEvent('error', 'content_unavailable', {
+      ...logContext,
+      edition_id: record.edition_id,
+      payload: 'rubric',
+      reason: 'revision_mismatch',
+    })
+
     return serviceUnavailable(requestId)
   }
   if (!isPublishedFollowupAnswer(body, followup)) {
@@ -291,6 +341,13 @@ export async function commitFollowupAnswer(
 
   const scoringInput = scoringInputFor(rubric, mainAnswer, body)
   if (!scoringInput) {
+    logEvent('error', 'followup_commit_rubric_rejected', {
+      ...logContext,
+      edition_id: record.edition_id,
+      payload: 'rubric',
+      reason: 'not_covered',
+    })
+
     return jsonError(422, 'VALIDATION_ERROR', 'The submitted data is invalid.', requestId)
   }
 
@@ -418,12 +475,22 @@ export async function commitFollowupAnswer(
     if (results[0]?.meta.changes !== 1) {
       throw new Error('Follow-up commitment lost the conditional update')
     }
-  } catch {
+  } catch (error) {
+    logEvent('error', 'followup_commit_batch_failed', {
+      ...logContext,
+      ...errorLogFields(error),
+    })
+
     const winningReceipt = await loadReceipt(env.DB, attemptId, idempotencyKey)
     if (winningReceipt?.request_hash === requestHash) {
-      return storedResponse(winningReceipt) ?? serviceUnavailable(requestId)
+      return storedResponse(winningReceipt, logContext) ?? serviceUnavailable(requestId)
     }
     if (winningReceipt) {
+      logEvent('warn', 'idempotency_key_reused', {
+        ...logContext,
+        phase: 'followup',
+      })
+
       return jsonError(
         409,
         'IDEMPOTENCY_KEY_REUSED',
@@ -431,6 +498,12 @@ export async function commitFollowupAnswer(
         requestId,
       )
     }
+
+    logEvent('warn', 'attempt_state_conflict', {
+      ...logContext,
+      phase: 'followup',
+      reason: 'batch_rejected',
+    })
 
     return jsonError(
       409,
@@ -441,7 +514,16 @@ export async function commitFollowupAnswer(
   }
 
   const receipt = await loadReceipt(env.DB, attemptId, idempotencyKey)
+  if (!receipt) {
+    logEvent('error', 'content_unavailable', {
+      ...logContext,
+      edition_id: record.edition_id,
+      payload: 'idempotency_receipt',
+      reason: 'missing_after_commit',
+    })
+  }
+
   return receipt
-    ? storedResponse(receipt) ?? serviceUnavailable(requestId)
+    ? storedResponse(receipt, logContext) ?? serviceUnavailable(requestId)
     : serviceUnavailable(requestId)
 }

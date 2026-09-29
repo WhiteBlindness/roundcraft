@@ -1,16 +1,9 @@
-import { z } from 'zod'
-
 import type { Bindings } from './bindings'
+import { publicMetadataSchema } from './edition-metadata'
 import { jsonError, jsonSuccess, sha256Base64Url } from './http'
 import { authenticateIdentity } from './identity'
-
-const publicMetadataSchema = z.object({
-  case_number: z.number().int().positive(),
-  edition_date_utc: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  estimated_minutes: z.number().int().min(5).max(8),
-  focus: z.string().min(1).max(80),
-  origin_label: z.string().min(1).max(160),
-})
+import { logEvent, requestLogContext } from './log'
+import { playableRevisionSql } from './playable'
 
 interface CurrentEditionRecord {
   readonly edition_id: string
@@ -34,7 +27,10 @@ async function publicResponse(
 ): Promise<Response> {
   const etag = `"${await sha256Base64Url(JSON.stringify(data))}"`
   const headers = new Headers({
-    'Cache-Control': 'public, max-age=0, must-revalidate',
+    // The body varies by session cookie (status, primary_action), so it must
+    // never be stored by a shared cache. Revalidation via ETag still works.
+    'Cache-Control': 'private, no-cache',
+    Vary: 'Cookie',
     ETag: etag,
   })
 
@@ -65,7 +61,7 @@ export async function getToday(
      FROM editions AS e
      INNER JOIN case_revisions AS cr ON cr.case_revision = e.case_revision
      INNER JOIN cases AS c ON c.case_id = cr.case_id
-     WHERE e.publication_status = 'released'
+     WHERE ${playableRevisionSql}
        AND e.release_at <= ?
        AND e.official_end_at > ?
      ORDER BY e.release_at DESC
@@ -83,6 +79,13 @@ export async function getToday(
   try {
     metadata = JSON.parse(edition.public_metadata_json)
   } catch {
+    logEvent('error', 'content_unavailable', {
+      ...requestLogContext(request, requestId),
+      edition_id: edition.edition_id,
+      payload: 'public_metadata',
+      reason: 'invalid_json',
+    })
+
     return jsonError(
       503,
       'SERVICE_UNAVAILABLE',
@@ -94,6 +97,13 @@ export async function getToday(
   const parsedMetadata = publicMetadataSchema.safeParse(metadata)
 
   if (!parsedMetadata.success) {
+    logEvent('error', 'content_unavailable', {
+      ...requestLogContext(request, requestId),
+      edition_id: edition.edition_id,
+      payload: 'public_metadata',
+      reason: 'schema_mismatch',
+    })
+
     return jsonError(
       503,
       'SERVICE_UNAVAILABLE',

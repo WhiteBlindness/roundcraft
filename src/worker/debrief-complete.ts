@@ -1,6 +1,7 @@
 import type { Bindings } from './bindings'
 import { authenticateIdentity, verifyCsrfToken } from './identity'
 import { jsonError, jsonSuccess } from './http'
+import { logEvent, requestLogContext } from './log'
 import {
   acceptsStateChangingHeaders,
   maximumStateChangingBodyBytes,
@@ -158,6 +159,12 @@ export async function completeDebrief(
   if (existingResponse) return existingResponse
 
   if (record.state !== 'decision_complete' || record.sequence !== 2) {
+    logEvent('warn', 'attempt_state_conflict', {
+      ...requestLogContext(request, requestId),
+      phase: 'debrief',
+      state: record.state,
+    })
+
     return jsonError(
       409,
       'ATTEMPT_STATE_CONFLICT',
@@ -197,6 +204,12 @@ export async function completeDebrief(
   const winner = await loadOwnedAttempt(env.DB, identity.identityId, attemptId)
   const winnerResponse = winner ? completedResponse(winner, requestId) : null
   if (winnerResponse) return winnerResponse
+
+  logEvent('warn', 'attempt_state_conflict', {
+    ...requestLogContext(request, requestId),
+    phase: 'debrief',
+    reason: 'update_lost',
+  })
 
   return jsonError(
     409,

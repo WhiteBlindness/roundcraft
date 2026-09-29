@@ -433,6 +433,8 @@ describe('follow-up commitment API', () => {
             quality: 95,
             sharedConsensus: true,
           },
+          { postureId: 'protect', priorityId: 'rifle', quality: 70 },
+          { postureId: 'press', priorityId: 'utility', quality: 55 },
           { postureId: 'press', priorityId: 'rifle', quality: 45 },
         ],
       },

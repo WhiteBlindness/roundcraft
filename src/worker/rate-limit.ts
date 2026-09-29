@@ -1,4 +1,5 @@
 import { jsonError, sha256Base64Url } from './http'
+import { errorLogFields, logEvent, requestLogContext } from './log'
 
 export async function enforceRateLimit(
   request: Request,
@@ -16,15 +17,26 @@ export async function enforceRateLimit(
   try {
     const { success } = await limiter.limit({ key: actorKey })
 
-    return success
-      ? null
-      : jsonError(
-          429,
-          'RATE_LIMITED',
-          'Too many requests. Please try again later.',
-          requestId,
-        )
-  } catch {
+    if (success) return null
+
+    logEvent('warn', 'rate_limited', {
+      ...requestLogContext(request, requestId),
+      scope,
+    })
+
+    return jsonError(
+      429,
+      'RATE_LIMITED',
+      'Too many requests. Please try again later.',
+      requestId,
+    )
+  } catch (error) {
+    logEvent('error', 'rate_limiter_failed', {
+      ...requestLogContext(request, requestId),
+      scope,
+      ...errorLogFields(error),
+    })
+
     return jsonError(
       503,
       'SERVICE_UNAVAILABLE',

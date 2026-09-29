@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:test'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bindings } from './bindings'
 import worker from './index'
@@ -127,12 +127,23 @@ const serverRubric = {
       ratings: { timing: 4, trade: 3 },
       caps: [],
     },
+    {
+      actionId: 'pressure_mid',
+      qualifierId: 'paired',
+      ratings: { timing: 2, trade: 2 },
+      caps: [],
+    },
   ],
   evidence: [
     {
       actionId: 'regroup_a',
       evidenceIds: ['bomb_location', 'utility'],
       points: 16,
+    },
+    {
+      actionId: 'pressure_mid',
+      evidenceIds: ['bomb_location', 'utility'],
+      points: 10,
     },
   ],
   followup: {
@@ -824,5 +835,401 @@ describe('official attempts API', () => {
     expect(response.status).toBe(429)
     expect(limit).toHaveBeenCalledOnce()
     expect(count?.count).toBe(0)
+  })
+})
+
+function practiceRequest(identity: { cookie: string; csrf: string }): Request {
+  return new Request(`${apiOrigin}/api/v1/practice-attempts`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      cookie: identity.cookie,
+      origin: apiOrigin,
+      'sec-fetch-site': 'same-origin',
+      'x-csrf-token': identity.csrf,
+    },
+    body: JSON.stringify({ edition_id: editionId }),
+  })
+}
+
+async function resetAll(): Promise<void> {
+  await env.DB.exec(
+    `DELETE FROM participation_credits;
+     DELETE FROM result_versions;
+     DELETE FROM idempotency_receipts;
+     DELETE FROM attempt_commits;
+     DELETE FROM attempts;
+     DELETE FROM case_rubrics;
+     DELETE FROM case_reveals;
+     DELETE FROM case_followups;
+     DELETE FROM case_public_briefs;
+     DELETE FROM editions;
+     DELETE FROM case_revisions;
+     DELETE FROM cases;
+     DELETE FROM anonymous_identities;`,
+  )
+}
+
+async function setRevisionStatus(status: string): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE case_revisions SET status = ? WHERE case_revision = ?`,
+  )
+    .bind(status, 'case_revision_today_001')
+    .run()
+}
+
+describe('playable revision rule', () => {
+  beforeEach(async () => {
+    await resetAll()
+    await seedReleasedCase()
+  })
+
+  it.each(['draft', 'approved'])(
+    'does not advertise or start a %s revision on any route',
+    async (status) => {
+      await setRevisionStatus(status)
+      const identity = await createIdentity()
+
+      const today = await worker.fetch(
+        new Request(`${apiOrigin}/api/v1/today`),
+        env,
+        executionContext,
+      )
+      const cases = await worker.fetch(
+        new Request(`${apiOrigin}/api/v1/cases`),
+        env,
+        executionContext,
+      )
+      const official = await worker.fetch(
+        attemptRequest(identity),
+        env,
+        executionContext,
+      )
+      const practice = await worker.fetch(
+        practiceRequest(identity),
+        env,
+        executionContext,
+      )
+      const attemptCount = await env.DB.prepare(
+        `SELECT COUNT(*) AS count FROM attempts`,
+      ).first<{ count: number }>()
+
+      expect((await today.json<{ data: unknown }>()).data).toMatchObject({
+        availability: 'unavailable',
+        edition: null,
+      })
+      expect(
+        (await cases.json<{ data: { editions: unknown[] } }>()).data.editions,
+      ).toEqual([])
+      expect(official.status).toBe(404)
+      expect(await official.json()).toMatchObject({
+        error: { code: 'NO_CURRENT_EDITION' },
+      })
+      expect(practice.status).toBe(404)
+      expect(attemptCount?.count).toBe(0)
+    },
+  )
+
+  it('advertises and starts a locked, released revision', async () => {
+    const identity = await createIdentity()
+
+    const today = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/today`),
+      env,
+      executionContext,
+    )
+    const cases = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/cases`),
+      env,
+      executionContext,
+    )
+    const official = await worker.fetch(
+      attemptRequest(identity),
+      env,
+      executionContext,
+    )
+    const practice = await worker.fetch(
+      practiceRequest(identity),
+      env,
+      executionContext,
+    )
+
+    expect(
+      (await today.json<{ data: { edition: { edition_id: string } } }>()).data
+        .edition.edition_id,
+    ).toBe(editionId)
+    expect(
+      (
+        await cases.json<{
+          data: { editions: Array<{ edition_id: string }> }
+        }>()
+      ).data.editions.map(({ edition_id }) => edition_id),
+    ).toEqual([editionId])
+    expect(official.status).toBe(200)
+    expect(practice.status).toBe(200)
+  })
+
+  it('keeps an existing attempt resumable if its revision later leaves locked', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    await setRevisionStatus('approved')
+
+    const resumed = await worker.fetch(
+      attemptRequest(identity),
+      env,
+      executionContext,
+    )
+    const read = await worker.fetch(
+      new Request(`${apiOrigin}/api/v1/attempts/${attemptId}`, {
+        headers: { cookie: identity.cookie },
+      }),
+      env,
+      executionContext,
+    )
+    const commit = await worker.fetch(
+      mainCommitRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+
+    expect(resumed.status).toBe(200)
+    expect(read.status).toBe(200)
+    expect(commit.status).toBe(200)
+  })
+})
+
+describe('main commit rubric coverage', () => {
+  const uncoveredAnswer = {
+    ...validMainAnswer,
+    evidence_ids: ['clock', 'spacing'],
+  } as const
+  let errorSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(async () => {
+    await resetAll()
+    await seedReleasedCase()
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  async function attemptRow(attemptId: string) {
+    return env.DB.prepare(
+      `SELECT state, sequence, main_committed_at FROM attempts WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{
+        state: string
+        sequence: number
+        main_committed_at: string | null
+      }>()
+  }
+
+  async function commitAndReceiptCounts(attemptId: string) {
+    const commits = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM attempt_commits WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{ count: number }>()
+    const receipts = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM idempotency_receipts WHERE attempt_id = ?`,
+    )
+      .bind(attemptId)
+      .first<{ count: number }>()
+
+    return { commits: commits?.count, receipts: receipts?.count }
+  }
+
+  function loggedEvents(): Array<Record<string, unknown>> {
+    return errorSpy.mock.calls.map(
+      ([line]: unknown[]) => JSON.parse(String(line)) as Record<string, unknown>,
+    )
+  }
+
+  it('refuses to lock a published pair the rubric cannot score, then locks once fixed', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+
+    const response = await worker.fetch(
+      mainCommitRequest(identity, attemptId, uncoveredAnswer),
+      env,
+      executionContext,
+    )
+    const text = await response.text()
+    const payload = JSON.parse(text) as {
+      error: { code: string }
+      meta: { request_id: string }
+    }
+    const rejected = loggedEvents().find(
+      ({ event }) => event === 'main_commit_rubric_rejected',
+    )
+
+    expect(response.status).toBe(503)
+    expect(payload.error.code).toBe('SERVICE_UNAVAILABLE')
+    expect(text).not.toContain('rubric')
+    expect(text).not.toContain('timing')
+    expect(await attemptRow(attemptId)).toMatchObject({
+      state: 'issued',
+      sequence: 0,
+      main_committed_at: null,
+    })
+    expect(await commitAndReceiptCounts(attemptId)).toEqual({
+      commits: 0,
+      receipts: 0,
+    })
+    expect(rejected).toMatchObject({
+      level: 'error',
+      request_id: payload.meta.request_id,
+      route: 'POST /api/v1/attempts/:attemptId/main-commit',
+      edition_id: editionId,
+      reason: 'not_covered',
+    })
+    expect(JSON.stringify(loggedEvents())).not.toContain('clock')
+    expect(JSON.stringify(loggedEvents())).not.toContain(identity.cookie)
+
+    await env.DB.prepare(
+      `UPDATE case_rubrics SET payload_json = ? WHERE rubric_revision = ?`,
+    )
+      .bind(
+        JSON.stringify({
+          ...serverRubric,
+          evidence: [
+            ...serverRubric.evidence,
+            {
+              actionId: 'regroup_a',
+              evidenceIds: ['clock', 'spacing'],
+              points: 4,
+            },
+          ],
+        }),
+        'rubric_revision_today_001',
+      )
+      .run()
+
+    const retry = await worker.fetch(
+      mainCommitRequest(identity, attemptId, uncoveredAnswer),
+      env,
+      executionContext,
+    )
+
+    expect(retry.status).toBe(200)
+    expect(await attemptRow(attemptId)).toMatchObject({
+      state: 'main_locked',
+      sequence: 1,
+    })
+  })
+
+  it.each([
+    ['unparseable', 'invalid', '{"schemaVersion":1}'],
+    [
+      'for another revision',
+      'revision_mismatch',
+      JSON.stringify({ ...serverRubric, caseRevision: 'some_other_revision' }),
+    ],
+  ])(
+    'refuses to lock when the rubric is %s',
+    async (_label, reason, payloadJson) => {
+      await env.DB.prepare(
+        `UPDATE case_rubrics SET payload_json = ? WHERE rubric_revision = ?`,
+      )
+        .bind(payloadJson, 'rubric_revision_today_001')
+        .run()
+      const identity = await createIdentity()
+      const attemptId = await createOfficialAttempt(identity)
+
+      const response = await worker.fetch(
+        mainCommitRequest(identity, attemptId),
+        env,
+        executionContext,
+      )
+
+      expect(response.status).toBe(503)
+      expect(await attemptRow(attemptId)).toMatchObject({
+        state: 'issued',
+        sequence: 0,
+      })
+      expect(await commitAndReceiptCounts(attemptId)).toEqual({
+        commits: 0,
+        receipts: 0,
+      })
+      expect(loggedEvents()).toContainEqual(
+        expect.objectContaining({
+          event: 'main_commit_rubric_rejected',
+          reason,
+        }),
+      )
+    },
+  )
+
+  it('still replays a stored receipt without re-checking the rubric', async () => {
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    const first = await worker.fetch(
+      mainCommitRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+    await env.DB.prepare(
+      `UPDATE case_rubrics SET payload_json = '{}' WHERE rubric_revision = ?`,
+    )
+      .bind('rubric_revision_today_001')
+      .run()
+
+    const replay = await worker.fetch(
+      mainCommitRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+
+    expect(first.status).toBe(200)
+    expect(replay.status).toBe(200)
+    expect(await replay.text()).toBe(await first.text())
+    expect(
+      loggedEvents().some(({ event }) => event === 'main_commit_rubric_rejected'),
+    ).toBe(false)
+  })
+
+  it('logs idempotency key reuse and state conflicts without answers or identifiers', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const identity = await createIdentity()
+    const attemptId = await createOfficialAttempt(identity)
+    await worker.fetch(
+      mainCommitRequest(identity, attemptId),
+      env,
+      executionContext,
+    )
+
+    const reused = await worker.fetch(
+      mainCommitRequest(identity, attemptId, {
+        ...validMainAnswer,
+        confidence_id: 'guessing',
+      }),
+      env,
+      executionContext,
+    )
+    const conflict = await worker.fetch(
+      mainCommitRequest(
+        identity,
+        attemptId,
+        validMainAnswer,
+        '6f74ce40-4039-4f9e-aef9-f08aab27aef8',
+        '"1"',
+      ),
+      env,
+      executionContext,
+    )
+    const output = warnSpy.mock.calls.map(([line]) => String(line))
+
+    expect(reused.status).toBe(409)
+    expect(conflict.status).toBe(409)
+    expect(output.map((line) => JSON.parse(line).event)).toEqual([
+      'idempotency_key_reused',
+      'attempt_state_conflict',
+    ])
+    expect(output.join('\n')).not.toContain(attemptId)
+    expect(output.join('\n')).not.toContain(identity.cookie)
+    expect(output.join('\n')).not.toContain('fairly_sure')
   })
 })

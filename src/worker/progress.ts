@@ -1,6 +1,8 @@
 import type { Bindings } from './bindings'
 import { authenticateIdentity } from './identity'
+import { parsePublicMetadata } from './edition-metadata'
 import { jsonError, jsonSuccess } from './http'
+import { logEvent, requestLogContext } from './log'
 
 interface ProgressRow {
   readonly edition_id: string
@@ -66,9 +68,21 @@ export async function getProgress(
   return jsonSuccess(
     {
       entries: rows.results.map((row) => {
-        const metadata: Record<string, unknown> = row.public_metadata_json
-          ? (JSON.parse(row.public_metadata_json) as Record<string, unknown>)
-          : {}
+        // Only the approved public fields may leave D1. A malformed row must
+        // not fail the whole progress list, so it degrades to empty metadata.
+        const parsedMetadata = row.public_metadata_json
+          ? parsePublicMetadata(row.public_metadata_json)
+          : null
+        const metadata: Record<string, unknown> = parsedMetadata ?? {}
+
+        if (!parsedMetadata) {
+          logEvent('error', 'content_unavailable', {
+            ...requestLogContext(request, requestId),
+            edition_id: row.edition_id,
+            payload: 'public_metadata',
+            reason: row.public_metadata_json ? 'invalid' : 'missing',
+          })
+        }
 
         return {
           edition_id: row.edition_id,

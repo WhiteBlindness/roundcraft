@@ -5,6 +5,8 @@ import {
   verifyCsrfToken,
 } from './identity'
 import { encodeBase64Url, jsonError, jsonSuccess } from './http'
+import { logEvent, requestLogContext } from './log'
+import { playableRevisionSql } from './playable'
 import {
   acceptsStateChangingHeaders,
   maximumStateChangingBodyBytes,
@@ -119,8 +121,7 @@ export async function createPracticeAttempt(
      INNER JOIN case_public_briefs b ON b.case_revision = e.case_revision
      INNER JOIN case_rubrics r ON r.case_revision = e.case_revision
      WHERE e.edition_id = ?
-       AND e.publication_status = 'released'
-       AND cr.status = 'locked'
+       AND ${playableRevisionSql}
        AND e.release_at <= ?
      LIMIT 1`,
   )
@@ -138,6 +139,12 @@ export async function createPracticeAttempt(
 
   const brief = parseBrief(edition.payload_json)
   if (!brief) {
+    logEvent('error', 'content_unavailable', {
+      ...requestLogContext(request, requestId),
+      edition_id: edition.edition_id,
+      payload: 'public_brief',
+    })
+
     return jsonError(
       503,
       'SERVICE_UNAVAILABLE',

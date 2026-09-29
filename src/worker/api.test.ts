@@ -239,9 +239,7 @@ describe('session and Today API', () => {
       },
     })
     expect(text).not.toContain('hidden_answer')
-    expect(response.headers.get('cache-control')).toBe(
-      'public, max-age=0, must-revalidate',
-    )
+    expect(response.headers.get('cache-control')).toBe('private, no-cache')
     expect(response.headers.get('etag')).toMatch(/^"[A-Za-z0-9_-]{43}"$/)
   })
 })

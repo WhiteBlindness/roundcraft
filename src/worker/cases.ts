@@ -1,15 +1,8 @@
-import { z } from 'zod'
-
 import type { Bindings } from './bindings'
+import { parsePublicMetadata } from './edition-metadata'
 import { jsonError, jsonSuccess } from './http'
-
-const publicMetadataSchema = z.object({
-  case_number: z.number().int().positive(),
-  edition_date_utc: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  estimated_minutes: z.number().int().min(5).max(8),
-  focus: z.string().min(1).max(80),
-  origin_label: z.string().min(1).max(160),
-})
+import { logEvent, requestLogContext } from './log'
+import { playableRevisionSql } from './playable'
 
 const defaultLimit = 20
 const maxLimit = 50
@@ -46,23 +39,25 @@ export async function listCases(
   let rows: D1Result<EditionRow>
   if (cursor) {
     rows = await env.DB.prepare(
-      `SELECT edition_id, release_at, public_metadata_json
-       FROM editions
-       WHERE publication_status = 'released'
-         AND release_at <= ?
-         AND edition_id < ?
-       ORDER BY release_at DESC, edition_id DESC
+      `SELECT e.edition_id, e.release_at, e.public_metadata_json
+       FROM editions AS e
+       INNER JOIN case_revisions AS cr ON cr.case_revision = e.case_revision
+       WHERE ${playableRevisionSql}
+         AND e.release_at <= ?
+         AND e.edition_id < ?
+       ORDER BY e.release_at DESC, e.edition_id DESC
        LIMIT ?`,
     )
       .bind(new Date().toISOString(), cursor, queryLimit)
       .all<EditionRow>()
   } else {
     rows = await env.DB.prepare(
-      `SELECT edition_id, release_at, public_metadata_json
-       FROM editions
-       WHERE publication_status = 'released'
-         AND release_at <= ?
-       ORDER BY release_at DESC, edition_id DESC
+      `SELECT e.edition_id, e.release_at, e.public_metadata_json
+       FROM editions AS e
+       INNER JOIN case_revisions AS cr ON cr.case_revision = e.case_revision
+       WHERE ${playableRevisionSql}
+         AND e.release_at <= ?
+       ORDER BY e.release_at DESC, e.edition_id DESC
        LIMIT ?`,
     )
       .bind(new Date().toISOString(), queryLimit)
@@ -79,13 +74,21 @@ export async function listCases(
   return jsonSuccess(
     {
       editions: editions.map((row) => {
-        const parsed = publicMetadataSchema.safeParse(
-          JSON.parse(row.public_metadata_json),
-        )
+        const metadata = parsePublicMetadata(row.public_metadata_json)
+
+        if (!metadata) {
+          logEvent('error', 'content_unavailable', {
+            ...requestLogContext(request, requestId),
+            edition_id: row.edition_id,
+            payload: 'public_metadata',
+            reason: 'invalid',
+          })
+        }
+
         return {
           edition_id: row.edition_id,
           release_at: row.release_at,
-          metadata: parsed.success ? parsed.data : null,
+          metadata,
         }
       }),
       next_cursor: nextCursor,

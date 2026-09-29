@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { FollowupAnswer } from './followup-answer'
 import type { MainAnswer } from './main-answer'
+import type { PublicFollowup } from './public-followup'
 
 const identifierSchema = z
   .string()
@@ -198,4 +199,43 @@ export function scoringInputFor(
     mainSharedConsensus: mainCell.sharedConsensus,
     followupSharedConsensus: followupCell.sharedConsensus,
   } as const
+}
+
+export function publishedFollowupAnswers(
+  followup: PublicFollowup,
+): readonly FollowupAnswer[] {
+  if (followup.type === 'new_information') {
+    return followup.responses.map(({ id }) => ({
+      case_revision: followup.caseRevision,
+      type: 'new_information',
+      response_id: id,
+    }))
+  }
+
+  return followup.postures.flatMap(({ id: postureId }) =>
+    followup.priorities.map(({ id: priorityId }) => ({
+      case_revision: followup.caseRevision,
+      type: 'economy_risk' as const,
+      posture_id: postureId,
+      priority_id: priorityId,
+    })),
+  )
+}
+
+/**
+ * True when every published follow-up answer can be scored after this main
+ * answer. Checked before the irreversible main lock, so a player can never be
+ * stranded at the follow-up by a content gap.
+ */
+export function rubricCoversMainAnswer(
+  rubric: ServerRubric,
+  mainAnswer: MainAnswer,
+  followup: PublicFollowup,
+): boolean {
+  const answers = publishedFollowupAnswers(followup)
+
+  return (
+    answers.length > 0 &&
+    answers.every((answer) => scoringInputFor(rubric, mainAnswer, answer) !== null)
+  )
 }

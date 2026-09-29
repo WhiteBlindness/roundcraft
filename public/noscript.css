@@ -1,0 +1,19 @@
+.noscript-message {
+  max-width: 480px;
+  margin: 120px auto;
+  padding: 0 20px;
+  font-family: Georgia, serif;
+  color: #113d38;
+}
+
+.noscript-message h1 {
+  font-size: 2.4rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.noscript-message p {
+  margin-top: 16px;
+  color: #40504d;
+  line-height: 1.55;
+}
