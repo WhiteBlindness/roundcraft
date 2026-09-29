@@ -37,6 +37,9 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
+      # The local Worker needs a pepper; generate a throwaway one per run.
+      - run: echo "IDENTITY_PEPPER=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
       - run: npm run test:e2e
         env:
           CI: 'true'
