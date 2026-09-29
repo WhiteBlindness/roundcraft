@@ -23,6 +23,7 @@
     "src",
     "test",
     "e2e",
+    "scripts",
     "eslint.config.js",
     "vite.config.ts",
     "vitest.*.config.ts",

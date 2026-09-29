@@ -1,0 +1,251 @@
+{
+  "caseId": "case_economy_postpistol_001",
+  "origin": "synthetic",
+  "editorial": {
+    "status": "draft",
+    "revision": "cr_economy_postpistol_001",
+    "rubricRevision": "rr_economy_postpistol_001",
+    "author": "unattributed",
+    "reviewers": [],
+    "references": [
+      {
+        "label": "scope.gg",
+        "detail": "How does the economy work in CS:GO? Guide by SCOPE.GG (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      },
+      {
+        "label": "csmarketcap.com",
+        "detail": "CS Economy Guide: Master CS In-Game Money Management for Victory (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      },
+      {
+        "label": "matchupworld.com",
+        "detail": "CS2 Economy, Loss Bonus and Force Buys Explained (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      }
+    ],
+    "knownIssues": [
+      "Side contradiction: the opponents planted and won the pistol round, yet the player is on T.",
+      "\"All five died\" contradicts the \"hunt exit kills\" qualifier.",
+      "\"Stack a site\" is a CT play but is offered to a T-side player.",
+      "\"$1,900 is not enough for a rifle\" is wrong (a Galil AR costs $1,800).",
+      "The reveal says the force buy \"broke the opponent loss bonus\", but round winners do not have a loss bonus.",
+      "A teammate \"reporting opponents' buys\" is implausible.",
+      "The main rubric ranks full_eco highest while the reveal calls the force buy strongest.",
+      "Uses a new_information follow-up instead of economy_risk.",
+      "Evidence matrix is incomplete (does not cover all action x evidence-pair cells).",
+      "Previously labelled \"professional\" without any provenance; relabelled synthetic.",
+      "Economy references are CS:GO-era and need re-checking against current CS2 rules."
+    ],
+    "notes": "Legacy seed content converted from migrations/0002_seed_cases.sql without tactical changes. Honesty fixes only: origin set to synthetic (it was \"professional\" with no provenance), origin_label set to the synthetic label (was \"Based on professional CS2 economy decision patterns\"), reveal.debrief.method and reveal.debrief.sources replaced (they claimed derivation from professional play; the previous web-guide citations moved to editorial.references as background reading). The original method text was: \"Scenario constructed from documented CS2 professional economy management patterns and post-pistol decision frameworks.\" The original author was not recorded. No tactical review has taken place."
+  },
+  "edition": {
+    "editionId": "ed_economy_postpistol_001",
+    "releaseAt": null,
+    "officialEndAt": null,
+    "graceEndAt": null,
+    "publicMetadata": {
+      "case_number": 3,
+      "edition_date_utc": "2024-06-03",
+      "estimated_minutes": 5,
+      "focus": "Economy management after pistol loss",
+      "origin_label": "Synthetic scenario — editorial tactical analysis."
+    }
+  },
+  "brief": {
+    "schemaVersion": 1,
+    "editionId": "ed_economy_postpistol_001",
+    "caseRevision": "cr_economy_postpistol_001",
+    "title": "The second-round gamble",
+    "focus": "Economy management after losing the pistol round",
+    "origin": "synthetic",
+    "facts": [
+      {
+        "id": "pistol_loss",
+        "status": "confirmed",
+        "text": "Your team lost the pistol round. The opponents planted and won."
+      },
+      { "id": "team_money", "status": "confirmed", "text": "Each player has $1 900 after the loss bonus." },
+      {
+        "id": "opponent_economy",
+        "status": "inferred",
+        "text": "The opponent team has a full buy with SMGs and head armour after winning the pistol."
+      },
+      {
+        "id": "player_survival",
+        "status": "confirmed",
+        "text": "No one on your team survived — all five died, so no saved weapons."
+      },
+      { "id": "map_side", "status": "confirmed", "text": "You are on the T side, round 2." }
+    ],
+    "actions": [
+      {
+        "id": "force_buy",
+        "label": "Force buy — everyone buys armour and a Tec-9",
+        "qualifierIds": ["rush_b", "spread_default"]
+      },
+      {
+        "id": "full_eco",
+        "label": "Full eco — save everything for round 3",
+        "qualifierIds": ["hunt_exit", "stack_site"]
+      },
+      {
+        "id": "half_buy",
+        "label": "Half buy — armour only, play for picks",
+        "qualifierIds": ["pistol_aim", "utility_focus"]
+      }
+    ],
+    "qualifiers": [
+      { "id": "rush_b", "label": "Rushing a single site together" },
+      { "id": "spread_default", "label": "Playing a default spread and looking for picks" },
+      { "id": "hunt_exit", "label": "Hunting for exit kills to damage their economy" },
+      { "id": "stack_site", "label": "Stacking a site for a surprise hold" },
+      { "id": "pistol_aim", "label": "Relying on pistol aim duels" },
+      { "id": "utility_focus", "label": "Buying a smoke and flash instead of armour" }
+    ],
+    "evidence": [
+      { "id": "loss_bonus", "label": "Current loss bonus stage" },
+      { "id": "opponent_buy", "label": "Expected opponent equipment" },
+      { "id": "team_economy", "label": "Team money after the loss" },
+      { "id": "round_importance", "label": "Strategic importance of round 2" },
+      { "id": "map_side_ev", "label": "T-side tactical options" }
+    ],
+    "confidence": [
+      { "id": "guessing", "label": "Guessing" },
+      { "id": "leaning", "label": "Leaning" },
+      { "id": "fairly_sure", "label": "Fairly sure" },
+      { "id": "strong_read", "label": "Strong read" }
+    ]
+  },
+  "followup": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_economy_postpistol_001",
+    "type": "new_information",
+    "heading": "Teammate intel",
+    "stimulus": "Your teammate reports that two opponents bought SMGs instead of rifles — likely expecting an eco round from your team.",
+    "updates": [
+      {
+        "id": "smg_buy",
+        "status": "new",
+        "text": "At least two opponents are confirmed to carry SMGs, not rifles."
+      }
+    ],
+    "responses": [
+      { "id": "keep_plan", "label": "Stick with the original economic plan" },
+      { "id": "upgrade_force", "label": "Upgrade to a force buy — SMGs are weaker at range" },
+      {
+        "id": "bait_aggression",
+        "label": "Play passively to punish their expected aggression against an eco"
+      }
+    ]
+  },
+  "reveal": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_economy_postpistol_001",
+    "continuation": {
+      "kind": "authored",
+      "events": [
+        {
+          "timestamp": "01:30",
+          "action": "The team force-bought Tec-9s and armour, then stacked B site.",
+          "consequence": "Two SMG-wielding opponents pushed aggressively into the stacked site and were traded out. The remaining CTs could not retake against the stolen weapons.",
+          "state": "The force buy succeeded, evening the economy and breaking the opponent loss bonus."
+        }
+      ]
+    },
+    "comparison": {
+      "roundAction": "Force buy with a site stack to exploit predicted SMG aggression.",
+      "materialInformation": "The confirmation that opponents carried SMGs, indicating they expected an eco and planned to push aggressively.",
+      "roundFollowup": "Upgrading to a force buy was the strongest response to the SMG intelligence — SMGs lose at range and their carriers push close."
+    },
+    "debrief": {
+      "whyItWorks": "SMG carriers play close range and push aggressively because they expect defenceless eco opponents. Armour and Tec-9s at close range rival SMGs, and a stacked site gives the numerical advantage in the engagement.",
+      "cost": "If the force buy fails, the team is on a deeper economic deficit — round 3 becomes a second eco, delaying the first full buy to round 4.",
+      "assumption": "The opponents will push aggressively rather than hold defensive positions with their SMGs.",
+      "breaksWhen": "If the opponents play passively with their SMGs and hold angles, the Tec-9 force buy loses its close-range advantage.",
+      "evidenceReview": [
+        {
+          "evidenceId": "opponent_buy",
+          "explanation": "SMG buys confirmed the opponents expected an eco — their play style becomes predictable: aggressive pushes for kill reward money."
+        },
+        {
+          "evidenceId": "loss_bonus",
+          "explanation": "At the first loss bonus stage, $1 900 is enough for armour and a Tec-9 but not a rifle — the force buy is the maximum available investment."
+        }
+      ],
+      "followupReview": "Upgrading to a force buy after confirming SMGs is the highest-value response. SMG carriers expect unarmoured opponents — armour invalidates their damage model. Saving is safe but wastes the intelligence advantage.",
+      "strongestAlternative": "Full eco and save for round 3. Guarantees a full buy next round but sacrifices the opportunity created by the SMG intelligence.",
+      "counterfactual": {
+        "changedFact": "If the opponents had bought rifles instead of SMGs.",
+        "effect": "A force buy becomes much riskier — rifles kill armoured opponents efficiently at all ranges. The full eco into round 3 becomes the clearly safer choice."
+      },
+      "method": "Synthetic scenario written for Roundcraft as editorial tactical analysis. It is not a recording or reconstruction of a professional match.",
+      "sources": [
+        {
+          "label": "Roundcraft editorial analysis",
+          "detail": "Synthetic scenario; no professional match, team or player is depicted."
+        }
+      ]
+    },
+    "principle": "When you have intelligence about the opponent equipment, use it. A force buy that exploits a known vulnerability is stronger than a safe eco that ignores the information."
+  },
+  "rubric": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_economy_postpistol_001",
+    "rubricRevision": "rr_economy_postpistol_001",
+    "dimensions": [{ "id": "economy_management", "weight": 60 }, { "id": "information_use", "weight": 40 }],
+    "main": [
+      {
+        "actionId": "force_buy",
+        "qualifierId": "rush_b",
+        "ratings": { "economy_management": 3, "information_use": 3 },
+        "caps": []
+      },
+      {
+        "actionId": "force_buy",
+        "qualifierId": "spread_default",
+        "ratings": { "economy_management": 3, "information_use": 2 },
+        "caps": []
+      },
+      {
+        "actionId": "full_eco",
+        "qualifierId": "hunt_exit",
+        "ratings": { "economy_management": 4, "information_use": 2 },
+        "caps": []
+      },
+      {
+        "actionId": "full_eco",
+        "qualifierId": "stack_site",
+        "ratings": { "economy_management": 4, "information_use": 1 },
+        "caps": []
+      },
+      {
+        "actionId": "half_buy",
+        "qualifierId": "pistol_aim",
+        "ratings": { "economy_management": 2, "information_use": 2 },
+        "caps": []
+      },
+      {
+        "actionId": "half_buy",
+        "qualifierId": "utility_focus",
+        "ratings": { "economy_management": 2, "information_use": 3 },
+        "caps": []
+      }
+    ],
+    "evidence": [
+      { "actionId": "force_buy", "evidenceIds": ["opponent_buy", "loss_bonus"], "points": 16 },
+      { "actionId": "force_buy", "evidenceIds": ["team_economy", "opponent_buy"], "points": 14 },
+      { "actionId": "full_eco", "evidenceIds": ["team_economy", "round_importance"], "points": 16 },
+      { "actionId": "full_eco", "evidenceIds": ["loss_bonus", "round_importance"], "points": 14 },
+      { "actionId": "half_buy", "evidenceIds": ["team_economy", "map_side_ev"], "points": 10 }
+    ],
+    "followup": {
+      "type": "new_information",
+      "responses": [
+        { "responseId": "keep_plan", "quality": 50 },
+        { "responseId": "upgrade_force", "quality": 88 },
+        { "responseId": "bait_aggression", "quality": 70 }
+      ]
+    }
+  }
+}

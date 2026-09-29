@@ -1,0 +1,271 @@
+{
+  "caseId": "case_mirage_a_split_001",
+  "origin": "synthetic",
+  "editorial": {
+    "status": "draft",
+    "revision": "cr_mirage_a_split_001",
+    "rubricRevision": "rr_mirage_a_split_001",
+    "author": "unattributed",
+    "reviewers": [],
+    "references": [
+      {
+        "label": "blast.tv",
+        "detail": "CS2 mirage smokes — Learn the best smoke lineups (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      },
+      {
+        "label": "cs2pulse.com",
+        "detail": "CS2 Mirage Smokes Guide — Learn the Best Mirage Smoke Spots (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      },
+      {
+        "label": "dignitas.gg",
+        "detail": "Default Strategies on T-side: Virtus.Pro on de_mirage (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      }
+    ],
+    "knownIssues": [
+      "The brief has 6 evidence items; the schema requires exactly 5, so the case cannot be published.",
+      "Only 3 smokes remain, but the reveal uses 4.",
+      "The reveal claims the window smoke blocks the ticket-booth AWPer; it does not.",
+      "The underpass and rotate-via-mid claims need review by someone who knows the map.",
+      "An inferred fact (CT positions) states no basis for the inference.",
+      "Evidence matrix is incomplete (does not cover all action x evidence-pair cells).",
+      "Previously labelled \"professional\" without any provenance; relabelled synthetic."
+    ],
+    "notes": "Legacy seed content converted from migrations/0002_seed_cases.sql without tactical changes. Honesty fixes only: origin set to synthetic (it was \"professional\" with no provenance), origin_label set to the synthetic label (was \"Based on professional Mirage A-site split tactics\"), reveal.debrief.method and reveal.debrief.sources replaced (they claimed derivation from professional play; the previous web-guide citations moved to editorial.references as background reading). The original method text was: \"Scenario constructed from documented professional Mirage A-site execute tactics and smoke lineups.\" The original author was not recorded. No tactical review has taken place."
+  },
+  "edition": {
+    "editionId": "ed_mirage_a_split_001",
+    "releaseAt": null,
+    "officialEndAt": null,
+    "graceEndAt": null,
+    "publicMetadata": {
+      "case_number": 2,
+      "edition_date_utc": "2024-06-02",
+      "estimated_minutes": 7,
+      "focus": "Coordinated site execution with smokes",
+      "origin_label": "Synthetic scenario — editorial tactical analysis."
+    }
+  },
+  "brief": {
+    "schemaVersion": 1,
+    "editionId": "ed_mirage_a_split_001",
+    "caseRevision": "cr_mirage_a_split_001",
+    "title": "The A split",
+    "focus": "Coordinated site execution on Mirage",
+    "origin": "synthetic",
+    "facts": [
+      {
+        "id": "mid_control",
+        "status": "confirmed",
+        "text": "Your team controls top mid after smoking window from T spawn."
+      },
+      {
+        "id": "connector_clear",
+        "status": "confirmed",
+        "text": "A teammate cleared connector with a flash and holds it."
+      },
+      {
+        "id": "awp_spotted",
+        "status": "last_seen",
+        "text": "An AWP was spotted at ticket booth ten seconds ago."
+      },
+      {
+        "id": "utility_available",
+        "status": "confirmed",
+        "text": "Three smokes and four flashes remain across the team."
+      },
+      {
+        "id": "ct_count",
+        "status": "inferred",
+        "text": "At least two CTs are on the A side — one stairs, one site."
+      },
+      {
+        "id": "round_time",
+        "status": "confirmed",
+        "text": "One minute and five seconds remain in the round."
+      }
+    ],
+    "actions": [
+      {
+        "id": "full_a_execute",
+        "label": "Full A execute with three smokes",
+        "qualifierIds": ["smoke_stairs_jungle_ct", "smoke_stairs_jungle_only"]
+      },
+      {
+        "id": "split_a_through_connector",
+        "label": "Split A through connector and ramp",
+        "qualifierIds": ["connector_first", "ramp_first"]
+      },
+      {
+        "id": "default_mid",
+        "label": "Continue the default from mid control",
+        "qualifierIds": ["slow_info", "fast_underpass"]
+      }
+    ],
+    "qualifiers": [
+      { "id": "smoke_stairs_jungle_ct", "label": "Smoking stairs, jungle, and CT to isolate the site" },
+      { "id": "smoke_stairs_jungle_only", "label": "Smoking stairs and jungle only, saving one smoke" },
+      { "id": "connector_first", "label": "Leading the entry from connector" },
+      { "id": "ramp_first", "label": "Leading the entry from ramp with a flash" },
+      { "id": "slow_info", "label": "Playing slowly for more information" },
+      { "id": "fast_underpass", "label": "Sending a player through underpass for a flank" }
+    ],
+    "evidence": [
+      { "id": "mid_control_ev", "label": "Top mid control" },
+      { "id": "awp_position", "label": "AWP last known position" },
+      { "id": "connector_hold", "label": "Connector presence" },
+      { "id": "utility_count", "label": "Remaining team utility" },
+      { "id": "ct_positions", "label": "Inferred CT positions" },
+      { "id": "time_remaining", "label": "Round clock" }
+    ],
+    "confidence": [
+      { "id": "guessing", "label": "Guessing" },
+      { "id": "leaning", "label": "Leaning" },
+      { "id": "fairly_sure", "label": "Fairly sure" },
+      { "id": "strong_read", "label": "Strong read" }
+    ]
+  },
+  "followup": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_mirage_a_split_001",
+    "type": "new_information",
+    "heading": "Window smoke fading",
+    "stimulus": "The window smoke has faded. The AWPer is now visible holding from ticket booth, watching top mid.",
+    "updates": [
+      {
+        "id": "awp_confirmed",
+        "status": "new",
+        "text": "The AWPer is confirmed at ticket booth, scoped toward top mid."
+      },
+      {
+        "id": "window_open",
+        "status": "new",
+        "text": "Window is now open — no smoke cover for mid crossing."
+      }
+    ],
+    "responses": [
+      { "id": "resmoke_window", "label": "Re-smoke window and proceed with the original plan" },
+      { "id": "rush_now", "label": "Execute immediately before the AWP repositions" },
+      { "id": "abandon_mid", "label": "Abandon mid control and rotate toward B" }
+    ]
+  },
+  "reveal": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_mirage_a_split_001",
+    "continuation": {
+      "kind": "authored",
+      "events": [
+        {
+          "timestamp": "00:55",
+          "action": "The team re-smoked window and executed onto A with three smokes covering stairs, jungle, and CT.",
+          "consequence": "The AWPer was locked behind the window smoke, unable to contribute. The split from connector and ramp overwhelmed the two defenders.",
+          "state": "The bomb was planted on default with forty seconds remaining."
+        }
+      ]
+    },
+    "comparison": {
+      "roundAction": "Full A execute with coordinated smokes after re-smoking window.",
+      "materialInformation": "The confirmed AWP position at ticket booth and the faded window smoke.",
+      "roundFollowup": "Re-smoking window was essential — it neutralised the AWP threat and restored the mid crossing."
+    },
+    "debrief": {
+      "whyItWorks": "Three smokes isolate each defensive position on A site. The AWPer behind ticket booth cannot reposition through a window smoke. The split from connector and ramp creates two angles that a two-player defence cannot hold simultaneously.",
+      "cost": "All three smokes are spent, leaving no utility for a post-plant retake defence.",
+      "assumption": "The A site has exactly two defenders, and the AWPer is locked behind window.",
+      "breaksWhen": "If a third CT rotated from B through connector undetected, the flank during the execute would catch the team off guard.",
+      "evidenceReview": [
+        {
+          "evidenceId": "awp_position",
+          "explanation": "The confirmed AWP at ticket booth made re-smoking window decisive — without it, crossing mid was suicide."
+        },
+        {
+          "evidenceId": "utility_count",
+          "explanation": "Three smokes allowed the full isolation execute. Fewer smokes would have forced a partial smoke that leaves a gap."
+        }
+      ],
+      "followupReview": "Re-smoking window was the strongest response. Rushing without it exposes the mid crossing to the AWP. Rotating to B wastes the mid control advantage.",
+      "strongestAlternative": "Executing immediately without re-smoking window. Faster, avoids utility cost, but the AWPer gets a free angle on the mid crossing.",
+      "counterfactual": {
+        "changedFact": "If the team had only two smokes remaining instead of three.",
+        "effect": "The full isolation execute is impossible. A split through connector with only stairs and jungle smoked becomes the best option, accepting the risk from CT spawn."
+      },
+      "method": "Synthetic scenario written for Roundcraft as editorial tactical analysis. It is not a recording or reconstruction of a professional match.",
+      "sources": [
+        {
+          "label": "Roundcraft editorial analysis",
+          "detail": "Synthetic scenario; no professional match, team or player is depicted."
+        }
+      ]
+    },
+    "principle": "When an AWP position is confirmed and your smoke cover expires, re-smoking is not optional — it is the prerequisite for every other decision."
+  },
+  "rubric": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_mirage_a_split_001",
+    "rubricRevision": "rr_mirage_a_split_001",
+    "dimensions": [{ "id": "positioning", "weight": 50 }, { "id": "utility_efficiency", "weight": 50 }],
+    "main": [
+      {
+        "actionId": "full_a_execute",
+        "qualifierId": "smoke_stairs_jungle_ct",
+        "ratings": { "positioning": 4, "utility_efficiency": 4 },
+        "caps": []
+      },
+      {
+        "actionId": "full_a_execute",
+        "qualifierId": "smoke_stairs_jungle_only",
+        "ratings": { "positioning": 4, "utility_efficiency": 3 },
+        "caps": []
+      },
+      {
+        "actionId": "split_a_through_connector",
+        "qualifierId": "connector_first",
+        "ratings": { "positioning": 3, "utility_efficiency": 3 },
+        "caps": []
+      },
+      {
+        "actionId": "split_a_through_connector",
+        "qualifierId": "ramp_first",
+        "ratings": { "positioning": 3, "utility_efficiency": 2 },
+        "caps": []
+      },
+      {
+        "actionId": "default_mid",
+        "qualifierId": "slow_info",
+        "ratings": { "positioning": 2, "utility_efficiency": 2 },
+        "caps": []
+      },
+      {
+        "actionId": "default_mid",
+        "qualifierId": "fast_underpass",
+        "ratings": { "positioning": 2, "utility_efficiency": 1 },
+        "caps": []
+      }
+    ],
+    "evidence": [
+      { "actionId": "full_a_execute", "evidenceIds": ["awp_position", "utility_count"], "points": 18 },
+      { "actionId": "full_a_execute", "evidenceIds": ["mid_control_ev", "ct_positions"], "points": 16 },
+      {
+        "actionId": "split_a_through_connector",
+        "evidenceIds": ["connector_hold", "ct_positions"],
+        "points": 14
+      },
+      {
+        "actionId": "split_a_through_connector",
+        "evidenceIds": ["awp_position", "connector_hold"],
+        "points": 12
+      },
+      { "actionId": "default_mid", "evidenceIds": ["time_remaining", "mid_control_ev"], "points": 8 }
+    ],
+    "followup": {
+      "type": "new_information",
+      "responses": [
+        { "responseId": "resmoke_window", "quality": 90 },
+        { "responseId": "rush_now", "quality": 45 },
+        { "responseId": "abandon_mid", "quality": 20 }
+      ]
+    }
+  }
+}

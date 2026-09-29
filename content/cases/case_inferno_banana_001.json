@@ -1,0 +1,248 @@
+{
+  "caseId": "case_inferno_banana_001",
+  "origin": "synthetic",
+  "editorial": {
+    "status": "draft",
+    "revision": "cr_inferno_banana_001",
+    "rubricRevision": "rr_inferno_banana_001",
+    "author": "unattributed",
+    "reviewers": [],
+    "references": [
+      {
+        "label": "bo3.gg",
+        "detail": "CS2 Inferno Banana Guide: Control & Execute Tips (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      },
+      {
+        "label": "cs2pulse.com",
+        "detail": "Banana Control on Inferno after Update and Changes as CT (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      },
+      {
+        "label": "esportsrambles.com",
+        "detail": "CS2: Smokes Guide - Basic smokes to know on Inferno (background reading; not the provenance of this scenario)",
+        "kind": "background_reading"
+      }
+    ],
+    "knownIssues": [
+      "Evidence matrix covers only 5 of 30 action x evidence-pair cells (30 = 3 actions x 10 pairs), so most main answers cannot be scored (422 after locking the main call).",
+      "Alive counts and the bomb carrier are not stated in the brief.",
+      "The brief says the second CT was last seen rotating 30 s ago, which contradicts the follow-up and reveal (\"just arrived\", \"still repositioning\").",
+      "Only one smoke remains for the entry pair, but the intended best line assumes a smoke on CT and the follow-up assumes it continues.",
+      "Distractors are weak: only one line scores 90 or above, so the decision is not a real dilemma.",
+      "The best follow-up answer (split_entry) is contestable tactically.",
+      "No fact is marked inferred or unknown, so the brief presents nothing as uncertain.",
+      "Previously labelled \"professional\" without any provenance; relabelled synthetic."
+    ],
+    "notes": "Legacy seed content converted from migrations/0002_seed_cases.sql without tactical changes. Honesty fixes only: origin set to synthetic (it was \"professional\" with no provenance), origin_label set to the synthetic label (was \"Based on professional Inferno banana control tactics\"), reveal.debrief.method and reveal.debrief.sources replaced (they claimed derivation from professional play; the previous web-guide citations moved to editorial.references as background reading). The original method text was: \"Scenario constructed from documented professional Inferno banana control tactics and CT rotation patterns.\" The original author was not recorded. No tactical review has taken place."
+  },
+  "edition": {
+    "editionId": "ed_inferno_banana_001",
+    "releaseAt": null,
+    "officialEndAt": null,
+    "graceEndAt": null,
+    "publicMetadata": {
+      "case_number": 1,
+      "edition_date_utc": "2024-06-01",
+      "estimated_minutes": 6,
+      "focus": "Map control and utility management",
+      "origin_label": "Synthetic scenario — editorial tactical analysis."
+    }
+  },
+  "brief": {
+    "schemaVersion": 1,
+    "editionId": "ed_inferno_banana_001",
+    "caseRevision": "cr_inferno_banana_001",
+    "title": "Banana pressure",
+    "focus": "Map control and utility management on Inferno",
+    "origin": "synthetic",
+    "facts": [
+      {
+        "id": "banana_control",
+        "status": "confirmed",
+        "text": "Your team holds banana after an early molotov and HE grenade forced the CTs back to site."
+      },
+      {
+        "id": "ct_smoke_used",
+        "status": "confirmed",
+        "text": "The CT anchor used one smoke to delay the push — it has now faded."
+      },
+      {
+        "id": "second_player",
+        "status": "last_seen",
+        "text": "A second CT was last seen rotating from A through CT spawn thirty seconds ago."
+      },
+      {
+        "id": "utility_count",
+        "status": "confirmed",
+        "text": "Your entry pair has one smoke and two flashes remaining."
+      },
+      { "id": "clock", "status": "confirmed", "text": "Forty-five seconds remain in the round." }
+    ],
+    "actions": [
+      { "id": "execute_b", "label": "Execute onto B site", "qualifierIds": ["smoke_ct", "fast_no_smoke"] },
+      {
+        "id": "fake_b_rotate_a",
+        "label": "Fake B and rotate to A",
+        "qualifierIds": ["full_utility_fake", "quiet_rotate"]
+      },
+      {
+        "id": "hold_banana",
+        "label": "Hold banana and wait for information",
+        "qualifierIds": ["passive_hold", "aggressive_peek"]
+      }
+    ],
+    "qualifiers": [
+      { "id": "smoke_ct", "label": "Smoking CT spawn to cut the rotation" },
+      { "id": "fast_no_smoke", "label": "Rushing without smoking CT" },
+      { "id": "full_utility_fake", "label": "Burning all remaining utility on the fake" },
+      { "id": "quiet_rotate", "label": "Rotating silently through mid" },
+      { "id": "passive_hold", "label": "Holding the angle without peeking" },
+      { "id": "aggressive_peek", "label": "Peeking for an early pick" }
+    ],
+    "evidence": [
+      { "id": "banana_control_ev", "label": "Banana control status" },
+      { "id": "ct_utility_spent", "label": "CT utility already spent" },
+      { "id": "rotation_timing", "label": "Time since last rotation sound" },
+      { "id": "remaining_clock", "label": "Round clock" },
+      { "id": "own_utility", "label": "Own remaining utility" }
+    ],
+    "confidence": [
+      { "id": "guessing", "label": "Guessing" },
+      { "id": "leaning", "label": "Leaning" },
+      { "id": "fairly_sure", "label": "Fairly sure" },
+      { "id": "strong_read", "label": "Strong read" }
+    ]
+  },
+  "followup": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_inferno_banana_001",
+    "type": "new_information",
+    "heading": "New sound cue",
+    "stimulus": "A step sound is heard near coffins — the second CT has arrived at B site.",
+    "updates": [
+      {
+        "id": "ct_arrived",
+        "status": "new",
+        "text": "A second defender has been heard at coffins on B site."
+      }
+    ],
+    "responses": [
+      { "id": "proceed_execute", "label": "Continue the B execute with the smoke" },
+      {
+        "id": "split_entry",
+        "label": "Split the entry — one player through construction, one through banana"
+      },
+      { "id": "abort_rotate", "label": "Abort and rotate to A immediately" }
+    ]
+  },
+  "reveal": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_inferno_banana_001",
+    "continuation": {
+      "kind": "authored",
+      "events": [
+        {
+          "timestamp": "01:15",
+          "action": "The entry pair smoked CT spawn and split through banana and construction.",
+          "consequence": "The double entry caught the second CT still repositioning after arriving at coffins.",
+          "state": "Both CTs were eliminated. The bomb was planted with twenty-eight seconds remaining."
+        }
+      ]
+    },
+    "comparison": {
+      "roundAction": "Split entry onto B site with the CT smoke.",
+      "materialInformation": "The sound cue confirming the second CT had arrived at coffins — still repositioning, not yet set up.",
+      "roundFollowup": "Splitting the entry exploited the brief window before both CTs were anchored."
+    },
+    "debrief": {
+      "whyItWorks": "The CT rotation sound revealed that the second defender had only just arrived and was not yet positioned. A split entry from two angles catches an unset defence.",
+      "cost": "Splitting the team reduces trade potential if the first entry dies before the second arrives.",
+      "assumption": "The CT heard at coffins has not yet reached a strong post-plant position.",
+      "breaksWhen": "If the CT arrived early and is already set up at headshot or dark, the split loses its timing advantage.",
+      "evidenceReview": [
+        {
+          "evidenceId": "ct_utility_spent",
+          "explanation": "The CT anchor had already used their smoke, leaving no fast way to delay the execute."
+        },
+        {
+          "evidenceId": "rotation_timing",
+          "explanation": "The rotation sound was recent, meaning the second CT was still moving into position — a narrow timing window."
+        }
+      ],
+      "followupReview": "Splitting the entry was the strongest response because it attacked the moment of vulnerability — the period between the second CT arriving and settling into an anchored position.",
+      "strongestAlternative": "Proceeding with a standard execute through banana alone. Simpler, maintains trade spacing, but gives both CTs time to cross-fire from set positions.",
+      "counterfactual": {
+        "changedFact": "If the second CT had arrived thirty seconds earlier and was already set up at headshot.",
+        "effect": "A split would walk into a prepared cross-fire. The standard banana execute with a CT smoke would then be safer because it removes the cross-fire angle."
+      },
+      "method": "Synthetic scenario written for Roundcraft as editorial tactical analysis. It is not a recording or reconstruction of a professional match.",
+      "sources": [
+        {
+          "label": "Roundcraft editorial analysis",
+          "detail": "Synthetic scenario; no professional match, team or player is depicted."
+        }
+      ]
+    },
+    "principle": "When a sound cue reveals that a rotating defender is still repositioning, exploit the timing gap before the defence sets — but only if your utility can remove one angle of the cross-fire."
+  },
+  "rubric": {
+    "schemaVersion": 1,
+    "caseRevision": "cr_inferno_banana_001",
+    "rubricRevision": "rr_inferno_banana_001",
+    "dimensions": [{ "id": "timing", "weight": 55 }, { "id": "utility_use", "weight": 45 }],
+    "main": [
+      {
+        "actionId": "execute_b",
+        "qualifierId": "smoke_ct",
+        "ratings": { "timing": 4, "utility_use": 4 },
+        "caps": []
+      },
+      {
+        "actionId": "execute_b",
+        "qualifierId": "fast_no_smoke",
+        "ratings": { "timing": 3, "utility_use": 1 },
+        "caps": []
+      },
+      {
+        "actionId": "fake_b_rotate_a",
+        "qualifierId": "full_utility_fake",
+        "ratings": { "timing": 2, "utility_use": 2 },
+        "caps": []
+      },
+      {
+        "actionId": "fake_b_rotate_a",
+        "qualifierId": "quiet_rotate",
+        "ratings": { "timing": 1, "utility_use": 3 },
+        "caps": []
+      },
+      {
+        "actionId": "hold_banana",
+        "qualifierId": "passive_hold",
+        "ratings": { "timing": 1, "utility_use": 2 },
+        "caps": []
+      },
+      {
+        "actionId": "hold_banana",
+        "qualifierId": "aggressive_peek",
+        "ratings": { "timing": 2, "utility_use": 1 },
+        "caps": []
+      }
+    ],
+    "evidence": [
+      { "actionId": "execute_b", "evidenceIds": ["ct_utility_spent", "rotation_timing"], "points": 18 },
+      { "actionId": "execute_b", "evidenceIds": ["banana_control_ev", "ct_utility_spent"], "points": 14 },
+      { "actionId": "execute_b", "evidenceIds": ["remaining_clock", "own_utility"], "points": 12 },
+      { "actionId": "fake_b_rotate_a", "evidenceIds": ["remaining_clock", "rotation_timing"], "points": 10 },
+      { "actionId": "hold_banana", "evidenceIds": ["remaining_clock", "rotation_timing"], "points": 6 }
+    ],
+    "followup": {
+      "type": "new_information",
+      "responses": [
+        { "responseId": "proceed_execute", "quality": 65 },
+        { "responseId": "split_entry", "quality": 92 },
+        { "responseId": "abort_rotate", "quality": 30 }
+      ]
+    }
+  }
+}
