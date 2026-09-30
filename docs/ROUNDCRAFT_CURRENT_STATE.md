@@ -49,6 +49,8 @@ Funnel for this first pass: 102 raw candidates → 30 at score ≥ 0.75 → 10 s
 
 `npm run content:validate` prints the current readiness report for every file.
 
+The ranked review queue, with a reviewer packet for each of the five cases worth human time, is in [`content-review-queue.md`](content-review-queue.md). `npm run content:score -- <case-id>` stress-tests a draft rubric with the production scoring code.
+
 ## Deployment facts (read-only inspection, 29–30/09/2026)
 
 - Worker `roundcraft` exists in the Cloudflare account. `wrangler.jsonc` sets `workers_dev: false` and declares no routes, so it has no public URL unless a custom domain is attached in the dashboard.

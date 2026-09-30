@@ -41,7 +41,10 @@ roundcraft-miner candidates list --map de_mirage --min-score 0.75
 roundcraft-miner candidate show cand_4fb7d60bb4c5
 roundcraft-miner candidate render cand_4fb7d60bb4c5
 roundcraft-miner case draft cand_4fb7d60bb4c5         # writes content/cases/<id>.json and runs content:validate
+roundcraft-miner case packet case_mirage_post_plant_4fb7d6   # human review packet under content/review/<id>/
 ```
+
+`mine` and `run` keep at most two candidates per round and side; `--cap 6` keeps more, which is useful when re-mining after a detector change so an existing draft's candidate is not dropped.
 
 `meta.json` for `source add` holds `acquisition`, `match`, `licence`, `contentLane` and `provenanceNote`. See `content/sources/*.json` for examples and [`docs/content-sources.md`](docs/content-sources.md) for which sources are allowed.
 
@@ -99,6 +102,10 @@ A draft only moves to `technically_validated` and `tactically_reviewed` through 
 ## Reviewing a candidate
 
 Open `data-local/candidates/<source>/<candidate>/review.md`. It has the summary, score factors, player-known facts, follow-up, the historical line, disputed assumptions, alternative lines, validation results and both diagrams. The reviewer's job is to decide whether the decision is real, fix the options and rubric, and record the review in `editorial.reviewers`. They should not need to open the demo, but can: `candidate.json` has exact ticks.
+
+## Review packets
+
+`case packet [case-id ...]` writes `content/review/<case-id>/README.md` plus both diagrams for every case listed in `content/review/questions.json` (or the ids given). A packet is what a CS2 reviewer reads instead of the demo: the brief as players see it, the recent timeline, every proposed line scored with `npm run content:score`, the follow-up and its caveats, what happened next, assumptions and questions. Packets carry sides only, never identities; the writer refuses to save one that contains a pid or Steam ID. The ranked queue is [`docs/content-review-queue.md`](../../docs/content-review-queue.md).
 
 ## Tests
 

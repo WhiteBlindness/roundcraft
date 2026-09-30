@@ -1,0 +1,88 @@
+{
+  "case_inferno_post_plant_356758": {
+    "recommendation": "REVIEW FIRST",
+    "summary": "Two defenders in CT Spawn face a bomb planted at A about 4 seconds earlier, 36 seconds before detonation. Both carry defuse kits and full armour but no utility. One attacker with an AK-47 was last seen in A site 14 seconds ago; the planter is unknown. It is the cleanest brief in the set: every fact comes from what the defenders could know, and the follow-up (an enemy smoke in Balcony) is thrown by the attackers rather than discovered by the defenders' own movement. The open question is the classic one: retake together now, or wait and commit late to a kit defuse.",
+    "assumptions": [
+      "The draft ranks a grouped retake above a late kit defuse. That ranking comes from a generic retake template, not from this round's history (the source team retook together and lost).",
+      "The Balcony smoke is only observable if the defenders have moved towards A; a team that waits in CT Spawn might not see it.",
+      "Neither the AWP nor the lack of utility changes the ranking in the current rubric."
+    ],
+    "questions": [
+      "Two kits, full armour, no utility, 36 s left, one AK-47 last seen in A site and one unknown attacker: is a quick grouped retake or a late kit defuse the better line? Are both defensible?",
+      "Is saving the AWP and the M4A1-S a defensible line at 2v2 with 36 s left, or should it score as a clear mistake?",
+      "Which entrance does \"retake together\" realistically use from CT Spawn: Arch, Library (smoked 7 s ago) or another?",
+      "Does a Balcony smoke 10 s later change what a two-player retake should do, or does it only confirm that the attackers hold A?",
+      "Is \"hold back and commit late to a kit defuse\" a real line with 36 s left, and by when must it start?",
+      "Is an AWP a liability in a close A-site retake, and should the brief or rubric say so?"
+    ]
+  },
+  "case_inferno_late_round_no_plant_a430fd": {
+    "recommendation": "REVIEW FIRST",
+    "summary": "Two attackers in Middle, both with AK-47s but one on 44 HP, have 35 seconds left and no plant. The bomb lies dropped in Top of Mid, about 700 units away, and both defenders are unknown. The dilemma is real: pick up the bomb and hit a site at once, take information first, or fake. The follow-up (a defender with an AK-47 appears in Arch about 11 seconds later) arrives close to the next fight, so its value as a second decision needs a human check.",
+    "assumptions": [
+      "The draft treats \"hit the site together\" as the best line and a plant-then-crossfire as close behind; both rankings come from templates.",
+      "The Arch sighting depends partly on where the source team walked; a team on another route might not see it at the same time.",
+      "Retrieving the dropped bomb is folded into the action rather than offered as its own choice."
+    ],
+    "questions": [
+      "With the bomb about 700 units away and 35 s left, is committing now clearly best, or can a 2v2 with one player on 44 HP be played slower?",
+      "Which site does \"the site\" mean here, and can B be reached in time from Middle after picking up the bomb?",
+      "Is a fake with two players and one molotov ever playable at 35 s, or should it score as clearly wrong?",
+      "Should picking up the bomb be an explicit option, or is it implied by every attacking line?",
+      "Does the Arch sighting work as a follow-up for every line, or only for the route the source team took?",
+      "Is the 44 HP player relevant enough to change the ranking?"
+    ]
+  },
+  "case_mirage_post_plant_4fb7d6": {
+    "recommendation": "NEEDS TACTICAL DECISION",
+    "summary": "Two defenders without armour or kits (a 10-second defuse) face a bomb planted at A 4 seconds earlier, 36 seconds before detonation. They are split: one in CT Spawn, one in Catwalk, about 1,500 units apart, with one HE grenade between them. One attacker with a Desert Eagle was last seen at Top of Mid 23 seconds ago; the other is unknown. The retake-or-save dilemma is genuine, but the follow-up is weak: both attackers stayed where they were and were only seen because the defenders moved in, less than a second before the first kill.",
+    "assumptions": [
+      "The follow-up sighting exists only because the source team moved; the attackers did not move during those 13 seconds.",
+      "The draft's grouped-retake qualifiers assume the two defenders can move together, but they start far apart and used two routes in the source round.",
+      "Without kits, the draft still ranks a late defuse as a waiting line; whether that is realistic is a tactical question."
+    ],
+    "questions": [
+      "No kit, no armour, one HE and 36 s left at 2v2: is a retake defensible, or is saving the AK-47 and SSG 08 equally sound?",
+      "Can two players starting in CT Spawn and Catwalk trade each other at all, or does \"retake together\" first require regrouping?",
+      "Which route should each player take to A in practice?",
+      "Is a 23-second-old Desert Eagle sighting at Top of Mid meaningful evidence for this decision?",
+      "Should this case keep its current follow-up (both attackers seen as the defenders arrive), or should the follow-up be removed or re-authored?",
+      "Is one HE grenade relevant to a 10-second no-kit defuse, and what should \"keep utility for the defuse\" mean here?"
+    ]
+  },
+  "case_inferno_man_advantage_shift_927fb7": {
+    "recommendation": "REVIEW FIRST",
+    "summary": "Three defenders (two in Banana, one in Apartments) with SMGs and a FAMAS face three attackers 22 seconds into the round, with no plant, 92 seconds left and an 11-2 lead. A trade has just happened in Middle: an attacker died there 1.8 seconds ago and a teammate 1.4 seconds ago, to a Desert Eagle. Two attackers were seen 1.5 seconds ago, one in Middle and one in T Ramp, and the bomb carrier was last seen in T Ramp 13 seconds ago. The question is whether to hold the current split or rotate a player. The follow-up, the carrier appearing in Banana, is a genuine enemy-side move, but the draft's best line rotates a player towards Middle, away from Banana.",
+    "assumptions": [
+      "The draft's best line (rotate one player towards Middle) comes from a template. The source team held Banana and killed the carrier there.",
+      "The follow-up is only visible to a team that still has players in Banana.",
+      "The attackers' pistols suggest an eco or a force buy, but the brief does not state their economy."
+    ],
+    "questions": [
+      "With the carrier last seen in T Ramp 13 s ago and two fresh sightings in Middle and T Ramp, is rotating a player away from Banana sensible, or should Banana stay stacked?",
+      "A teammate has just died in Middle to a Desert Eagle: does that argue for sending a player towards Middle, or against it?",
+      "Is \"towards Middle\" meaningful for the Apartments player, or should the option name a specific position?",
+      "Is \"fall back\" ever a real option at 3v3 with no plant and 92 s left?",
+      "Once the carrier appears in Banana, is keeping the setup really worse than adjusting it?",
+      "Do Desert Eagle attackers indicate an eco or a force buy, and should the brief say so?",
+      "Are \"rotate one\" and \"rotate two\" meaningfully different at 3v3?"
+    ]
+  },
+  "case_mirage_opening_pick_cae8a3": {
+    "recommendation": "KEEP",
+    "summary": "Five attackers with SMGs and a scout lead 5v4 after an opening kill, 40 seconds into the round, carrying the bomb in Palace. One defender with a FAMAS is visible in Middle; three are unknown, with recent defender smokes and a molotov in Apartments. The information handling is clean, but the decision is generic (default, probe, lurk, fake or commit), and the follow-up comes from a teammate's own movement into Underpass. Worth a second wave once the first four have been reviewed.",
+    "assumptions": [
+      "The best line (play slowly and take information) matches what the source team did; the rubric was not built from history, but the match should be checked.",
+      "One attacker is on very low HP, which the draft does not weigh.",
+      "The follow-up depends on the source team's own movement."
+    ],
+    "questions": [
+      "At 5v4 with the bomb near A and 74 s left, is taking information first really best, or is an early A execute standard?",
+      "Does the opening kill create a window to exploit immediately?",
+      "Do the defender smokes and molotov in Apartments signal an aggressive defender play?",
+      "What should a fake mean with one smoke and five flashes?",
+      "Is a lurk sensible when one teammate is on very low HP?",
+      "Is this case specific enough to teach something, or is it a generic mid-round posture question that should be dropped?"
+    ]
+  }
+}

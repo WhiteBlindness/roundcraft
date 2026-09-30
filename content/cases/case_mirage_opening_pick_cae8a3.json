@@ -20,7 +20,10 @@
       "Sightings come from the demo's spotted flag, which can register enemies a player never consciously noticed.",
       "Detected by a heuristic; not yet reviewed by a human CS2 reviewer.",
       "Opening pick: the state right after the first kill is shaped by the first minute's utility and positions, which the brief only summarises.",
+      "The follow-up information arrives less than 2 s before the next kill, leaving almost no time to react.",
       "The follow-up is the first material change the demo shows 3-25 s later; teams may have learned of it earlier through comms.",
+      "Follow-up reaction window is only 1.53 s: in the source round the situation changed again almost at once, so the responses may not be meaningfully playable. Confirm the window is long enough or author a different follow-up.",
+      "Follow-up scores are independent of the main call: the schema cannot condition them on the line the player chose, so the response labels are call-agnostic and every main line is scored by the same follow-up qualities. A reviewer should judge whether the follow-up responses are fair for every main line.",
       "The option set (actions, qualifiers, follow-up responses) is a template for this situation family, not derived from the demo; a reviewer must confirm every option is playable on this map at this moment and that no defensible line is missing.",
       "The debrief reasoning (whyItWorks, cost, assumption, breaksWhen, strongestAlternative, counterfactual, evidence explanations, principle) is templated per situation family and needs human tactical review.",
       "Rubric ratings, evidence points and follow-up qualities are heuristic priors (see editorial.notes), not tactical judgements; time thresholds (defuse duration + 7 s, 25 s comfortable) are unreviewed assumptions.",
@@ -47,7 +50,7 @@
     "schemaVersion": 1,
     "editionId": "ed_mirage_opening_pick_cae8a3",
     "caseRevision": "cr_mirage_opening_pick_cae8a3",
-    "title": "Execute or default on Mirage",
+    "title": "5v4 with 74 s left and no plant on Mirage",
     "focus": "Committing to an execute versus taking information first",
     "origin": "synthetic",
     "facts": [
@@ -72,6 +75,11 @@
         "text": "5 Ts alive against 4 CTs."
       },
       {
+        "id": "own_loadout",
+        "status": "confirmed",
+        "text": "Your players have 100, 100, 74, 48, 1 HP; two AK-47s, two MAC-10s, one SSG 08; four armoured."
+      },
+      {
         "id": "own_utility",
         "status": "confirmed",
         "text": "Your team has 1 smoke and 5 flashes left."
@@ -92,6 +100,11 @@
         "text": "The defenders detonated a smoke in Middle 13 s ago."
       },
       {
+        "id": "score",
+        "status": "confirmed",
+        "text": "Score: your team 1, the defenders 1."
+      },
+      {
         "id": "own_positions",
         "status": "confirmed",
         "text": "Your team is positioned: 2 in Middle, 1 in Apartments, 1 in Palace Interior, 1 in Top of Mid."
@@ -100,6 +113,11 @@
         "id": "visible_middle_1_a_famas",
         "status": "confirmed",
         "text": "One defender is visible in Middle right now with a FAMAS."
+      },
+      {
+        "id": "kill_feed_enemy_ladder_19429",
+        "status": "confirmed",
+        "text": "A defender was killed in Ladder 1.9 s ago."
       },
       {
         "id": "unknown_3",
@@ -186,7 +204,7 @@
       },
       {
         "id": "enemy_seen_1",
-        "label": "Defender confirmed in Middle"
+        "label": "Defender spotted in Middle"
       },
       {
         "id": "own_utility",
@@ -221,7 +239,7 @@
     "caseRevision": "cr_mirage_opening_pick_cae8a3",
     "type": "new_information",
     "heading": "A new sighting",
-    "stimulus": "After about 12 seconds: A defender appears in Underpass.",
+    "stimulus": "About 12 seconds later, a defender appears in Underpass.",
     "updates": [
       {
         "id": "visible_underpass_1_an_m4a4",
@@ -242,19 +260,19 @@
     "responses": [
       {
         "id": "continue_plan",
-        "label": "Continue the chosen plan"
+        "label": "Stick to the line you chose"
       },
       {
         "id": "take_more_info",
-        "label": "Slow down and take more information"
+        "label": "Slow down and gather more information"
       },
       {
         "id": "adjust_to_new_info",
-        "label": "Adjust the plan to the new information"
+        "label": "Change your line to use the new information"
       },
       {
         "id": "fall_back",
-        "label": "Abandon the plan and reset"
+        "label": "Drop the line you chose and reset"
       }
     ]
   },
@@ -272,28 +290,58 @@
         },
         {
           "timestamp": "+17 s",
-          "action": "A T player detonated a flash in Shop.",
+          "action": "A T player threw a flash that detonated in Shop.",
           "consequence": "It changes what each side can see or hold near there.",
           "state": "Alive: 5 for your team, 3 for the opposing team."
         },
         {
           "timestamp": "+18 s",
-          "action": "A T player detonated a flash in Shop.",
+          "action": "A T player threw a flash that detonated in Shop.",
           "consequence": "It changes what each side can see or hold near there.",
           "state": "Alive: 5 for your team, 3 for the opposing team."
         },
         {
           "timestamp": "+20 s",
-          "action": "A T player detonated a flash in Snipers Nest.",
+          "action": "A T player threw a flash that detonated in Sniper's Nest.",
           "consequence": "It changes what each side can see or hold near there.",
           "state": "Alive: 5 for your team, 3 for the opposing team."
+        },
+        {
+          "timestamp": "+23 s",
+          "action": "A T player killed a CT player with an SSG 08 (headshot) in CT Spawn.",
+          "consequence": "The CT side loses a player.",
+          "state": "Alive: 5 for your team, 2 for the opposing team."
+        },
+        {
+          "timestamp": "+25 s",
+          "action": "A T player killed a CT player with an AK-47 (headshot) in B site.",
+          "consequence": "The CT side loses a player.",
+          "state": "Alive: 5 for your team, 1 for the opposing team."
+        },
+        {
+          "timestamp": "+25 s",
+          "action": "A CT player killed a T player with an M4A4 in Connector.",
+          "consequence": "The T side loses a player.",
+          "state": "Alive: 4 for your team, 1 for the opposing team."
+        },
+        {
+          "timestamp": "+30 s",
+          "action": "A T player killed a CT player with a MAC-10 (headshot) in CT Spawn.",
+          "consequence": "The CT side loses its last player.",
+          "state": "Alive: 4 for your team, 0 for the opposing team."
+        },
+        {
+          "timestamp": "+30 s",
+          "action": "The round ended: the Ts won by eliminating the defenders.",
+          "consequence": "The round is over and your team won it.",
+          "state": "Alive: 4 for your team, 0 for the opposing team."
         }
       ]
     },
     "comparison": {
-      "roundAction": "In the source round, over the next 10 s: 4 players held position in Apartments, Middle, Palace Interior and Top of Mid; 1 player moved from Middle to Underpass. Over the next 20 s the team used 3 flashes and got 1 kill and lost no players. Result: T won the round (t win elimination); 4 of the team survived.",
+      "roundAction": "In the source round, over the next 10 s: 4 players held position in Apartments, Middle, Palace Interior and Top of Mid; 1 player moved from Middle to Underpass. Over the next 20 s the team used 3 flashes and got 1 kill and lost no players. The Ts won by eliminating the defenders; 4 of your team survived.",
       "materialInformation": "The information that arrived after the decision: A defender appears in Underpass.",
-      "roundFollowup": "After the decision the source round continued: A T player killed a CT player with an AK-47 (headshot) in Underpass. A T player detonated a flash in Shop. A T player detonated a flash in Shop. The T side won the round."
+      "roundFollowup": "After the decision the source round continued: A T player killed a CT player with an AK-47 (headshot) in Underpass. A T player threw a flash that detonated in Shop. The Ts won by eliminating the defenders; 4 of your team survived."
     },
     "debrief": {
       "whyItWorks": "When most positions are unknown and the clock is long, information converts the execute from a guess into a read. Here, 5 players faced 4 with about 74 seconds left.",
@@ -303,28 +351,36 @@
       "evidenceReview": [
         {
           "evidenceId": "enemy_unknown",
-          "explanation": "Unaccounted-for opponents are the main risk to any committed plan and the main reason to gather information. Here 3 defenders could not be placed."
+          "explanation": "Three defenders could not be placed. Unaccounted-for opponents are the main risk to any committed plan and the main reason to gather information."
         },
         {
           "evidenceId": "round_clock",
-          "explanation": "The round clock bounds how long any plan can take. Here the round clock stood near 74 seconds."
+          "explanation": "The round clock stood near 74 seconds. The round clock bounds how long any plan can take."
         },
         {
           "evidenceId": "alive_count",
-          "explanation": "The head count sets how many duels the team can lose and still carry out its plan. Here it was 5 against 4."
+          "explanation": "It was 5 players against 4. The head count sets how many duels the team can lose and still carry out its plan."
+        },
+        {
+          "evidenceId": "enemy_seen_1",
+          "explanation": "The confirmed position of one defender in Middle was current. A sighting narrows where contact is likely, but its value falls quickly with age."
+        },
+        {
+          "evidenceId": "own_utility",
+          "explanation": "The team had one smoke and five flashes and no HE grenades or molotovs. The utility left sets how much of the plan can be forced rather than hoped for."
         }
       ],
-      "followupReview": "The proposed best answer to the new information was: Adjust the plan to the new information. Reasoning: the new information shows where an opponent is or what utility they have used, so adapting the plan is worth more than repeating it.",
+      "followupReview": "The proposed best answer to the new information was: Change your line to use the new information. Reasoning: the new information shows where an opponent is or what utility they have used, so adapting the plan is worth more than repeating it.",
       "strongestAlternative": "The closest alternative was to fake one site and rotate, spending clock and utility to pull defenders out of position.",
       "counterfactual": {
         "changedFact": "The round clock is under half a minute.",
         "effect": "Gathering information no longer fits, and committing at once becomes stronger."
       },
-      "method": "Synthetic scenario inspired by a decision point in a recorded demo. The situation was rebuilt from anonymised game data, the options and reasoning are editorial templates, and the source round's line is shown for comparison only: it is not treated as the correct answer, and this is not a reconstruction of the match.",
+      "method": "Synthetic scenario inspired by a decision point in a recorded round. The situation was rebuilt from anonymised game data, the options and reasoning are editorial, and the source round's line is shown for comparison only: it is not treated as the correct answer, and this is not a reconstruction of the match.",
       "sources": [
         {
           "label": "Roundcraft editorial analysis",
-          "detail": "Demo-grounded synthetic scenario. No match, team or player is identified."
+          "detail": "Synthetic scenario based on a recorded round. No match, team or player is identified."
         }
       ]
     },
