@@ -34,6 +34,15 @@ Rules for anyone (human or coding agent) changing Roundcraft. They apply to ever
 - Editorial status must be honest: `draft` → `technically_validated` → `tactically_reviewed` → `ready`. Only a named human CS2 reviewer can move a case to `tactically_reviewed`.
 - Generated SQL comes from `npm run content:build`; do not hand-edit generated seed SQL.
 
+## Case mining (tools/case-miner)
+
+- Offline editorial tooling only. Never run demo parsing in the Worker, store demos in D1, or add parsing dependencies to the app.
+- Raw demos, parsed rounds and candidate bundles stay in the git-ignored `data-local/`. Commit only provenance manifests (`content/sources/`), code, tests and reviewed-for-commit drafts.
+- Legitimate sources only (see `tools/case-miner/docs/content-sources.md`). No HLTV automation, no HTML scraping, no bypassing authentication, rate limits or download approvals.
+- Keep demo ground truth and player-known information separate. A brief is built only from what the deciding team could know at the decision tick.
+- The historical line in a demo is the reveal, never the answer key. Generated drafts stay `draft` until a human reviewer changes them.
+- Never put player names, Steam IDs or other identities from a demo into committed files.
+
 ## Git and publishing
 
 - Never force-push. Never rewrite published history.

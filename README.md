@@ -25,6 +25,7 @@ Most browser games about Counter-Strike test memory, aim or recognition. Roundcr
 - **One official attempt, safely.** An anonymous identity (an HMAC-verified `__Host-` cookie with CSRF protection) gets one official attempt per case. Commits use idempotency keys, `If-Match` sequence checks and conditional D1 updates, so retries, double clicks and concurrent tabs cannot create duplicate or out-of-order results. Before locking a main call, the server checks that every possible follow-up answer can be scored, so a content gap can never strand a player.
 - **Contracts first.** OpenAPI 3.1, JSON Schemas, error codes and valid/invalid examples live in `contracts/`, and the client validates every response with Zod.
 - **Content as code.** Cases are JSON files with an editorial status. A validator enforces schema, cross-reference, scoring-coverage, disclosure and honesty rules. A generator emits append-only, checksummed D1 migrations for cases marked ready. See [`content/README.md`](content/README.md).
+- **Demo-grounded content mining.** An offline Python tool parses CS2 demos, keeps the demo's omniscient ground truth separate from what the deciding team could know, ranks decision points by editorial interest, and drafts cases for human review. See [`tools/case-miner`](tools/case-miner/README.md).
 - **Diagnosable failures.** Structured JSON logs carry a request id shared with the error envelope. Cookies, tokens, IPs and player answers are never logged.
 - **Accessible by default.** Keyboard shortcuts never lock a decision, and the shortcuts panel is a native modal dialog. Focus moves to each stage heading. Contrast meets WCAG AA in light and dark themes, and reduced motion is respected.
 
@@ -78,7 +79,8 @@ CI runs all of these on every pull request. A merge to `main` applies D1 migrati
 |---|---|
 | Game flow, API, scoring, disclosure, idempotency | Implemented and tested end to end locally |
 | Content pipeline (author → validate → review → preview → build → withdraw) | Implemented |
-| Production cases | None ready. Three drafts in `content/cases/` await rewriting and human tactical review; the validator lists what blocks each one |
+| Production cases | None ready. Ten drafts mined from real demos and three older drafts await human tactical review |
+| Case mining | Offline tool (`tools/case-miner`) turns CS2 demos into ranked decision candidates, player-known vs ground-truth diagrams and draft cases |
 | Public deployment | A Worker and D1 database exist, but no public route or domain is configured and production holds no cases |
 | Tactical diagrams | Not yet built. Cases are currently text-only |
 
