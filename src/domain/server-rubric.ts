@@ -42,6 +42,9 @@ const evidenceCellSchema = z
     evidenceIds: [...cell.evidenceIds].sort() as [string, string],
   }))
 
+// Follow-up quality is judged against the line the player locked: the same
+// response can be a sound correction after one main action and a needless
+// reversal after another. Every cell is therefore keyed by the main action.
 const newInformationRubricSchema = z
   .object({
     type: z.literal('new_information'),
@@ -49,6 +52,7 @@ const newInformationRubricSchema = z
       .array(
         z
           .object({
+            actionId: identifierSchema,
             responseId: identifierSchema,
             quality: z.number().int().min(0).max(100),
             sharedConsensus: z.boolean().optional().default(false),
@@ -56,7 +60,7 @@ const newInformationRubricSchema = z
           .strict(),
       )
       .min(2)
-      .max(8),
+      .max(40),
   })
   .strict()
 
@@ -67,6 +71,7 @@ const economyRiskRubricSchema = z
       .array(
         z
           .object({
+            actionId: identifierSchema,
             postureId: identifierSchema,
             priorityId: identifierSchema,
             quality: z.number().int().min(0).max(100),
@@ -75,13 +80,13 @@ const economyRiskRubricSchema = z
           .strict(),
       )
       .min(1)
-      .max(64),
+      .max(320),
   })
   .strict()
 
 export const serverRubricSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     caseRevision: identifierSchema,
     rubricRevision: identifierSchema,
     dimensions: z.array(dimensionSchema).min(1).max(12),
@@ -168,7 +173,9 @@ export function scoringInputFor(
       followupAnswer.type === 'new_information'
     ) {
       return rubric.followup.responses.find(
-        ({ responseId }) => responseId === followupAnswer.response_id,
+        ({ actionId, responseId }) =>
+          actionId === mainAnswer.action_id &&
+          responseId === followupAnswer.response_id,
       )
     }
 
@@ -177,7 +184,8 @@ export function scoringInputFor(
       followupAnswer.type === 'economy_risk'
     ) {
       return rubric.followup.pairs.find(
-        ({ postureId, priorityId }) =>
+        ({ actionId, postureId, priorityId }) =>
+          actionId === mainAnswer.action_id &&
           postureId === followupAnswer.posture_id &&
           priorityId === followupAnswer.priority_id,
       )

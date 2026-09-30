@@ -50,17 +50,39 @@ Evidence options (pick two): Round clock · Alive count · Own utility · Unknow
 Every combination scored with the production 50/20/30 model:
 
 ```
-case_inferno_late_round_no_plant_a430fd: 240 combinations; min 40, p25 60, median 69, p75 78, max 98; 100s: 0
-  best  98  Commit to an execute now / Hit the site together and trade each entry
-  best  93  Commit to an execute now / Plant quickly and set up crossfires
-  best  85  Keep the default and take information first / Play slowly and listen for rotations
-  best  80  Keep the default and take information first / Probe with one player while the other holds
-  best  73  Fake one site, then rotate to the other / Sell the fake with utility
-  best  68  Fake one site, then rotate to the other / Fake quietly and rotate early
-  follow-up    18 / 30  Stick to the line you chose
-  follow-up     9 / 30  Drop the line you chose and reset
-  follow-up    28 / 30  Change your line to use the new information
-  follow-up 16-17 / 30  Slow down and gather more information
+case_inferno_late_round_no_plant_a430fd: 180 combinations; min 33, p25 52, median 63, p75 71, max 100; 100s: 1
+
+Main call (best total per line):
+  100  Commit to an execute now / Hit the site together and trade each entry
+   95  Commit to an execute now / Plant quickly and set up crossfires
+   82  Keep the default and take information first / Play slowly and listen for rotations
+   77  Keep the default and take information first / Probe with one player while the other holds
+   72  Fake one site, then rotate to the other / Sell the fake with utility
+   67  Fake one site, then rotate to the other / Fake quietly and rotate early
+
+Follow-up against the locked line (best qualifier and evidence pair for that line):
+  locked: Fake one site, then rotate to the other / Sell the fake with utility  (main 25/50, evidence 20/20)
+    Execute on the site now              follow-up 27/30  total  72
+    Fake here and rotate away            follow-up  8/30  total  53
+    Keep playing slowly for information  follow-up  2/30  total  47
+  locked: Commit to an execute now / Hit the site together and trade each entry  (main 50/50, evidence 20/20)
+    Execute on the site now              follow-up 30/30  total 100
+    Fake here and rotate away            follow-up  5/30  total  75
+    Keep playing slowly for information  follow-up  2/30  total  72
+  locked: Keep the default and take information first / Play slowly and listen for rotations  (main 38/50, evidence 20/20)
+    Execute on the site now              follow-up 24/30  total  82
+    Keep playing slowly for information  follow-up  7/30  total  65
+    Fake here and rotate away            follow-up  1/30  total  59
+
+Stress lines:
+  good main -> stays with it               100  (follow-up 30/30: Commit to an execute now -> Execute on the site now)
+  good main -> unnecessary reversal         72  (follow-up  2/30: Commit to an execute now -> Keep playing slowly for information)
+  weak main -> best correction              72  (follow-up 27/30: Fake one site, then rotate to the other -> Execute on the site now)
+  weak main -> stubborn continuation        53  (follow-up  8/30: Fake one site, then rotate to the other -> Fake here and rotate away)
+  plausible alternative -> stays with it    65  (follow-up  7/30: Keep the default and take information first -> Keep playing slowly for information)
+
+Follow-up checks:
+  no findings
 ```
 
 ## Follow-up
@@ -71,7 +93,15 @@ A new sighting: About 11 seconds later, a defender appears in Arch.
 - **new** — The position of one defender is unknown.
 - **changed** — About 24 seconds now remain on the round clock.
 
-Responses and proposed follow-up quality: Change your line to use the new information = 92; Stick to the line you chose = 60; Slow down and gather more information = 55; Drop the line you chose and reset = 30
+Proposed follow-up quality (0–100, worth up to 30 points) by the line the player locked (rows) and the answer they give now (columns):
+
+| Locked line | Keep playing slowly for information | Fake here and rotate away | Execute on the site now |
+| --- | --- | --- | --- |
+| Fake one site, then rotate to the other | 5 | 25 | 90 |
+| Commit to an execute now | 5 | 15 | 100 |
+| Keep the default and take information first | 25 | 5 | 80 |
+
+The update leaves the strongest line unchanged: before, Commit to an execute now; after, Commit to an execute now.
 
 Follow-up caveats:
 
@@ -99,6 +129,7 @@ What to remember (proposed): Decide when to stop gathering information: keep rea
 - The draft treats "hit the site together" as the best line and a plant-then-crossfire as close behind; both rankings come from templates.
 - The Arch sighting depends partly on where the source team walked; a team on another route might not see it at the same time.
 - Retrieving the dropped bomb is folded into the action rather than offered as its own choice.
+- Follow-up matrix: the Arch sighting leaves the execute strongest. With 24 s left, playing slowly or faking collapses to 25, so a team that played slowly is credited 80 for executing now.
 - Team comms may have provided information the demo cannot show (callouts, sound cues, teammates' kill positions).
 - The historical line is not assumed to be correct; it only records what this team did.
 - Sightings come from the demo's spotted flag, which can register enemies a player never consciously noticed.
@@ -116,6 +147,7 @@ What to remember (proposed): Decide when to stop gathering information: keep rea
 4. Should picking up the bomb be an explicit option, or is it implied by every attacking line?
 5. Does the Arch sighting work as a follow-up for every line, or only for the route the source team took?
 6. Is the 44 HP player relevant enough to change the ranking?
+7. With 24 s left and one defender now seen in Arch, is executing the only sound line for every team, including one that faked, or can a slow team still play for a late pick?
 
 ## Your verdict
 

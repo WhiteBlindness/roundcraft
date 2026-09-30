@@ -113,7 +113,7 @@ const reveal = {
 } as const
 
 const rubric = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   caseRevision,
   rubricRevision: 'rubric_revision_followup_001',
   dimensions: [
@@ -138,8 +138,8 @@ const rubric = {
   followup: {
     type: 'new_information',
     responses: [
-      { responseId: 'keep_original', quality: 58 },
-      { responseId: 'change_mid', quality: 92 },
+      { actionId: 'regroup_a', responseId: 'keep_original', quality: 58 },
+      { actionId: 'regroup_a', responseId: 'change_mid', quality: 92 },
     ],
   },
 } as const
@@ -428,14 +428,15 @@ describe('follow-up commitment API', () => {
         type: 'economy_risk',
         pairs: [
           {
+            actionId: 'regroup_a',
             postureId: 'protect',
             priorityId: 'utility',
             quality: 95,
             sharedConsensus: true,
           },
-          { postureId: 'protect', priorityId: 'rifle', quality: 70 },
-          { postureId: 'press', priorityId: 'utility', quality: 55 },
-          { postureId: 'press', priorityId: 'rifle', quality: 45 },
+          { actionId: 'regroup_a', postureId: 'protect', priorityId: 'rifle', quality: 70 },
+          { actionId: 'regroup_a', postureId: 'press', priorityId: 'utility', quality: 55 },
+          { actionId: 'regroup_a', postureId: 'press', priorityId: 'rifle', quality: 45 },
         ],
       },
     } as const

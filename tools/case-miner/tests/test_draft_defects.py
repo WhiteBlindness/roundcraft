@@ -4,9 +4,9 @@ coverage, reveal completeness, tooling language, follow-up caveats, utility-free
 from __future__ import annotations
 
 import itertools
-from types import SimpleNamespace
 import json
 import re
+from types import SimpleNamespace
 
 import pytest
 
@@ -136,20 +136,41 @@ def test_fall_back_label_reflects_that_nothing_is_planted(two_alive, retake):
     assert "Fall back and play for the retake" in [a.label for a in planted.actions]
 
 
-# --- 2. follow-up wording is call-agnostic -------------------------------------------------------------------
+# --- 2. follow-up asks for the line now and is scored against the locked line -------------------------------
 
 
-def test_followup_labels_are_call_agnostic_and_issue_is_recorded(candidate):
+def test_followup_offers_every_published_line_and_scores_every_locked_line(candidate):
+    from roundcraft_miner.draft.templates import now_label
+
     case = build_case(candidate)
-    labels = {r["id"]: r["label"] for r in case["followup"]["responses"]}
-    assert labels["continue_plan"] == "Stick to the line you chose"
-    assert labels["adjust_to_new_info"] == "Change your line to use the new information"
-    assert labels["take_more_info"] == "Slow down and gather more information"
-    for label in labels.values():
-        assert not re.search(r"\b(retake|setup|plan|positions)\b", label, re.IGNORECASE) or label.startswith("Drop the line"), label
-    assert any("independent of the main call" in issue for issue in case["editorial"]["knownIssues"])
-    for response in SITUATIONS.values():
-        assert {r.id for r in response.responses} == {"continue_plan", "adjust_to_new_info", "take_more_info", "fall_back"}
+    actions = [a["id"] for a in case["brief"]["actions"]]
+    responses = [r["id"] for r in case["followup"]["responses"]]
+    assert sorted(responses) == sorted(f"now_{a}" for a in actions)
+    place = extract_features(candidate).place
+    assert {r["label"] for r in case["followup"]["responses"]} == {now_label(a, place) for a in actions}
+    cells = [(c["actionId"], c["responseId"]) for c in case["rubric"]["followup"]["responses"]]
+    assert sorted(cells) == sorted((a, r) for a in actions for r in responses)
+    assert case["rubric"]["schemaVersion"] == 2
+    assert any("locked main action and line now" in issue for issue in case["editorial"]["knownIssues"])
+    for label in (r["label"] for r in case["followup"]["responses"]):
+        assert not re.search(r"\b(change|stick)\b", label, re.IGNORECASE), label
+
+
+def test_no_followup_answer_scores_the_same_after_every_locked_line(candidate):
+    case = build_case(candidate)
+    by_response: dict[str, set[int]] = {}
+    for cell in case["rubric"]["followup"]["responses"]:
+        by_response.setdefault(cell["responseId"], set()).add(cell["quality"])
+    assert all(len(values) > 1 for values in by_response.values())
+
+
+def test_switching_costs_more_the_further_the_new_line_is():
+    from roundcraft_miner.draft.templates import switch_cost
+
+    assert switch_cost("group_retake", "group_retake") == 0
+    assert switch_cost("group_retake", "split_retake") == 10
+    assert switch_cost("group_retake", "take_information") == 20
+    assert switch_cost("group_retake", "save_weapons") == 30
 
 
 # --- 3. evidence review coverage ---------------------------------------------------------------------------
@@ -301,8 +322,8 @@ def test_no_followup_bomb_timer_and_urgent_state(retake, clone):
     short["playerKnown"]["clock"]["bombSecondsLeft"] = 14.0
     case = build_case(short)
     assert case["followup"]["stimulus"].endswith("the bomb timer now shows 6 s.")
-    qualities = {r["responseId"]: r["quality"] for r in case["rubric"]["followup"]["responses"]}
-    assert max(qualities, key=qualities.get) == "fall_back"  # the clock makes a retake impossible: urgent table
+    staying = {c["actionId"]: c["quality"] for c in case["rubric"]["followup"]["responses"] if c["responseId"] == f"now_{c['actionId']}"}
+    assert max(staying, key=staying.get) == "save_weapons"  # the clock makes a retake impossible
 
 
 # --- 6. follow-up caveats --------------------------------------------------------------------------------
@@ -459,3 +480,11 @@ def test_a_single_grenade_does_not_make_a_utility_plan():
     text = "Taking space[[ with utility]] works."
     assert fill(text, one) == "Taking space works."
     assert fill(text, two) == "Taking space with utility works."
+
+
+def test_line_now_labels_stay_anchored_to_the_brief_place():
+    from roundcraft_miner.draft.templates import now_label
+
+    assert now_label("rotate_to_info", "Middle") == "Keep a player moving towards Middle"
+    assert now_label("rotate_to_info", None) == "Keep a player moving towards the earlier contact"
+    assert now_label("save_weapons", "Middle") == "Save the weapons from here"

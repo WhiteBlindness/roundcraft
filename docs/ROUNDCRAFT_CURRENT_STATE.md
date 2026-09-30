@@ -10,7 +10,7 @@ This document records what is implemented, what was verified, and what still blo
 |---|---|---|
 | Official attempt lifecycle | Ready | issued → main_locked → decision_complete → debrief_complete, with conditional D1 updates, idempotency receipts and `If-Match` sequences |
 | Phase-gated disclosure | Ready | Follow-up only after the main lock, reveal only after the follow-up lock, rubric never sent. Verified on real network responses in E2E |
-| Scoring | Ready | 50/20/30, integer, server-only, stored once. Main commit is refused unless every follow-up answer is scoreable |
+| Scoring | Ready | 50/20/30, integer, server-only, stored once. Follow-up cells are keyed by main action × answer (rubric `schemaVersion: 2`), so the follow-up is judged against the locked line. Main commit is refused unless every follow-up answer is scoreable |
 | Identity and security | Ready | `__Host-` HttpOnly SameSite=Strict cookie, HMAC verifier, CSRF, Origin/Sec-Fetch-Site checks, strict bodies, rate limits, CSP on every HTML route |
 | Observability | Ready for beta | Structured JSON logs with request ids. Content, rubric, batch, conflict and rate-limit events are logged |
 | Content pipeline | Ready | JSON case files, validator, generated checksummed migrations, local preview, withdraw flow, CI checks |
@@ -23,9 +23,9 @@ This document records what is implemented, what was verified, and what still blo
 
 | Case | Status | Blocking issues |
 |---|---|---|
-| `case_inferno_banana_001` | draft | Evidence matrix 5/30. Timeline contradiction. One-smoke execute inconsistent with follow-up. Weak distractors. Needs tactical review |
+| `case_inferno_banana_001` | draft | Evidence matrix 5/30. Timeline contradiction. One-smoke execute inconsistent with follow-up. Weak distractors. Follow-up scores ignore the main call (migrated to rubric version 2 unchanged, so the validator rejects them). Needs tactical review |
 | `case_mirage_a_split_001` | draft, rewrite | Brief fails the schema (6 evidence items). Smoke count and window/ticket-booth claims are wrong |
-| `case_economy_postpistol_001` | draft, rewrite | Side contradiction. Wrong rifle price. Rubric contradicts the reveal. Should use the `economy_risk` follow-up type |
+| `case_economy_postpistol_001` | draft, rewrite | Side contradiction. Wrong rifle price. Rubric contradicts the reveal. Should use the `economy_risk` follow-up type. Follow-up scores ignore the main call |
 | `case_smoke_001` (fixture) | technically validated | Technical fixture for preview and tests only. Can never be published |
 
 ### Mined drafts (demo-grounded synthetic)

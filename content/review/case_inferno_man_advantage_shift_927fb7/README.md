@@ -1,6 +1,6 @@
 # Review packet: 3v3 hold or rotate as the defenders on Inferno
 
-`case_inferno_man_advantage_shift_927fb7` · de_inferno · CT side · status **draft** · recommendation **REVIEW FIRST**
+`case_inferno_man_advantage_shift_927fb7` · de_inferno · CT side · status **draft** · recommendation **NEEDS TACTICAL DECISION**
 
 Demo-grounded synthetic draft. Options, debrief and rubric are proposals generated from the source round; nothing here has had human tactical review. Time budget: 5–10 minutes.
 
@@ -59,19 +59,49 @@ Evidence options (pick two): Attacker spotted in Middle · Attacker spotted in T
 Every combination scored with the production 50/20/30 model:
 
 ```
-case_inferno_man_advantage_shift_927fb7: 320 combinations; min 41, p25 62, median 69, p75 78, max 98; 100s: 0
-  best  98  Rotate a player towards Middle / Rotate one player and keep the rest in place
-  best  93  Rotate a player towards Middle / Rotate two players and leave one behind
-  best  85  Take information before committing / Listen and read footsteps before moving
-  best  85  Hold the current setup / Stay in the set positions and trade
-  best  80  Take information before committing / Probe with a trade behind the prober
-  best  80  Hold the current setup / Use utility to delay the first contact
-  best  73  Fall back and play for a retake if they plant / Fall back together and regroup
-  best  68  Fall back and play for a retake if they plant / Fall back but hold one angle
-  follow-up    18 / 30  Stick to the line you chose
-  follow-up 16-17 / 30  Slow down and gather more information
-  follow-up     9 / 30  Fall back to a deeper position
-  follow-up    28 / 30  Change your line to use the new information
+case_inferno_man_advantage_shift_927fb7: 320 combinations; min 47, p25 61, median 71, p75 78, max 100; 100s: 1
+
+Main call (best total per line):
+  100  Rotate a player towards Middle / Rotate one player and keep the rest in place
+   95  Rotate a player towards Middle / Rotate two players and leave one behind
+   82  Take information before committing / Listen and read footsteps before moving
+   82  Hold the current setup / Stay in the set positions and trade
+   77  Take information before committing / Probe with a trade behind the prober
+   77  Hold the current setup / Use utility to delay the first contact
+   66  Fall back and play for a retake if they plant / Fall back together and regroup
+   61  Fall back and play for a retake if they plant / Fall back but hold one angle
+
+Follow-up against the locked line (best qualifier and evidence pair for that line):
+  locked: Take information before committing / Listen and read footsteps before moving  (main 38/50, evidence 20/20)
+    Shift a player towards the latest contact  follow-up 24/30  total  82
+    Hold and take more information             follow-up 22/30  total  80
+    Keep the current setup                     follow-up 19/30  total  77
+    Fall back and set up for a retake          follow-up  9/30  total  67
+  locked: Hold the current setup / Stay in the set positions and trade  (main 38/50, evidence 20/20)
+    Shift a player towards the latest contact  follow-up 24/30  total  82
+    Keep the current setup                     follow-up 22/30  total  80
+    Hold and take more information             follow-up 19/30  total  77
+    Fall back and set up for a retake          follow-up  9/30  total  67
+  locked: Rotate a player towards Middle / Rotate one player and keep the rest in place  (main 50/50, evidence 20/20)
+    Shift a player towards the latest contact  follow-up 30/30  total 100
+    Hold and take more information             follow-up 17/30  total  87
+    Keep the current setup                     follow-up 17/30  total  87
+    Fall back and set up for a retake          follow-up  6/30  total  76
+  locked: Fall back and play for a retake if they plant / Fall back together and regroup  (main 25/50, evidence 20/20)
+    Shift a player towards the latest contact  follow-up 21/30  total  66
+    Hold and take more information             follow-up 17/30  total  62
+    Keep the current setup                     follow-up 17/30  total  62
+    Fall back and set up for a retake          follow-up 15/30  total  60
+
+Stress lines:
+  good main -> stays with it               100  (follow-up 30/30: Rotate a player towards Middle -> Shift a player towards the latest contact)
+  good main -> unnecessary reversal         87  (follow-up 17/30: Rotate a player towards Middle -> Hold and take more information)
+  weak main -> best correction              66  (follow-up 21/30: Fall back and play for a retake if they plant -> Shift a player towards the latest contact)
+  weak main -> stubborn continuation        60  (follow-up 15/30: Fall back and play for a retake if they plant -> Fall back and set up for a retake)
+  plausible alternative -> stays with it    80  (follow-up 22/30: Take information before committing -> Hold and take more information)
+
+Follow-up checks:
+  no findings
 ```
 
 ## Follow-up
@@ -81,7 +111,16 @@ A new sighting: About 13 seconds later, the bomb carrier appears in Banana.
 - **new** — The bomb carrier is visible in Banana right now with a Desert Eagle.
 - **changed** — About 80 seconds now remain on the round clock.
 
-Responses and proposed follow-up quality: Change your line to use the new information = 92; Stick to the line you chose = 60; Slow down and gather more information = 55; Fall back to a deeper position = 30
+Proposed follow-up quality (0–100, worth up to 30 points) by the line the player locked (rows) and the answer they give now (columns):
+
+| Locked line | Hold and take more information | Fall back and set up for a retake | Shift a player towards the latest contact | Keep the current setup |
+| --- | --- | --- | --- | --- |
+| Take information before committing | 75 | 30 | 80 | 65 |
+| Hold the current setup | 65 | 30 | 80 | 75 |
+| Rotate a player towards Middle | 55 | 20 | 100 | 55 |
+| Fall back and play for a retake if they plant | 55 | 50 | 70 | 55 |
+
+The update leaves the strongest line unchanged: before, Rotate a player towards Middle; after, Rotate a player towards Middle.
 
 Follow-up caveats:
 
@@ -109,6 +148,7 @@ What to remember (proposed): Move weight only for information you trust: a fresh
 - The draft's best line (rotate one player towards Middle) comes from a template. The source team held Banana and killed the carrier there.
 - The follow-up is only visible to a team that still has players in Banana.
 - The attackers' pistols suggest an eco or a force buy, but the brief does not state their economy.
+- Follow-up matrix: the draft's priors do not weigh where a sighting is relative to the team, so after the carrier appears in Banana they still rate moving a player towards Middle as the strongest line (100) and holding as 75. A reviewer must set this row by hand.
 - Team comms may have provided information the demo cannot show (callouts, sound cues, teammates' kill positions).
 - The historical line is not assumed to be correct; it only records what this team did.
 - Sightings come from the demo's spotted flag, which can register enemies a player never consciously noticed.
@@ -120,13 +160,14 @@ What to remember (proposed): Move weight only for information you trust: a fresh
 
 ## Questions for the reviewer
 
-1. With the carrier last seen in T Ramp 13 s ago and two fresh sightings in Middle and T Ramp, is rotating a player away from Banana sensible, or should Banana stay stacked?
-2. A teammate has just died in Middle to a Desert Eagle: does that argue for sending a player towards Middle, or against it?
-3. Is "towards Middle" meaningful for the Apartments player, or should the option name a specific position?
-4. Is "fall back" ever a real option at 3v3 with no plant and 92 s left?
-5. Once the carrier appears in Banana, is keeping the setup really worse than adjusting it?
-6. Do Desert Eagle attackers indicate an eco or a force buy, and should the brief say so?
-7. Are "rotate one" and "rotate two" meaningfully different at 3v3?
+1. Once the bomb carrier appears in Banana, which line should score best for each locked call: keep a player moving towards Middle, keep the setup, or take more information? The draft's answer (Middle) ignores where the carrier is.
+2. With the carrier last seen in T Ramp 13 s ago and two fresh sightings in Middle and T Ramp, is rotating a player away from Banana sensible, or should Banana stay stacked?
+3. A teammate has just died in Middle to a Desert Eagle: does that argue for sending a player towards Middle, or against it?
+4. Is "towards Middle" meaningful for the Apartments player, or should the option name a specific position?
+5. Is "fall back" ever a real option at 3v3 with no plant and 92 s left?
+6. Once the carrier appears in Banana, is keeping the setup really worse than adjusting it?
+7. Do Desert Eagle attackers indicate an eco or a force buy, and should the brief say so?
+8. Are "rotate one" and "rotate two" meaningfully different at 3v3?
 
 ## Your verdict
 

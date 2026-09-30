@@ -113,7 +113,7 @@ const publicReveal = {
 } as const
 
 const serverRubric = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   caseRevision: 'case_revision_today_001',
   rubricRevision: 'rubric_revision_today_001',
   dimensions: [
@@ -149,8 +149,10 @@ const serverRubric = {
   followup: {
     type: 'new_information',
     responses: [
-      { responseId: 'keep_original', quality: 58 },
-      { responseId: 'change_mid', quality: 92 },
+      { actionId: 'regroup_a', responseId: 'keep_original', quality: 58 },
+      { actionId: 'regroup_a', responseId: 'change_mid', quality: 92 },
+      { actionId: 'pressure_mid', responseId: 'keep_original', quality: 30 },
+      { actionId: 'pressure_mid', responseId: 'change_mid', quality: 75 },
     ],
   },
 } as const

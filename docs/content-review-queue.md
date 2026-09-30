@@ -11,7 +11,7 @@ Every case here is `draft`. The options, rubric and debrief are proposals from t
    - the brief exactly as a player sees it;
    - the last 20 s of the source round;
    - every proposed line with its score under the production 50/20/30 model;
-   - the follow-up and its caveats;
+   - the follow-up, its caveats and the follow-up matrix: how each answer scores after each locked line;
    - what happened next;
    - the assumptions and the questions only a reviewer can answer.
 2. Optionally play it: run `npm run content:preview -- <case-id>`, then `npm run dev`, and open Today. Each preview makes that case today's case locally. It never touches production.
@@ -25,9 +25,9 @@ Packets are regenerated with `roundcraft-miner case packet` from `content/review
 |---|---|---|---|
 | 1 | `case_inferno_post_plant_356758` | CT 2v2 retake at A, 36 s, two kits, no utility | **REVIEW FIRST** |
 | 2 | `case_inferno_late_round_no_plant_a430fd` | T 2v2, 35 s, bomb dropped at Top of Mid | **REVIEW FIRST** |
-| 3 | `case_inferno_man_advantage_shift_927fb7` | CT 3v3 hold or rotate, 92 s, after a trade in Middle | **REVIEW FIRST** |
+| 3 | `case_mirage_opening_pick_cae8a3` | T 5v4 after the opening kill, 74 s | **REVIEW FIRST** |
 | 4 | `case_mirage_post_plant_4fb7d6` | CT 2v2 retake at A, 36 s, no kits, split team | **NEEDS TACTICAL DECISION** |
-| 5 | `case_mirage_opening_pick_cae8a3` | T 5v4 after the opening kill, 74 s | **KEEP** (second wave) |
+| 5 | `case_inferno_man_advantage_shift_927fb7` | CT 3v3 hold or rotate, 92 s, after a trade in Middle | **NEEDS TACTICAL DECISION** |
 | – | `case_inferno_post_plant_182a79` | CT 3v4 retake on the pistol round | DROP |
 | – | `case_mirage_late_round_no_plant_ecd6a2` | T 3v2 on the pistol round, two players on low HP | DROP |
 | – | `case_inferno_economy_save_71be3f` | T 2v3 plant or save, 14 s, match point | DROP |
@@ -35,6 +35,8 @@ Packets are regenerated with `roundcraft-miner case packet` from `content/review
 | – | `case_mirage_man_advantage_shift_e451c6` | T 2v3 after a trade, 78 s | DROP |
 
 DROP means "do not spend expert time on it now". The files stay in the repository, and the owner decides whether to delete them.
+
+The order changed once the follow-up was scored against the locked line. The Mirage 5v4 (`cae8a3`) moved up: it is now the one case where the follow-up tests a genuine change of mind. The Inferno 3v3 (`927fb7`) moved down: its follow-up row needs a reviewer to set it by hand.
 
 ## Review first
 
@@ -48,6 +50,7 @@ Two defenders in CT Spawn have 36 s left on a bomb planted at A. Both have kits 
   - A team that waits in CT Spawn might not see the Balcony smoke.
   - The smoke itself carries little tactical weight.
   - The draft ranks a grouped retake above a late kit defuse from a generic template. The source team retook together and lost.
+- Follow-up: the smoke leaves the grouped retake strongest. Staying with the retake scores 100. A team that waited gets 80 for going in now and 50 for waiting on, because only 26 s remain. A team that saved gets 70 for going in and 25 for staying saved.
 - Dispute for the reviewer: a quick grouped retake or a late kit defuse. Both look defensible, so the draft does not choose silently.
 
 ### 2. Inferno 2v2 late round: `case_inferno_late_round_no_plant_a430fd`
@@ -60,19 +63,21 @@ Two attackers in Middle have 35 s and no plant, both with AK-47s, one on 44 HP. 
   - The next kill comes 1 s after the Arch sighting, so the follow-up gives almost no time to react.
   - "The site" in "Commit to an execute now" is not named.
   - Picking up the bomb is implied rather than offered as an option.
+- Follow-up: the sighting leaves the execute strongest. With 24 s left, playing slowly or faking drops to 25, so a team that played slowly gets 80 for executing now.
 - Dispute for the reviewer: whether a slower 2v2 with one player on 44 HP is as defensible as committing now.
 
-### 3. Inferno 3v3 hold or rotate: `case_inferno_man_advantage_shift_927fb7`
+### 3. Mirage 5v4 after the opening kill: `case_mirage_opening_pick_cae8a3`
 
-Three defenders, two in Banana and one in Apartments, lead 11-2. A trade has just happened in Middle, where a teammate died to a Desert Eagle. Two attackers were seen 1.5 s ago, one in Middle and one in T Ramp, and the bomb carrier was last seen in T Ramp 13 s ago. The follow-up is the carrier appearing in Banana.
+Five attackers lead 5v4 after an opening kill, with 74 s left and the bomb in Palace. One defender is visible in Middle and three are unknown, with recent defender utility in Apartments. The first call is a posture choice: default, lurk, fake or execute. The follow-up is where the case earns its place. A second defender appears in Underpass, and with two of four defenders located, the draft's strongest line flips from playing slowly (100 before, 75 after) to executing now (50 before, 100 after).
 
-- Preview: `npm run content:preview -- case_inferno_man_advantage_shift_927fb7`
-- Packet: [`content/review/case_inferno_man_advantage_shift_927fb7/README.md`](../content/review/case_inferno_man_advantage_shift_927fb7/README.md)
+- Preview: `npm run content:preview -- case_mirage_opening_pick_cae8a3`
+- Packet: [`content/review/case_mirage_opening_pick_cae8a3/README.md`](../content/review/case_mirage_opening_pick_cae8a3/README.md)
+- Follow-up: a team that played slowly gets 80 for executing now and 75 for carrying on. A team that executed from the start gets 100 for continuing.
 - Issues:
-  - The draft's best line rotates a player towards Middle, away from Banana, where the carrier then appears.
-  - The follow-up is only visible to a team that keeps players in Banana.
-  - Every attacker is placed, so the brief has no unknown fact. This is the validator warning `no_uncertain_fact`.
-- Dispute for the reviewer: hold Banana or move weight to Middle after the trade.
+  - The first call is generic.
+  - The follow-up depends on a teammate's own move into Underpass.
+  - The pre-update best line matches what the winning team did. The rubric was not built from history, but the reviewer should check it.
+- Dispute for the reviewer: does locating a second defender with 63 s left justify switching to an execute?
 
 ### 4. Mirage 2v2 retake without kits: `case_mirage_post_plant_4fb7d6`
 
@@ -80,20 +85,23 @@ Two unarmoured defenders without kits have 36 s left on a bomb at A, so a defuse
 
 - Preview: `npm run content:preview -- case_mirage_post_plant_4fb7d6`
 - Packet: [`content/review/case_mirage_post_plant_4fb7d6/README.md`](../content/review/case_mirage_post_plant_4fb7d6/README.md)
+- Follow-up: with 23 s left, the draft raises saving from 25 to 75 while the retake stays at 100. A team that saved gets about the same for staying saved (75) as for going in (70).
 - Issues:
   - The follow-up is weak. Both attackers stayed still and were seen only because the defenders walked in, 0.2 s before the first kill.
   - "Retake together through the nearest entrance" does not fit two players 1,500 units apart.
 - Decision needed first: keep, re-author or remove the follow-up. After that, the tactical questions.
 
-### 5. Mirage 5v4 after the opening kill: `case_mirage_opening_pick_cae8a3`
+### 5. Inferno 3v3 hold or rotate: `case_inferno_man_advantage_shift_927fb7`
 
-Five attackers lead 5v4 after an opening kill, with 74 s left and the bomb in Palace. One defender is visible in Middle and three are unknown, with recent defender utility in Apartments. The brief is clean, but the question is a generic mid-round posture choice rather than a specific read.
+Three defenders, two in Banana and one in Apartments, lead 11-2. A trade has just happened in Middle, where a teammate died to a Desert Eagle. Two attackers were seen 1.5 s ago, one in Middle and one in T Ramp, and the bomb carrier was last seen in T Ramp 13 s ago. The follow-up is the carrier appearing in Banana.
 
-- Preview: `npm run content:preview -- case_mirage_opening_pick_cae8a3`
-- Packet: [`content/review/case_mirage_opening_pick_cae8a3/README.md`](../content/review/case_mirage_opening_pick_cae8a3/README.md)
+- Preview: `npm run content:preview -- case_inferno_man_advantage_shift_927fb7`
+- Packet: [`content/review/case_inferno_man_advantage_shift_927fb7/README.md`](../content/review/case_inferno_man_advantage_shift_927fb7/README.md)
+- Follow-up: the draft's priors do not weigh where a sighting is relative to the team. After the carrier appears in Banana, they still rate moving a player towards Middle as the strongest line (100) and keeping the setup as 75. That row must be set by a reviewer.
 - Issues:
-  - The follow-up depends on a teammate's own move into Underpass.
-  - The best line matches what the winning team did. The rubric was not built from history, but the reviewer should check it.
+  - The follow-up is only visible to a team that keeps players in Banana.
+  - Every attacker is placed, so the brief has no unknown fact. This is the validator warning `no_uncertain_fact`.
+- Decision needed first: hold Banana or move weight to Middle, before and after the carrier appears.
 
 ## Held back
 
@@ -103,34 +111,50 @@ Five attackers lead 5v4 after an opening kill, with 74 s left and the bomb in Pa
 - **`case_inferno_man_advantage_shift_6c2440`**: a 2v2 at match point where the follow-up exists only because the source team pushed into Middle. The draft's best line is a heuristic split of two players.
 - **`case_mirage_man_advantage_shift_e451c6`**: only one action scores as defensible (the validator warning `single_defensible_action`). The 0.1 s follow-up gives no time to react.
 
-## Rubric stress test
+## Follow-up scoring and stress test
 
-`npm run content:score -- <case-id>` scores every action × qualifier × evidence pair × follow-up answer with the production scoring code. Findings across all ten drafts:
+The follow-up is worth 30 of the 100 points. It used to be scored per answer, whatever the main call had been. In every draft, "Change your line to use the new information" earned 28/30 and "Stick to the line you chose" 18/30. So in `356758`, a player who kept the best line scored 88 and one who answered "change" scored 98.
+
+The rubric now keys every follow-up cell by main action (`schemaVersion: 2`, see [`content/README.md`](../content/README.md#follow-up-scoring)). The validator rejects a matrix with a missing cell, and one in which every answer scores the same after every action. It warns when an answer scores high and alike after main actions of clearly different quality.
+
+The draft generator asks "what is your line now?", with one answer per published action. Each cell is the value of that line under the post-update state, re-ranked by the same priors as the main call, minus a switching cost: 10 within the same posture, 20 one step apart, and 30 between passive and active. These values are proposals for the reviewer to confirm or rewrite row by row.
+
+`npm run content:score -- <case-id>` prints every locked line against every answer, and the named stress lines. The totals below are with the best qualifier and evidence pair for each line. They are identical when played through the real Worker.
+
+| Case | Good call kept | Good call needlessly reversed | Weak call, best correction | Weak call kept | Plausible alternative kept |
+|---|---|---|---|---|---|
+| `356758` | 100 | 79 | 54 (save → retake) | 40 | 73 (wait) |
+| `a430fd` | 100 | 72 | 72 (fake → execute) | 53 | 65 (slow) |
+| `cae8a3` | 93 (slow) | 87 | 75 (execute kept: after the update it is the strongest line) | 75 | 80 (lurk) |
+| `4fb7d6` | 100 | 79 | 55 (save kept: after the update it is defensible) | 55 | 73 (wait) |
+| `927fb7` | 100 | 87 | 66 (fall back → Middle) | 60 | 80 (information) |
+
+Before and after in `356758`, the Inferno retake:
+
+| Locked line → answer | Before | After |
+|---|---|---|
+| Retake → keep retaking ("stick") | 88 | 100 |
+| Retake → "change your line" / wait instead | 98 | 79 |
+| Wait → keep waiting | 76 | 73 |
+| Wait → go in now ("change") | 85 | 82 |
+| Save → go in now ("change") | 60 | 54 |
+| Save → keep saving | 42 | 40 |
+
+Other rubric findings, unchanged by this fix:
 
 | Finding | Effect | Proposed fix |
 |---|---|---|
-| Follow-up quality is set per response, independent of the main call. This is a limit of the rubric format. | For the seven drafts whose follow-up is new information, "Change your line to use the new information" always earns 28/30 and "Stick to the line you chose" 18/30. Always answering "change" adds about 10 points. A player who saved and then chooses "Stop and save the weapons" gets 9/30 for a consistent line. | Owner decision. Either extend the rubric so follow-up quality can depend on the main action (a contract change), or have the reviewer set follow-up qualities for each case. |
-| Rubrics come from situation templates, not from the round. | `356758` and `4fb7d6` have identical score distributions (min 23, median 70, max 98) despite kits vs no kits and no utility vs one HE. | Reviewer sets the main-call ratings. The draft ratings are a starting point. |
+| Main-call ratings come from situation templates, not from the round. | Retake cases with and without kits share the same main-call ratings. | Reviewer sets the main-call ratings. The draft ratings are a starting point. |
 | Evidence pairs barely separate. | For the reasonable actions, the best and worst evidence pairs differ by 6–7 of 20 points, and any pair with the clock scores near the top. | Reviewer checks the evidence matrix for the two or three signals that should matter. |
-| No combination reaches 100. | The maximum is 93–98. | Expected with a non-maximal evidence pair. Not a defect. |
+| The priors do not weigh where a sighting is relative to the team. | In `927fb7`, the follow-up still favours moving towards Middle after the carrier appears in Banana. | Reviewer sets that row by hand. |
 
-The historical line is never used as the answer key. Where the best line matches history (`cae8a3`), it is a coincidence of the template, to be confirmed by the reviewer.
+The historical line is never used as the answer key.
 
 ## Local preview check
 
-The shortlist was played end to end in the local preview (Worker plus local D1), with a new anonymous identity per line, 11 lines in total:
+The five cases were played end to end in the local preview (Worker plus local D1), with a new anonymous identity per line: the five stress lines of each case, 25 in total. Every total matched `content:score`. No API response carried follow-up content before the main call was locked, reveal content before the follow-up was locked, or rubric data at any point.
 
-| Case | Lines played |
-|---|---|
-| `356758` | retake 88, late kit defuse 83, save 34 |
-| `a430fd` | execute 96, slow 76 |
-| `4fb7d6` | retake 84, save 38 |
-| `927fb7` | rotate 98, hold 67 |
-| `cae8a3` | slow 96, execute 61 |
-
-For every line, no API response carried follow-up content before the main call was locked, reveal content before the follow-up was locked, or rubric data at any point. Brief, evidence, call, follow-up, reveal, "Your line" against "What actually happened" and "What to remember" all rendered.
-
-What the preview showed, beyond the rubric findings above:
+Still open from the preview:
 
 - The debrief explains the proposed best line even when the player chose another one. For example, a player who saved still reads "Why it works" for the grouped retake.
-- The follow-up review text is generic and does not change with the case.
+- The follow-up review now explains the scoring rule and names the strongest line after the update, but it is the same text for every player.

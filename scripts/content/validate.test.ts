@@ -93,8 +93,8 @@ describe('hard invariants', () => {
     ['an evidence pair is duplicated', (d) => { d.rubric.evidence.push({ ...d.rubric.evidence[0] }) }, 'evidence_duplicate'],
     ['an evidence cell uses an unknown id', (d) => { d.rubric.evidence[0].evidenceIds = ['e1', 'nope'] }, 'evidence_unknown_id'],
     ['a follow-up response has no rubric cell', (d) => { d.followup.responses.push({ id: 'third', label: 'A third option' }) }, 'followup_incomplete'],
-    ['the rubric covers an unpublished follow-up response', (d) => { d.rubric.followup.responses.push({ responseId: 'ghost', quality: 10 }) }, 'followup_extra'],
-    ['rubric follow-up type differs', (d) => { d.rubric.followup = { type: 'economy_risk', pairs: [{ postureId: 'x', priorityId: 'y', quality: 50 }] } }, 'followup_type'],
+    ['the rubric covers an unpublished follow-up response', (d) => { d.rubric.followup.responses.push({ actionId: 'a', responseId: 'ghost', quality: 10 }) }, 'followup_extra'],
+    ['rubric follow-up type differs', (d) => { d.rubric.followup = { type: 'economy_risk', pairs: [{ actionId: 'a', postureId: 'x', priorityId: 'y', quality: 50 }] } }, 'followup_type'],
     ['reveal references evidence missing from the brief', (d) => { d.reveal.debrief.evidenceReview[0].evidenceId = 'ghost' }, 'reveal_unknown_evidence'],
     ['no line reaches the Best-supported band', (d) => { d.rubric.main[0].ratings = { route_logic: 1, utility_timing: 1 }; d.rubric.main[2].ratings = { route_logic: 1, utility_timing: 1 } }, 'no_best_supported_line'],
     ['reveal repeats brief text (6 words)', (d) => { d.reveal.debrief.cost = 'Note: one defender was last seen at A twelve seconds ago.' }, 'disclosure_overlap'],
@@ -203,10 +203,12 @@ describe('hard invariants', () => {
       const pairs = ['safe|now', 'safe|later', 'bold|now', 'bold|later']
       d.rubric.followup = {
         type: 'economy_risk',
-        pairs: pairs.map((pair, index) => {
-          const [postureId, priorityId] = pair.split('|')
-          return { postureId, priorityId, quality: 90 - index * 20 }
-        }),
+        pairs: ['a', 'b', 'c'].flatMap((actionId, actionIndex) =>
+          pairs.map((pair, index) => {
+            const [postureId, priorityId] = pair.split('|')
+            return { actionId, postureId, priorityId, quality: 90 - ((index + actionIndex) % 4) * 20 }
+          }),
+        ),
       }
     })
 
@@ -267,6 +269,38 @@ describe('warnings', () => {
     })
 
     expect(codes(data).warnings).toContain('single_defensible_action')
+  })
+
+  it('rejects a main action without follow-up cells', () => {
+    const data = mutated((d) => {
+      d.rubric.followup.responses = d.rubric.followup.responses.filter(({ actionId }: { actionId: string }) => actionId !== 'c')
+    })
+
+    expect(codes(data).errors).toEqual(expect.arrayContaining(['followup_incomplete', 'scoring_incomplete']))
+  })
+
+  it('rejects a follow-up that scores every answer the same after every main action', () => {
+    const data = mutated((d) => {
+      for (const cell of d.rubric.followup.responses) cell.quality = cell.responseId === 'change_mid' ? 90 : 60
+    })
+
+    expect(codes(data).errors).toContain('followup_ignores_main_call')
+  })
+
+  it('warns when an answer scores high and alike after main actions of different quality', () => {
+    const data = mutated((d) => {
+      d.rubric.main = d.rubric.main.map((cell: { actionId: string }) => ({
+        ...cell,
+        ratings: cell.actionId === 'a' ? { route_logic: 4, utility_timing: 4 } : { route_logic: 2, utility_timing: 2 },
+      }))
+      for (const cell of d.rubric.followup.responses) {
+        if (cell.responseId === 'change_mid') cell.quality = cell.actionId === 'a' ? 90 : 88
+      }
+    })
+    const { warnings } = codes(data)
+
+    expect(warnings).toContain('followup_context_blind')
+    expect(codes(mutated(() => undefined)).warnings).not.toContain('followup_context_blind')
   })
 
   it('warns when the follow-up barely changes the score', () => {

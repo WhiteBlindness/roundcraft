@@ -1,6 +1,6 @@
 # Review packet: 5v4 with 74 s left and no plant on Mirage
 
-`case_mirage_opening_pick_cae8a3` · de_mirage · T side · status **draft** · recommendation **KEEP**
+`case_mirage_opening_pick_cae8a3` · de_mirage · T side · status **draft** · recommendation **REVIEW FIRST**
 
 Demo-grounded synthetic draft. Options, debrief and rubric are proposals generated from the source round; nothing here has had human tactical review. Time budget: 5–10 minutes.
 
@@ -8,7 +8,7 @@ Play it locally: `npm run content:preview -- case_mirage_opening_pick_cae8a3` th
 
 ## Why this case
 
-Five attackers with SMGs and a scout lead 5v4 after an opening kill, 40 seconds into the round, carrying the bomb in Palace. One defender with a FAMAS is visible in Middle; three are unknown, with recent defender smokes and a molotov in Apartments. The information handling is clean, but the decision is generic (default, probe, lurk, fake or commit), and the follow-up comes from a teammate's own movement into Underpass. Worth a second wave once the first four have been reviewed.
+Five attackers with SMGs and a scout lead 5v4 after an opening kill, 40 seconds into the round, carrying the bomb in Palace. One defender with a FAMAS is visible in Middle; three are unknown, with recent defender smokes and a molotov in Apartments. The first call is a posture choice (default, lurk, fake or execute). The follow-up is where this case earns its place: a second defender appears in Underpass, and with two of four defenders located the draft's strongest line flips from playing slowly to executing now. It is the one case in the queue where the follow-up tests a genuine change of mind, so the reviewer needs to decide whether that flip is right.
 
 ## Tactical snapshot
 
@@ -65,19 +65,49 @@ Evidence options (pick two): Round clock · Alive count · Defender spotted in M
 Every combination scored with the production 50/20/30 model:
 
 ```
-case_mirage_opening_pick_cae8a3: 320 combinations; min 43, p25 62, median 71, p75 80, max 98; 100s: 0
-  best  98  Keep the default and take information first / Play slowly and listen for rotations
-  best  93  Keep the default and take information first / Probe the nearest known contact
-  best  85  Use a lone lurker to pull a rotation / Send one player alone behind the defence
-  best  85  Fake one site, then rotate to the other / Sell the fake with utility
-  best  80  Use a lone lurker to pull a rotation / Send two players wide with a trade
-  best  80  Fake one site, then rotate to the other / Fake quietly and rotate early
-  best  73  Commit to an execute now / Use utility together to take space
-  best  68  Commit to an execute now / Keep some utility back for the post-plant
-  follow-up    18 / 30  Stick to the line you chose
-  follow-up 16-17 / 30  Slow down and gather more information
-  follow-up    28 / 30  Change your line to use the new information
-  follow-up     9 / 30  Drop the line you chose and reset
+case_mirage_opening_pick_cae8a3: 320 combinations; min 51, p25 68, median 75, p75 81, max 94; 100s: 0
+
+Main call (best total per line):
+   94  Keep the default and take information first / Play slowly and listen for rotations
+   89  Keep the default and take information first / Probe the nearest known contact
+   85  Use a lone lurker to pull a rotation / Send one player alone behind the defence
+   85  Fake one site, then rotate to the other / Sell the fake with utility
+   80  Use a lone lurker to pull a rotation / Send two players wide with a trade
+   80  Fake one site, then rotate to the other / Fake quietly and rotate early
+   75  Commit to an execute now / Use utility together to take space
+   70  Commit to an execute now / Keep some utility back for the post-plant
+
+Follow-up against the locked line (best qualifier and evidence pair for that line):
+  locked: Use a lone lurker to pull a rotation / Send one player alone behind the defence  (main 38/50, evidence 20/20)
+    Execute on the site now                 follow-up 27/30  total  85
+    Keep the lurk going to pull a rotation  follow-up 22/30  total  80
+    Fake here and rotate away               follow-up 19/30  total  77
+    Keep playing slowly for information     follow-up 16/30  total  74
+  locked: Keep the default and take information first / Play slowly and listen for rotations  (main 50/50, evidence 20/20)
+    Execute on the site now                 follow-up 24/30  total  94
+    Keep playing slowly for information     follow-up 23/30  total  93
+    Keep the lurk going to pull a rotation  follow-up 17/30  total  87
+    Fake here and rotate away               follow-up 17/30  total  87
+  locked: Fake one site, then rotate to the other / Sell the fake with utility  (main 38/50, evidence 20/20)
+    Execute on the site now                 follow-up 27/30  total  85
+    Fake here and rotate away               follow-up 22/30  total  80
+    Keep the lurk going to pull a rotation  follow-up 19/30  total  77
+    Keep playing slowly for information     follow-up 16/30  total  74
+  locked: Commit to an execute now / Use utility together to take space  (main 25/50, evidence 20/20)
+    Execute on the site now                 follow-up 30/30  total  75
+    Keep the lurk going to pull a rotation  follow-up 20/30  total  65
+    Fake here and rotate away               follow-up 20/30  total  65
+    Keep playing slowly for information     follow-up 17/30  total  62
+
+Stress lines:
+  good main -> stays with it                93  (follow-up 23/30: Keep the default and take information first -> Keep playing slowly for information)
+  good main -> unnecessary reversal         87  (follow-up 17/30: Keep the default and take information first -> Keep the lurk going to pull a rotation)
+  weak main -> best correction              75  (follow-up 30/30: Commit to an execute now -> Execute on the site now)
+  weak main -> stubborn continuation        75  (follow-up 30/30: Commit to an execute now -> Execute on the site now)
+  plausible alternative -> stays with it    80  (follow-up 22/30: Use a lone lurker to pull a rotation -> Keep the lurk going to pull a rotation)
+
+Follow-up checks:
+  no findings
 ```
 
 ## Follow-up
@@ -88,7 +118,16 @@ A new sighting: About 12 seconds later, a defender appears in Underpass.
 - **new** — The positions of two defenders are unknown.
 - **changed** — About 63 seconds now remain on the round clock.
 
-Responses and proposed follow-up quality: Change your line to use the new information = 92; Stick to the line you chose = 60; Slow down and gather more information = 55; Drop the line you chose and reset = 30
+Proposed follow-up quality (0–100, worth up to 30 points) by the line the player locked (rows) and the answer they give now (columns):
+
+| Locked line | Keep playing slowly for information | Execute on the site now | Keep the lurk going to pull a rotation | Fake here and rotate away |
+| --- | --- | --- | --- | --- |
+| Use a lone lurker to pull a rotation | 55 | 90 | 75 | 65 |
+| Keep the default and take information first | 75 | 80 | 55 | 55 |
+| Fake one site, then rotate to the other | 55 | 90 | 65 | 75 |
+| Commit to an execute now | 55 | 100 | 65 | 65 |
+
+The update changes the strongest line: before, Keep the default and take information first; after, Commit to an execute now.
 
 Follow-up caveats:
 
@@ -115,6 +154,7 @@ What to remember (proposed): Decide when to stop gathering information: keep rea
 - The best line (play slowly and take information) matches what the source team did; the rubric was not built from history, but the match should be checked.
 - One attacker is on very low HP, which the draft does not weigh.
 - The follow-up depends on the source team's own movement.
+- Follow-up matrix: locating a second defender flips the strongest line from the slow default (100 before, 75 after) to the execute (50 before, 100 after). The rule behind it is that an execute becomes best once the team has utility, level or better numbers and at least 40% of the defenders located.
 - Team comms may have provided information the demo cannot show (callouts, sound cues, teammates' kill positions).
 - The historical line is not assumed to be correct; it only records what this team did.
 - Sightings come from the demo's spotted flag, which can register enemies a player never consciously noticed.
@@ -126,12 +166,13 @@ What to remember (proposed): Decide when to stop gathering information: keep rea
 
 ## Questions for the reviewer
 
-1. At 5v4 with the bomb near A and 74 s left, is taking information first really best, or is an early A execute standard?
-2. Does the opening kill create a window to exploit immediately?
-3. Do the defender smokes and molotov in Apartments signal an aggressive defender play?
-4. What should a fake mean with one smoke and five flashes?
-5. Is a lurk sensible when one teammate is on very low HP?
-6. Is this case specific enough to teach something, or is it a generic mid-round posture question that should be dropped?
+1. When the second defender appears in Underpass with 63 s left, does that justify switching from the slow default to an execute now, as the draft proposes (80 for switching, 75 for continuing)?
+2. At 5v4 with the bomb near A and 74 s left, is taking information first really best, or is an early A execute standard?
+3. Does the opening kill create a window to exploit immediately?
+4. Do the defender smokes and molotov in Apartments signal an aggressive defender play?
+5. What should a fake mean with one smoke and five flashes?
+6. Is a lurk sensible when one teammate is on very low HP?
+7. Is this case specific enough to teach something, or is it a generic mid-round posture question that should be dropped?
 
 ## Your verdict
 

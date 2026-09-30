@@ -67,6 +67,31 @@ def _timeline(events: list[Any], start: float) -> list[str]:
     return lines
 
 
+def _followup_matrix_lines(case: dict[str, Any], dims: list[dict[str, Any]]) -> list[str]:
+    """Follow-up quality (0-100) for every locked line (rows) and follow-up answer (columns)."""
+    brief, followup, rubric = case["brief"], case["followup"], case["rubric"]
+    responses = followup.get("responses", [])
+    cells = {(c["actionId"], c["responseId"]): c["quality"] for c in rubric["followup"].get("responses", [])}
+    labels = {a["id"]: a["label"] for a in brief["actions"]}
+    lines = [
+        "Proposed follow-up quality (0–100, worth up to 30 points) by the line the player locked (rows) and the answer "
+        "they give now (columns):",
+        "",
+        "| Locked line | " + " | ".join(r["label"] for r in responses) + " |",
+        "| --- |" + " --- |" * len(responses),
+    ]
+    for action in brief["actions"]:
+        lines.append(f"| {labels[action['id']]} | " + " | ".join(str(cells.get((action["id"], r["id"]), "–")) for r in responses) + " |")
+    stay = {a["id"]: cells.get((a["id"], f"now_{a['id']}")) for a in brief["actions"]}
+    if all(isinstance(value, int) for value in stay.values()):
+        best_main = max(rubric["main"], key=lambda m: _quality(m, dims))["actionId"]
+        best_now = max(stay, key=lambda i: stay[i])
+        verdict = ("The update leaves the strongest line unchanged" if best_now == best_main
+                   else "The update changes the strongest line")
+        lines += ["", f"{verdict}: before, {labels[best_main]}; after, {labels[best_now]}."]
+    return lines + [""]
+
+
 def build_packet(case_id: str, questions: dict[str, Any]) -> Path:
     case_path = paths.cases_dir() / f"{case_id}.json"
     case = read_json(case_path)
@@ -137,12 +162,7 @@ def build_packet(case_id: str, questions: dict[str, Any]) -> Path:
         "",
         *[f"- **{u['status']}** — {u['text']}" for u in followup.get("updates", [])],
         "",
-        "Responses and proposed follow-up quality: "
-        + "; ".join(
-            f"{next((r['label'] for r in followup.get('responses', []) if r['id'] == cell['responseId']), cell['responseId'])} = {cell['quality']}"
-            for cell in sorted(rubric["followup"].get("responses", []), key=lambda c: -c["quality"])
-        ),
-        "",
+        *_followup_matrix_lines(case, dims),
     ]
     flags = []
     if fu.get("dependsOnOwnMovement"):

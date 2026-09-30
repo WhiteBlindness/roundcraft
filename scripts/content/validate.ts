@@ -13,6 +13,14 @@ import { scoreDecision } from '../../src/domain/scoring'
 import { scoringInputFor, serverRubricSchema } from '../../src/domain/server-rubric'
 import type { ServerRubric } from '../../src/domain/server-rubric'
 import { defaultRoot, loadCases } from './lib'
+import {
+  bestLineByAction,
+  duplicates,
+  followupKey,
+  followupMatrixFindings,
+  mainLineQualities,
+  sample,
+} from './rubric-analysis'
 import type { LoadedCase } from './lib'
 import {
   caseFileSchema,
@@ -57,21 +65,6 @@ function zodMessages(prefix: string, error: {
   const hidden = error.issues.length - shown.length
 
   return hidden > 0 ? [...shown, `${prefix}: … and ${hidden} more issue(s)`] : shown
-}
-
-function duplicates(values: readonly string[]): string[] {
-  const seen = new Set<string>()
-  const repeated = new Set<string>()
-  for (const value of values) {
-    if (seen.has(value)) repeated.add(value)
-    seen.add(value)
-  }
-  return [...repeated]
-}
-
-function sample<T>(items: readonly T[], size = 4): string {
-  const shown = items.slice(0, size).map(String).join(', ')
-  return items.length > size ? `${shown}, … (+${items.length - size})` : shown
 }
 
 function evidencePairs(ids: readonly string[]): string[] {
@@ -455,24 +448,9 @@ function checkPayloads(
   if (rubric.followup.type !== followup.type) {
     error('followup_type', `rubric.followup.type "${rubric.followup.type}" must equal followup.type "${followup.type}"`)
   } else {
-    const expected = followupAnswers.map((answer) => followupKey(answer))
-    const actual =
-      rubric.followup.type === 'new_information'
-        ? rubric.followup.responses.map(({ responseId }) => responseId)
-        : rubric.followup.pairs.map(({ postureId, priorityId }) => `${postureId}|${priorityId}`)
-    const missing = expected.filter((key) => !actual.includes(key))
-    const extra = actual.filter((key) => !expected.includes(key))
-    const repeated = duplicates(actual)
-    if (missing.length > 0) error('followup_incomplete', `rubric.followup is missing published answers: ${sample(missing)}`)
-    if (extra.length > 0) error('followup_extra', `rubric.followup covers unpublished answers: ${sample(extra)}`)
-    if (repeated.length > 0) error('followup_duplicate', `rubric.followup repeats answers: ${sample(repeated)}`)
-
-    const qualities =
-      rubric.followup.type === 'new_information'
-        ? rubric.followup.responses.map(({ quality }) => quality)
-        : rubric.followup.pairs.map(({ quality }) => quality)
-    if (qualities.length > 1 && Math.max(...qualities) - Math.min(...qualities) < 20) {
-      warn('followup_flat', 'follow-up qualities differ by less than 20 points: the follow-up barely changes the score')
+    for (const finding of followupMatrixFindings(brief, rubric, followupAnswers)) {
+      if (finding.severity === 'error') error(finding.code, finding.message)
+      else warn(finding.code, finding.message)
     }
   }
 
@@ -532,12 +510,6 @@ function followupAnswersFor(followup: PublicFollowup): FollowupAnswer[] {
       priority_id: priority.id,
     })),
   )
-}
-
-function followupKey(answer: FollowupAnswer): string {
-  return answer.type === 'new_information'
-    ? answer.response_id
-    : `${answer.posture_id}|${answer.priority_id}`
 }
 
 function checkScoring(
@@ -605,21 +577,7 @@ function checkScoring(
   }
 
   // Quality of each published line, with caps applied (drives the result band).
-  const lineQuality = new Map<string, number>()
-  for (const cell of rubric.main) {
-    try {
-      const quarter = scoreDecision({
-        weights: Object.fromEntries(rubric.dimensions.map(({ id, weight }) => [id, weight])),
-        ratings: cell.ratings,
-        evidencePoints: 0,
-        followupQuality: 0,
-        caps: cell.caps,
-      }).qualityQuarterUnits
-      lineQuality.set(`${cell.actionId}/${cell.qualifierId}`, quarter / 4)
-    } catch {
-      // Reported by the rubric schema checks.
-    }
-  }
+  const lineQuality = mainLineQualities(rubric)
 
   const bestOverall = Math.max(0, ...lineQuality.values())
   if (outcomeBand(bestOverall) !== 'Best-supported') {
@@ -629,13 +587,7 @@ function checkScoring(
     )
   }
 
-  const bestByAction = brief.actions.map((action) => ({
-    id: action.id,
-    best: Math.max(
-      0,
-      ...action.qualifierIds.map((qualifierId) => lineQuality.get(`${action.id}/${qualifierId}`) ?? 0),
-    ),
-  }))
+  const bestByAction = [...bestLineByAction(brief, lineQuality)].map(([id, best]) => ({ id, best }))
   const top = Math.max(...bestByAction.map(({ best }) => best))
   const leaders = bestByAction.filter(({ best }) => best === top)
   if (leaders.length === 1 && leaders[0]?.id === brief.actions[0]?.id) {

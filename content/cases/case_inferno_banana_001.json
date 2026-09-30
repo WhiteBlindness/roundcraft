@@ -187,7 +187,7 @@
     "principle": "When a sound cue reveals that a rotating defender is still repositioning, exploit the timing gap before the defence sets — but only if your utility can remove one angle of the cross-fire."
   },
   "rubric": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "caseRevision": "cr_inferno_banana_001",
     "rubricRevision": "rr_inferno_banana_001",
     "dimensions": [{ "id": "timing", "weight": 55 }, { "id": "utility_use", "weight": 45 }],
@@ -239,9 +239,15 @@
     "followup": {
       "type": "new_information",
       "responses": [
-        { "responseId": "proceed_execute", "quality": 65 },
-        { "responseId": "split_entry", "quality": 92 },
-        { "responseId": "abort_rotate", "quality": 30 }
+        { "actionId": "execute_b", "responseId": "proceed_execute", "quality": 65 },
+        { "actionId": "execute_b", "responseId": "split_entry", "quality": 92 },
+        { "actionId": "execute_b", "responseId": "abort_rotate", "quality": 30 },
+        { "actionId": "fake_b_rotate_a", "responseId": "proceed_execute", "quality": 65 },
+        { "actionId": "fake_b_rotate_a", "responseId": "split_entry", "quality": 92 },
+        { "actionId": "fake_b_rotate_a", "responseId": "abort_rotate", "quality": 30 },
+        { "actionId": "hold_banana", "responseId": "proceed_execute", "quality": 65 },
+        { "actionId": "hold_banana", "responseId": "split_entry", "quality": 92 },
+        { "actionId": "hold_banana", "responseId": "abort_rotate", "quality": 30 }
       ]
     }
   }

@@ -1,4 +1,4 @@
-"""Deterministic heuristic priors: main matrix, evidence matrix and follow-up qualities.
+"""Deterministic heuristic priors: main matrix, evidence matrix and follow-up matrix.
 
 Every value is derived from (situation template, player-known Features) by the rules in
 templates.py; nothing here reads ground truth. Each computation records a human-readable
@@ -15,14 +15,13 @@ from typing import Any
 from .features import Features, extract_features
 from .templates import (
     available_qualifiers,
-    FOLLOWUP_QUALITY,
+    now_label,
     POOR_CAP,
     TIER_ORDER,
     TIER_RATINGS,
-    URGENT_QUALITY_BEST,
-    URGENT_QUALITY_OTHERS,
     ActionT,
     Situation,
+    switch_cost,
 )
 
 
@@ -86,11 +85,12 @@ def offered_actions(sit: Situation, f: Features) -> list[ActionT]:
     return chosen[:5]
 
 
-def compute_main_prior(sit: Situation, f: Features) -> MainPrior:
+def compute_main_prior(sit: Situation, f: Features, actions: list[ActionT] | None = None) -> MainPrior:
+    """Rank the offered actions (or exactly `actions`, e.g. the published ones re-read after the follow-up)."""
     weights = dict(sit.dims)
     wpair = (sit.dims[0][1], sit.dims[1][1])
     tiers: dict[str, tuple[str, str]] = {}
-    offered = offered_actions(sit, f)
+    offered = list(actions) if actions is not None else offered_actions(sit, f)
     for action in offered:
         tier, reason = action.default_tier, "default"
         for rule in action.tier_rules:
@@ -107,7 +107,7 @@ def compute_main_prior(sit: Situation, f: Features) -> MainPrior:
         normalised.append(f"{lead.id}: promoted from '{old}' to 'best' (no action reached the top tier under the rules)")
 
     priors: list[ActionPrior] = []
-    for action in offered_actions(sit, f):
+    for action in offered:
         tier, tier_reason = tiers[action.id]
         caps: list[int] = []
         cap_reasons: list[str] = []
@@ -281,16 +281,16 @@ def generic_elapsed(f: Features) -> int | None:
     return GENERIC_ELAPSED_SECONDS if f.time_left >= 10 else max(1, int(f.time_left // 2))
 
 
-def followup_class(sit: Situation, before: Features, followup: dict[str, Any] | None, candidate: dict[str, Any]) -> tuple[str, str, Features | None]:
-    """Return (class, explanation, features after)."""
+def followup_class(sit: Situation, before: Features, followup: dict[str, Any] | None,
+                   candidate: dict[str, Any]) -> tuple[str, str, Features]:
+    """Return (class, explanation, player-known features after the follow-up)."""
     if followup is None:
         elapsed = generic_elapsed(before)
-        if elapsed is not None:
-            later = replace(before, time_left=max(0.0, before.time - elapsed))
-            if sit.urgent_test(later):
-                return ("urgent", f"no follow-up was available; after {elapsed} s of the clock running down the state is urgent: "
-                        f"{sit.urgent_text}", later)
-        return "no_followup", "no follow-up available: conservative generic qualities", None
+        later = replace(before, time_left=max(0.0, before.time - elapsed)) if elapsed is not None else before
+        if elapsed is not None and sit.urgent_test(later):
+            return ("urgent", f"no follow-up was available; after {elapsed} s of the clock running down the state is urgent: "
+                    f"{sit.urgent_text}", later)
+        return "no_followup", "no follow-up available: the clock runs down with no new contact", later
     after_candidate = {
         "playerKnown": followup["knowledgeAfter"],
         "perspective": candidate.get("perspective"),
@@ -312,21 +312,56 @@ def followup_class(sit: Situation, before: Features, followup: dict[str, Any] | 
         return "default", f"follow-up kind '{kind}' without a change in the alive counts", after
     if any(word in kind for word in ("spot", "seen", "sight", "sound", "heard", "utility", "position", "contact")):
         return "position_info", f"follow-up kind '{kind}' adds information about opponent position or utility", after
-    return "default", f"follow-up kind '{kind}' not specifically recognised: default table", after
+    return "default", f"follow-up kind '{kind}' not specifically recognised", after
 
 
-def followup_qualities(sit: Situation, cls: str) -> dict[str, int]:
-    if cls == "urgent":
-        table = dict(URGENT_QUALITY_OTHERS)
-        table[sit.urgent_best] = URGENT_QUALITY_BEST
-        return table
-    return dict(FOLLOWUP_QUALITY[cls])
+def response_id(action_id: str) -> str:
+    return f"now_{action_id}"
 
 
-def order_responses(responses: list[Any], qualities: dict[str, int], candidate_id: str) -> list[Any]:
-    ordered = sorted(responses, key=lambda r: stable_hash(candidate_id, "response", r.id))
-    best_id = max(responses, key=lambda r: qualities[r.id]).id
-    if len(ordered) > 1 and ordered[0].id == best_id:
+@dataclass
+class FollowupMatrix:
+    """Follow-up rubric proposal: cells[(locked action, line now)] -> quality 0..100."""
+    value_after: dict[str, float]  # best line quality of each published action under the post-update state
+    best_before: str
+    best_after: str
+    cells: dict[tuple[str, str], int]
+    place: str | None = None  # the place named in the brief; "line now" labels stay anchored to it
+    explain: list[str] = field(default_factory=list)
+
+    def label(self, action_id: str) -> str:
+        return now_label(action_id, self.place)
+
+
+def followup_matrix(sit: Situation, main: MainPrior, before: Features, after: Features) -> FollowupMatrix:
+    """Score each (locked action, line now) pair: value of the line now after the update, minus the switching cost.
+
+    Sticking with a line the update leaves sound keeps its full value; switching earns the new line's value less
+    the time and position a switch costs; a stubborn weak line keeps its weak value. The locked qualifier does not
+    change the follow-up score: execution detail is already scored in the main call."""
+    templates = [a.template for a in main.actions]
+    after_prior = compute_main_prior(sit, after, actions=templates)
+    value_after = {a.template.id: a.best_quality for a in after_prior.actions}
+    ids = [t.id for t in templates]
+    cells = {
+        (locked, now): max(0, min(100, int(round(value_after[now] - switch_cost(locked, now)))))
+        for locked in ids for now in ids
+    }
+    best_after = max(ids, key=lambda i: (value_after[i], -ids.index(i)))
+    explain = [f"after the update: {after.describe()}"]
+    explain += [f"  line now {i}: value {value_after[i]:g} (before {next(a.best_quality for a in main.actions if a.template.id == i):g})"
+                for i in ids]
+    if after_prior.normalised:
+        explain.append("  " + "; ".join(after_prior.normalised))
+    explain.append("  cell = value of the line now - switching cost (10 same posture, 20 one step, 30 passive<->active; 0 when unchanged)")
+    return FollowupMatrix(value_after, main.actions[0].template.id, best_after, cells, before.place, explain)
+
+
+def order_responses(action_ids: list[str], value_after: dict[str, float], candidate_id: str) -> list[str]:
+    """Deterministic order of the line-now responses; the strongest line after the update is never listed first."""
+    ordered = sorted(action_ids, key=lambda i: stable_hash(candidate_id, "response", i))
+    best_id = max(action_ids, key=lambda i: (value_after[i], -action_ids.index(i)))
+    if len(ordered) > 1 and ordered[0] == best_id:
         swap_with = 1 + stable_hash(candidate_id, "rswap") % (len(ordered) - 1)
         ordered[0], ordered[swap_with] = ordered[swap_with], ordered[0]
     return ordered

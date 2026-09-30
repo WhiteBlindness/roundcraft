@@ -60,18 +60,40 @@ Evidence options (pick two): Bomb timer · Alive count · Attacker last seen in 
 Every combination scored with the production 50/20/30 model:
 
 ```
-case_mirage_post_plant_4fb7d6: 280 combinations; min 23, p25 51, median 70, p75 79, max 98; 100s: 0
-  best  98  Retake together through the nearest entrance / Clear the site together and trade the first contact
-  best  93  Retake together through the nearest entrance / Move as one stack and keep utility for the defuse
-  best  85  Wait for information before committing / Listen for footsteps before moving
-  best  85  Retake together through the nearest entrance / Send one player ahead to probe while the other follows
-  best  80  Wait for information before committing / Hold back and go for a late defuse
-  best  60  Save the weapons / Everyone saves and avoids contact
-  best  55  Save the weapons / Save, but take a trade if an attacker is met
-  follow-up 16-17 / 30  Slow down and gather more information
-  follow-up    28 / 30  Change your line to use the new information
-  follow-up    18 / 30  Stick to the line you chose
-  follow-up     9 / 30  Stop and save the weapons
+case_mirage_post_plant_4fb7d6: 210 combinations; min 23, p25 49, median 69, p75 77, max 100; 100s: 1
+
+Main call (best total per line):
+  100  Retake together through the nearest entrance / Clear the site together and trade the first contact
+   95  Retake together through the nearest entrance / Move as one stack and keep utility for the defuse
+   88  Retake together through the nearest entrance / Send one player ahead to probe while the other follows
+   82  Wait for information before committing / Listen for footsteps before moving
+   77  Wait for information before committing / Hold back and go for a late defuse
+   55  Save the weapons / Everyone saves and avoids contact
+   50  Save the weapons / Save, but take a trade if an attacker is met
+
+Follow-up against the locked line (best qualifier and evidence pair for that line):
+  locked: Wait for information before committing / Listen for footsteps before moving  (main 38/50, evidence 20/20)
+    Go into the retake together now          follow-up 24/30  total  82
+    Save the weapons from here               follow-up 16/30  total  74
+    Hold off and keep gathering information  follow-up 15/30  total  73
+  locked: Save the weapons / Everyone saves and avoids contact  (main 13/50, evidence 20/20)
+    Save the weapons from here               follow-up 22/30  total  55
+    Go into the retake together now          follow-up 21/30  total  54
+    Hold off and keep gathering information  follow-up  9/30  total  42
+  locked: Retake together through the nearest entrance / Clear the site together and trade the first contact  (main 50/50, evidence 20/20)
+    Go into the retake together now          follow-up 30/30  total 100
+    Save the weapons from here               follow-up 14/30  total  84
+    Hold off and keep gathering information  follow-up  9/30  total  79
+
+Stress lines:
+  good main -> stays with it               100  (follow-up 30/30: Retake together through the nearest entrance -> Go into the retake together now)
+  good main -> unnecessary reversal         79  (follow-up  9/30: Retake together through the nearest entrance -> Hold off and keep gathering information)
+  weak main -> best correction              55  (follow-up 22/30: Save the weapons -> Save the weapons from here)
+  weak main -> stubborn continuation        55  (follow-up 22/30: Save the weapons -> Save the weapons from here)
+  plausible alternative -> stays with it    73  (follow-up 15/30: Wait for information before committing -> Hold off and keep gathering information)
+
+Follow-up checks:
+  no findings
 ```
 
 ## Follow-up
@@ -82,7 +104,15 @@ A new sighting: About 13 seconds later, two attackers appear: one in A site, one
 - **new** — One attacker is visible in Jungle right now with a Desert Eagle.
 - **changed** — About 23 seconds now remain on the bomb timer.
 
-Responses and proposed follow-up quality: Change your line to use the new information = 92; Stick to the line you chose = 60; Slow down and gather more information = 55; Stop and save the weapons = 30
+Proposed follow-up quality (0–100, worth up to 30 points) by the line the player locked (rows) and the answer they give now (columns):
+
+| Locked line | Hold off and keep gathering information | Save the weapons from here | Go into the retake together now |
+| --- | --- | --- | --- |
+| Wait for information before committing | 50 | 55 | 80 |
+| Save the weapons | 30 | 75 | 70 |
+| Retake together through the nearest entrance | 30 | 45 | 100 |
+
+The update leaves the strongest line unchanged: before, Retake together through the nearest entrance; after, Retake together through the nearest entrance.
 
 Follow-up caveats:
 
@@ -106,6 +136,7 @@ What to remember (proposed): On a retake, weigh the seconds a defuse needs again
 - The follow-up sighting exists only because the source team moved; the attackers did not move during those 13 seconds.
 - The draft's grouped-retake qualifiers assume the two defenders can move together, but they start far apart and used two routes in the source round.
 - Without kits, the draft still ranks a late defuse as a waiting line; whether that is realistic is a tactical question.
+- Follow-up matrix: with 23 s left and no kit, the draft raises saving from 25 to 75 while the retake stays at 100, so a team that saved is credited about the same for staying saved (75) as for going in now (70).
 - Team comms may have provided information the demo cannot show (callouts, sound cues, teammates' kill positions).
 - The historical line is not assumed to be correct; it only records what this team did.
 - Sightings come from the demo's spotted flag, which can register enemies a player never consciously noticed.
@@ -123,6 +154,7 @@ What to remember (proposed): On a retake, weigh the seconds a defuse needs again
 4. Is a 23-second-old Desert Eagle sighting at Top of Mid meaningful evidence for this decision?
 5. Should this case keep its current follow-up (both attackers seen as the defenders arrive), or should the follow-up be removed or re-authored?
 6. Is one HE grenade relevant to a 10-second no-kit defuse, and what should "keep utility for the defuse" mean here?
+7. With both attackers seen, 23 s left and a 10 s defuse, is saving now as reasonable as the draft proposes (75), and is going in still the best line?
 
 ## Your verdict
 

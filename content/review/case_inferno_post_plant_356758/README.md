@@ -8,7 +8,7 @@ Play it locally: `npm run content:preview -- case_inferno_post_plant_356758` the
 
 ## Why this case
 
-Two defenders in CT Spawn face a bomb planted at A about 4 seconds earlier, 36 seconds before detonation. Both carry defuse kits and full armour but no utility. One attacker with an AK-47 was last seen in A site 14 seconds ago; the planter is unknown. It is the cleanest brief in the set: every fact comes from what the defenders could know, and the follow-up (an enemy smoke in Balcony) is thrown by the attackers rather than discovered by the defenders' own movement. The open question is the classic one: retake together now, or wait and commit late to a kit defuse.
+Two defenders in CT Spawn face a bomb planted at A about 4 seconds earlier, 36 seconds before detonation. Both carry defuse kits and full armour but no utility. One attacker with an AK-47 was last seen in A site 14 seconds ago; the planter is unknown. It is the cleanest brief in the set: every fact comes from what the defenders could know. The follow-up (an enemy smoke in Balcony) is an attacker action, although a team that stayed in CT Spawn might not have seen it. The open question is the classic one: retake together now, or wait and commit late to a kit defuse.
 
 ## Tactical snapshot
 
@@ -60,18 +60,40 @@ Evidence options (pick two): Bomb timer · Alive count · Attacker last seen in 
 Every combination scored with the production 50/20/30 model:
 
 ```
-case_inferno_post_plant_356758: 280 combinations; min 23, p25 51, median 70, p75 79, max 98; 100s: 0
-  best  98  Retake together, clearing A site first / Clear the known position together and trade the first contact
-  best  93  Retake together, clearing A site first / Move as one stack and trade every contact
-  best  85  Wait for information before committing / Hold back and go for a late defuse
-  best  85  Retake together, clearing A site first / Send one player ahead to probe while the other follows
-  best  80  Wait for information before committing / Listen for footsteps before moving
-  best  60  Save the weapons / Everyone saves and avoids contact
-  best  55  Save the weapons / Save, but take a trade if an attacker is met
-  follow-up    18 / 30  Stick to the line you chose
-  follow-up 16-17 / 30  Slow down and gather more information
-  follow-up    28 / 30  Change your line to use the new information
-  follow-up     9 / 30  Stop and save the weapons
+case_inferno_post_plant_356758: 210 combinations; min 21, p25 46, median 64, p75 75, max 100; 100s: 1
+
+Main call (best total per line):
+  100  Retake together, clearing A site first / Clear the known position together and trade the first contact
+   95  Retake together, clearing A site first / Move as one stack and trade every contact
+   88  Retake together, clearing A site first / Send one player ahead to probe while the other follows
+   82  Wait for information before committing / Hold back and go for a late defuse
+   77  Wait for information before committing / Listen for footsteps before moving
+   54  Save the weapons / Everyone saves and avoids contact
+   49  Save the weapons / Save, but take a trade if an attacker is met
+
+Follow-up against the locked line (best qualifier and evidence pair for that line):
+  locked: Wait for information before committing / Hold back and go for a late defuse  (main 38/50, evidence 20/20)
+    Go into the retake together now          follow-up 24/30  total  82
+    Hold off and keep gathering information  follow-up 15/30  total  73
+    Save the weapons from here               follow-up  1/30  total  59
+  locked: Retake together, clearing A site first / Clear the known position together and trade the first contact  (main 50/50, evidence 20/20)
+    Go into the retake together now          follow-up 30/30  total 100
+    Hold off and keep gathering information  follow-up  9/30  total  79
+    Save the weapons from here               follow-up  0/30  total  70
+  locked: Save the weapons / Everyone saves and avoids contact  (main 13/50, evidence 20/20)
+    Go into the retake together now          follow-up 21/30  total  54
+    Hold off and keep gathering information  follow-up  9/30  total  42
+    Save the weapons from here               follow-up  7/30  total  40
+
+Stress lines:
+  good main -> stays with it               100  (follow-up 30/30: Retake together, clearing A site first -> Go into the retake together now)
+  good main -> unnecessary reversal         79  (follow-up  9/30: Retake together, clearing A site first -> Hold off and keep gathering information)
+  weak main -> best correction              54  (follow-up 21/30: Save the weapons -> Go into the retake together now)
+  weak main -> stubborn continuation        40  (follow-up  7/30: Save the weapons -> Save the weapons from here)
+  plausible alternative -> stays with it    73  (follow-up 15/30: Wait for information before committing -> Hold off and keep gathering information)
+
+Follow-up checks:
+  no findings
 ```
 
 ## Follow-up
@@ -81,7 +103,15 @@ New enemy utility: About 10 seconds later, the attackers detonate a smoke in Bal
 - **new** — The attackers set off a smoke in Balcony just now.
 - **changed** — About 26 seconds now remain on the bomb timer.
 
-Responses and proposed follow-up quality: Change your line to use the new information = 92; Stick to the line you chose = 60; Slow down and gather more information = 55; Stop and save the weapons = 30
+Proposed follow-up quality (0–100, worth up to 30 points) by the line the player locked (rows) and the answer they give now (columns):
+
+| Locked line | Hold off and keep gathering information | Go into the retake together now | Save the weapons from here |
+| --- | --- | --- | --- |
+| Wait for information before committing | 50 | 80 | 5 |
+| Retake together, clearing A site first | 30 | 100 | 0 |
+| Save the weapons | 30 | 70 | 25 |
+
+The update leaves the strongest line unchanged: before, Retake together, clearing A site first; after, Retake together, clearing A site first.
 
 Follow-up caveats:
 
@@ -106,6 +136,7 @@ What to remember (proposed): On a retake, weigh the seconds a defuse needs again
 - The draft ranks a grouped retake above a late kit defuse. That ranking comes from a generic retake template, not from this round's history (the source team retook together and lost).
 - The Balcony smoke is only observable if the defenders have moved towards A; a team that waits in CT Spawn might not see it.
 - Neither the AWP nor the lack of utility changes the ranking in the current rubric.
+- Follow-up matrix: the Balcony smoke leaves the grouped retake strongest (staying with it scores 100). A team that waited is credited 80 for going in now and 50 for waiting on, because only 26 s remain.
 - Team comms may have provided information the demo cannot show (callouts, sound cues, teammates' kill positions).
 - The historical line is not assumed to be correct; it only records what this team did.
 - Sightings come from the demo's spotted flag, which can register enemies a player never consciously noticed.
@@ -123,6 +154,7 @@ What to remember (proposed): On a retake, weigh the seconds a defuse needs again
 4. Does a Balcony smoke 10 s later change what a two-player retake should do, or does it only confirm that the attackers hold A?
 5. Is "hold back and commit late to a kit defuse" a real line with 36 s left, and by when must it start?
 6. Is an AWP a liability in a close A-site retake, and should the brief or rubric say so?
+7. After the Balcony smoke, with 26 s left and two kits, is a team that waited still in time to retake (the draft gives 80 for going in now), and is waiting on really as weak as 50?
 
 ## Your verdict
 

@@ -94,6 +94,7 @@ The editorial-interest score (0–1) is a weighted mean of: ambiguity (near-equa
 
 - the option set, debrief reasoning and principle are **templates per situation family**, not tactical truth;
 - the rubric is a **heuristic proposal** whose every rule is listed in `editorial.notes`;
+- the follow-up asks "what is your line now?" with one answer per published action. Each (locked action, line now) cell is the value of the line now under the post-update state, re-ranked by the same priors, minus a switching cost: 10 within the same posture, 20 one step apart, 30 between passive and active on the passive → holding → active scale. Staying with a line the update leaves sound scores best, and correcting a weaker call scores well;
 - the historical line from the demo is the reveal, never the answer key;
 - every uncertainty is listed in `editorial.knownIssues`.
 

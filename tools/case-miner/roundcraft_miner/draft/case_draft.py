@@ -25,13 +25,15 @@ from .priors import (
     choose_evidence,
     compute_main_prior,
     evidence_points,
+    FollowupMatrix,
     followup_class,
-    followup_qualities,
+    followup_matrix,
     generic_elapsed,
     seen_groups,
     order_actions,
     order_qualifiers,
     order_responses,
+    response_id,
     stable_hash,
 )
 from .templates import SITUATIONS, Situation, fill
@@ -302,10 +304,11 @@ def _heading(kind: str) -> str:
 
 
 NO_FOLLOWUP_ISSUE = ("Follow-up must be authored: the first change after the decision in the source round was the team's own action.")
-INDEPENDENT_FOLLOWUP_ISSUE = (
-    "Follow-up scores are independent of the main call: the schema cannot condition them on the line the player chose, so the "
-    "response labels are call-agnostic and every main line is scored by the same follow-up qualities. A reviewer should judge "
-    "whether the follow-up responses are fair for every main line."
+FOLLOWUP_MATRIX_ISSUE = (
+    "Follow-up qualities are a proposed matrix, one cell per locked main action and line now: the value of the line now after the "
+    "update, minus a switching cost (10 within the same posture, 20 one step, 30 between passive and active). A reviewer should "
+    "check each row: when staying with the locked line is coherent, when changing is justified, and whether the new information "
+    "really supports a reversal."
 )
 SHORT_REACTION_SECONDS = 2.0
 
@@ -329,13 +332,13 @@ def followup_caveats(follow: dict[str, Any] | None) -> list[str]:
     return lines
 
 
-def build_followup(candidate: dict[str, Any], f: Features, sit: Situation, ids: dict[str, str],
-                   brief_fact_ids: set[str]) -> tuple[dict[str, Any], dict[str, int], str, str, list[str]]:
+def build_followup(candidate: dict[str, Any], f: Features, sit: Situation, ids: dict[str, str], main: MainPrior,
+                   brief_fact_ids: set[str]) -> tuple[dict[str, Any], FollowupMatrix, str, str, list[str]]:
     issues: list[str] = []
     follow = candidate.get("followUp")
     cls, cls_text, after = followup_class(sit, f, follow, candidate)
-    qualities = followup_qualities(sit, cls)
-    responses = order_responses(list(sit.responses), qualities, candidate["candidateId"])
+    matrix = followup_matrix(sit, main, f, after)
+    responses = order_responses([a.template.id for a in main.actions], matrix.value_after, candidate["candidateId"])
     updates: list[dict[str, str]] = []
     taken: set[str] = set()
     if follow is None:
@@ -372,7 +375,7 @@ def build_followup(candidate: dict[str, Any], f: Features, sit: Situation, ids: 
                             "text": truncate(text, 500)})
         mined_ids = " ".join(str(fact.get("id", "")) for fact in follow.get("newFacts") or [])
         mined_text = " ".join(update["text"].lower() for update in updates)
-        if after is not None:
+        if follow is not None:
             if after.time_left is not None and not re.search(r"\b(bomb_planted|clock)", mined_ids) and "remain on the" not in mined_text:
                 noun = "bomb timer" if after.time_kind == "bomb" else "round clock"
                 updates.append({"id": _ident("clock_now", taken, "clock_now"), "status": "changed",
@@ -391,9 +394,9 @@ def build_followup(candidate: dict[str, Any], f: Features, sit: Situation, ids: 
         "heading": heading,
         "stimulus": truncate(stimulus, 800),
         "updates": updates[:20],
-        "responses": [{"id": r.id, "label": r.label} for r in responses],
+        "responses": [{"id": response_id(action_id), "label": matrix.label(action_id)} for action_id in responses],
     }
-    return followup, qualities, cls, cls_text, issues
+    return followup, matrix, cls, cls_text, issues
 
 
 # ---------------------------------------------------------------------------
@@ -410,22 +413,6 @@ def _lower_first(text: str) -> str:
     if not text or first in ("T", "CT") or (len(first) > 1 and first.isupper()):
         return text
     return text[0].lower() + text[1:]
-
-
-_FOLLOWUP_REASONING = {
-    "position_info": "the new information shows where an opponent is or what utility they have used, so adapting the plan is worth more than repeating it",
-    "enemy_loss": "an opponent has been eliminated, which favours pressing the advantage instead of changing course",
-    "own_loss": "a teammate has been eliminated, which changes the numbers and calls for an adjusted plan",
-    "bomb_event": "the state of the bomb has changed, which changes what the plan is for",
-    "default": "the change is modest, so adjusting to it is slightly better than repeating the plan unchanged",
-    "no_followup": "no decisive new information arrived, so the answers are scored close together and only weakly ranked",
-}
-
-
-def _followup_reasoning(cls_key: str, sit: Situation) -> str:
-    if cls_key == "urgent":
-        return f"the state is urgent: {sit.urgent_text}"
-    return _FOLLOWUP_REASONING.get(cls_key, _FOLLOWUP_REASONING["default"])
 
 
 _NUMBER_WORDS = {0: "no", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}
@@ -532,8 +519,25 @@ def _evidence_sentence(s: Signal, f: Features, view: dict[str, Any]) -> str:
     return "This was part of what the team could see at the decision point."
 
 
+def _followup_review(matrix: FollowupMatrix, cls_key: str) -> str:
+    """Public explanation of how the follow-up was scored; the same text is shown whatever the player chose."""
+    lead = matrix.best_before
+    lead_answer = max(matrix.value_after, key=lambda now: (matrix.cells[(lead, now)], now == lead))
+    opening = ("No decisive new information arrived, so the question was whether the line still held as the clock ran down. "
+               if cls_key == "no_followup" else "")
+    if lead_answer == lead:
+        middle = (f"The update did not overturn the strongest line, so staying with it scored best "
+                  f"(\"{matrix.label(lead)}\").")
+    else:
+        middle = (f"The update made another line stronger, so even a sound first call did best to move: "
+                  f"\"{matrix.label(lead_answer)}\".")
+    return (f"{opening}The follow-up was judged against the line you locked. {middle} Changing course earned the value of the new "
+            "line less the time and position a switch costs, so correcting a weaker call still scored well, while abandoning a "
+            "sound one or holding on to a weak one did not.")
+
+
 def build_reveal(candidate: dict[str, Any], f: Features, sit: Situation, ids: dict[str, str], main: MainPrior,
-                 evidence: list[Signal], qualities: dict[str, int], cls_key: str) -> tuple[dict[str, Any], list[str]]:
+                 evidence: list[Signal], matrix: FollowupMatrix, cls_key: str) -> tuple[dict[str, Any], list[str]]:
     issues: list[str] = []
     events, timeline_issues, raw_actions = render_timeline(candidate, f)
     issues.extend(timeline_issues)
@@ -558,7 +562,6 @@ def build_reveal(candidate: dict[str, Any], f: Features, sit: Situation, ids: di
     else:
         round_followup = "No further events are recorded after the decision point." + (f" {outcome}" if outcome else "")
 
-    best_response = max(sit.responses, key=lambda r: qualities[r.id])
     why = fill(lead.template.why, f)
     if f.time_left is not None:
         why += (f" Here, {f.own_alive} players faced {f.enemy_alive} with about {seconds_phrase(f.time_left)} left.")
@@ -574,12 +577,7 @@ def build_reveal(candidate: dict[str, Any], f: Features, sit: Situation, ids: di
         review_entries.append({"evidenceId": s.id,
                                "explanation": truncate(f"{_evidence_sentence(s, f, candidate['playerKnown'])} {note}".strip(), 1200)})
 
-    if cls_key == "no_followup":
-        followup_review = (f"No decisive new information arrived, so the answers are scored close together; the best-supported "
-                           f"answer was: {best_response.label}.")
-    else:
-        followup_review = (f"The proposed best answer to the new information was: {best_response.label}. "
-                           f"Reasoning: {_followup_reasoning(cls_key, sit)}.")
+    followup_review = _followup_review(matrix, cls_key)
 
     reveal = {
         "schemaVersion": 1,
@@ -617,7 +615,7 @@ def build_reveal(candidate: dict[str, Any], f: Features, sit: Situation, ids: di
 
 
 def build_rubric(sit: Situation, ids: dict[str, str], main: MainPrior, brief: dict[str, Any],
-                 evidence: list[Signal], qualities: dict[str, int], followup: dict[str, Any]) -> dict[str, Any]:
+                 evidence: list[Signal], matrix: FollowupMatrix, followup: dict[str, Any]) -> dict[str, Any]:
     by_id = {a.template.id: a for a in main.actions}
     dim_ids = [d for d, _ in sit.dims]
     main_cells: list[dict[str, Any]] = []
@@ -634,14 +632,16 @@ def build_rubric(sit: Situation, ids: dict[str, str], main: MainPrior, brief: di
         for (a, b), pts in sorted(points.items()):
             evidence_cells.append({"actionId": action["id"], "evidenceIds": [a, b], "points": pts})
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "caseRevision": ids["revision"],
         "rubricRevision": ids["rubricRevision"],
         "dimensions": [{"id": d, "weight": w} for d, w in sit.dims],
         "main": main_cells,
         "evidence": evidence_cells,
         "followup": {"type": "new_information",
-                     "responses": [{"responseId": r["id"], "quality": qualities[r["id"]]} for r in followup["responses"]]},
+                     "responses": [{"actionId": action["id"], "responseId": response["id"],
+                                    "quality": matrix.cells[(action["id"], response["id"].removeprefix("now_"))]}
+                                   for action in brief["actions"] for response in followup["responses"]]},
     }
 
 
@@ -736,7 +736,7 @@ def demo_sha256(candidate: dict[str, Any], manifest: dict[str, Any] | None) -> s
 
 
 def build_editorial(candidate: dict[str, Any], f: Features, sit: Situation, ids: dict[str, str], main: MainPrior,
-                    evidence: list[Signal], qualities: dict[str, int], cls_text: str, issues: list[str]) -> dict[str, Any]:
+                    evidence: list[Signal], matrix: FollowupMatrix, cls_text: str, issues: list[str]) -> dict[str, Any]:
     manifest = _read_manifest(candidate["sourceId"])
     sha = demo_sha256(candidate, manifest)
     embedded = (candidate.get("groundTruth") or {}).get("source") or {}
@@ -767,7 +767,10 @@ def build_editorial(candidate: dict[str, Any], f: Features, sit: Situation, ids:
         "PRIOR TABLE (every rubric value below is derivable from these rules and the player-known features):",
         *main.explain,
         *(f"normalisation: {line}" for line in main.normalised),
-        f"follow-up: {cls_text}; qualities " + ", ".join(f"{k}={v}" for k, v in sorted(qualities.items())),
+        f"follow-up: {cls_text}",
+        *(f"  {line}" for line in matrix.explain),
+        *(f"  locked {locked} -> " + ", ".join(f"{now}={matrix.cells[(locked, now)]}" for now in matrix.value_after)
+          for locked in matrix.value_after),
         *(f"  {line}" for line in [
             f"evidence pairs: points = clamp(round(20 * (w_a + w_b) / (w_top1 + w_top2)), 3, 20) with per-signal weights from the "
             f"situation table and per-action overrides; signals: " + ", ".join(f"{s.id}({s.cls})" for s in evidence)]),
@@ -800,14 +803,14 @@ def build_case(candidate: dict[str, Any], *, case_id: str | None = None) -> dict
     actions_ordered = order_actions(main.actions, candidate["candidateId"])
 
     brief, brief_issues = build_brief(candidate, f, sit, ids, main, evidence, actions_ordered)
-    followup, qualities, cls_key, cls_text, followup_issues = build_followup(
-        candidate, f, sit, ids, {fact["id"] for fact in brief["facts"]})
-    reveal, reveal_issues = build_reveal(candidate, f, sit, ids, main, evidence, qualities, cls_key)
-    rubric = build_rubric(sit, ids, main, brief, evidence, qualities, followup)
+    followup, matrix, cls_key, cls_text, followup_issues = build_followup(
+        candidate, f, sit, ids, main, {fact["id"] for fact in brief["facts"]})
+    reveal, reveal_issues = build_reveal(candidate, f, sit, ids, main, evidence, matrix, cls_key)
+    rubric = build_rubric(sit, ids, main, brief, evidence, matrix, followup)
 
     issues: list[str] = [scrub(str(note)) for note in candidate.get("reviewNotes") or []]
     issues += brief_issues + followup_issues + reveal_issues
-    issues.append(INDEPENDENT_FOLLOWUP_ISSUE)
+    issues.append(FOLLOWUP_MATRIX_ISSUE)
     issues += [
         "The option set (actions, qualifiers, follow-up responses) is a template for this situation family, not derived from the demo; "
         "a reviewer must confirm every option is playable on this map at this moment and that no defensible line is missing.",
@@ -850,7 +853,7 @@ def build_case(candidate: dict[str, Any], *, case_id: str | None = None) -> dict
     if adjusted:
         issues.append("Wording of these follow-up/reveal fields was auto-adjusted to avoid a 6-word overlap with the brief; "
                       "review for readability: " + ", ".join(adjusted))
-    case["editorial"] = build_editorial(candidate, f, sit, ids, main, evidence, qualities, cls_text, issues)
+    case["editorial"] = build_editorial(candidate, f, sit, ids, main, evidence, matrix, cls_text, issues)
     # Re-order keys so the file reads editorial-first like the existing cases.
     return {key: case[key] for key in ("caseId", "origin", "editorial", "edition", "brief", "followup", "reveal", "rubric")}
 

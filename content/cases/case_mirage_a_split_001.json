@@ -202,7 +202,7 @@
     "principle": "When an AWP position is confirmed and your smoke cover expires, re-smoking is not optional — it is the prerequisite for every other decision."
   },
   "rubric": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "caseRevision": "cr_mirage_a_split_001",
     "rubricRevision": "rr_mirage_a_split_001",
     "dimensions": [{ "id": "positioning", "weight": 50 }, { "id": "utility_efficiency", "weight": 50 }],
@@ -262,9 +262,15 @@
     "followup": {
       "type": "new_information",
       "responses": [
-        { "responseId": "resmoke_window", "quality": 90 },
-        { "responseId": "rush_now", "quality": 45 },
-        { "responseId": "abandon_mid", "quality": 20 }
+        { "actionId": "full_a_execute", "responseId": "resmoke_window", "quality": 90 },
+        { "actionId": "full_a_execute", "responseId": "rush_now", "quality": 45 },
+        { "actionId": "full_a_execute", "responseId": "abandon_mid", "quality": 20 },
+        { "actionId": "split_a_through_connector", "responseId": "resmoke_window", "quality": 90 },
+        { "actionId": "split_a_through_connector", "responseId": "rush_now", "quality": 45 },
+        { "actionId": "split_a_through_connector", "responseId": "abandon_mid", "quality": 20 },
+        { "actionId": "default_mid", "responseId": "resmoke_window", "quality": 90 },
+        { "actionId": "default_mid", "responseId": "rush_now", "quality": 45 },
+        { "actionId": "default_mid", "responseId": "abandon_mid", "quality": 20 }
       ]
     }
   }

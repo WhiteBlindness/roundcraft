@@ -112,12 +112,6 @@ def fill(text: str, f: Any) -> str:
 
 
 @dataclass(frozen=True)
-class ResponseT:
-    id: str
-    label: str
-
-
-@dataclass(frozen=True)
 class Situation:
     id: str
     title: str  # "{map}" is substituted
@@ -127,10 +121,8 @@ class Situation:
     actions: tuple[ActionT, ...]
     evidence_priority: tuple[str, ...]
     evidence_weights: dict[str, int]
-    responses: tuple[ResponseT, ...]
     urgent_test: Cond
     urgent_text: str
-    urgent_best: str  # response id that is best when the follow-up state is urgent
     generic_followup_stimulus: str
     evidence_notes: dict[str, str]  # signal class -> reveal explanation
 
@@ -146,17 +138,58 @@ TIER_RATINGS: dict[str, tuple[tuple[int, int], ...]] = {
 TIER_ORDER = ("poor", "fair", "good", "best")
 POOR_CAP = 35
 
-# Follow-up quality by class -> response id (0..100). "urgent" is resolved per situation.
-FOLLOWUP_QUALITY: dict[str, dict[str, int]] = {
-    "position_info": {"continue_plan": 60, "adjust_to_new_info": 92, "take_more_info": 55, "fall_back": 30},
-    "enemy_loss": {"continue_plan": 90, "adjust_to_new_info": 75, "take_more_info": 45, "fall_back": 25},
-    "own_loss": {"continue_plan": 45, "adjust_to_new_info": 88, "take_more_info": 50, "fall_back": 55},
-    "bomb_event": {"continue_plan": 55, "adjust_to_new_info": 90, "take_more_info": 45, "fall_back": 35},
-    "default": {"continue_plan": 70, "adjust_to_new_info": 88, "take_more_info": 55, "fall_back": 40},
-    "no_followup": {"continue_plan": 75, "adjust_to_new_info": 70, "take_more_info": 55, "fall_back": 40},
+# Follow-up: the player answers "what is your line now?" with one of the main actions, phrased for the
+# moment after the new information (labels stay short so they never repeat a brief label). The rubric scores
+# every (locked action, line now) cell: the value of the line now under the post-update state, minus the cost
+# of switching away from the locked line. Switching costs time and position; it costs more the further the new
+# line is from the old one on the passive -> holding -> active scale.
+NOW_LABELS: dict[str, str] = {
+    "group_retake": "Go into the retake together now",
+    "split_retake": "Retake now from two sides",
+    "take_information": "Hold off and keep gathering information",
+    "save_weapons": "Save the weapons from here",
+    "hold_crossfire": "Keep holding the bomb from crossfires",
+    "play_the_clock": "Hide and let the bomb timer run",
+    "contest_known": "Keep pushing towards {place}",
+    "cut_the_route": "Move to cut off the retake",
+    "commit_execute": "Execute on the site now",
+    "default_take_info": "Keep playing slowly for information",
+    "fake_and_rotate": "Fake here and rotate away",
+    "lurk_to_pull": "Keep the lurk going to pull a rotation",
+    "save_weapons_t": "Save the weapons from here",
+    "hold_setup": "Keep the current setup",
+    "rotate_to_info": "Keep a player moving towards {place}",
+    "gather_information": "Hold and take more information",
+    "fall_back_for_retake": "Fall back and set up for a retake",
 }
-URGENT_QUALITY_BEST = 90
-URGENT_QUALITY_OTHERS = {"adjust_to_new_info": 55, "continue_plan": 25, "take_more_info": 15, "fall_back": 30}
+POSTURE: dict[str, int] = {  # 0 passive, 1 holding, 2 active
+    "save_weapons": 0, "save_weapons_t": 0, "play_the_clock": 0, "fall_back_for_retake": 0,
+    "take_information": 1, "hold_crossfire": 1, "cut_the_route": 1, "default_take_info": 1, "hold_setup": 1,
+    "gather_information": 1,
+    "group_retake": 2, "split_retake": 2, "contest_known": 2, "commit_execute": 2, "fake_and_rotate": 2,
+    "lurk_to_pull": 2, "rotate_to_info": 2,
+}
+# Without a named place, a "{place}" label falls back to this wording (it must keep pointing at the ORIGINAL
+# target: after the update the latest contact may be somewhere else).
+NOW_LABELS_NO_PLACE: dict[str, str] = {
+    "contest_known": "Keep pushing towards the earlier contact",
+    "rotate_to_info": "Keep a player moving towards the earlier contact",
+}
+SWITCH_COST_BY_DISTANCE = (10, 20, 30)  # posture steps between the locked line and the line now
+
+
+def now_label(action_id: str, place: str | None) -> str:
+    """The follow-up wording of a line, anchored to the place named in the brief."""
+    label = NOW_LABELS[action_id]
+    if "{place}" not in label:
+        return label
+    return label.format(place=place) if place else NOW_LABELS_NO_PLACE[action_id]
+
+
+def switch_cost(locked: str, now: str) -> int:
+    if locked == now:
+        return 0
+    return SWITCH_COST_BY_DISTANCE[abs(POSTURE[locked] - POSTURE[now])]
 
 
 def _r(test: Cond, value: Any, text: str) -> Rule:
@@ -687,15 +720,12 @@ def _situation(
     actions: tuple[ActionT, ...],
     priority: tuple[str, ...],
     weights: dict[str, int],
-    responses: tuple[ResponseT, ...],
     urgent_test: Cond,
     urgent_text: str,
-    urgent_best: str,
     generic: str,
     notes: dict[str, str],
 ) -> Situation:
-    return Situation(sid, title, focus, principle, dims, actions, priority, weights, responses, urgent_test,
-                     urgent_text, urgent_best, generic, notes)
+    return Situation(sid, title, focus, principle, dims, actions, priority, weights, urgent_test, urgent_text, generic, notes)
 
 
 _COMMON_NOTES = {
@@ -724,15 +754,8 @@ SITUATIONS: dict[str, Situation] = {
          "bomb_location", "enemy_utility", "own_positions", "own_loadout"),
         {"bomb_timer": 5, "alive_count": 4, "enemy_seen": 4, "own_utility": 3, "defuse_kit": 3, "enemy_unknown": 3,
          "bomb_location": 2, "enemy_utility": 2, "own_positions": 2, "own_loadout": 1, "clock": 3},
-        (
-            ResponseT("continue_plan", "Stick to the line you chose"),
-            ResponseT("adjust_to_new_info", "Change your line to use the new information"),
-            ResponseT("take_more_info", "Slow down and gather more information"),
-            ResponseT("fall_back", "Stop and save the weapons"),
-        ),
         lambda f: f.time < f.t_low or f.adv <= -2,
         "the bomb timer is below the defuse duration plus travel allowance, or the team is outnumbered by two or more",
-        "fall_back",
         "Time passes and the retake has not yet made decisive contact.",
         {**_COMMON_NOTES},
     ),
@@ -747,15 +770,8 @@ SITUATIONS: dict[str, Situation] = {
          "enemy_utility", "own_positions", "own_loadout"),
         {"bomb_timer": 5, "alive_count": 4, "enemy_seen": 4, "own_utility": 3, "enemy_unknown": 3,
          "bomb_location": 2, "enemy_utility": 2, "own_positions": 3, "own_loadout": 1, "clock": 3, "defuse_kit": 1},
-        (
-            ResponseT("continue_plan", "Stick to the line you chose"),
-            ResponseT("adjust_to_new_info", "Change your line to use the new information"),
-            ResponseT("take_more_info", "Slow down and gather more information"),
-            ResponseT("fall_back", "Back off and stay out of contact"),
-        ),
         lambda f: f.adv <= -2,
         "the team is outnumbered by two or more after the new information",
-        "fall_back",
         "Time passes and the defenders have not yet made decisive contact.",
         {**_COMMON_NOTES},
     ),
@@ -770,15 +786,8 @@ SITUATIONS: dict[str, Situation] = {
          "own_positions", "own_loadout"),
         {"clock": 5, "alive_count": 4, "enemy_seen": 4, "own_utility": 4, "enemy_unknown": 3,
          "enemy_utility": 2, "own_positions": 2, "own_loadout": 1, "bomb_timer": 3, "bomb_location": 1, "defuse_kit": 1},
-        (
-            ResponseT("continue_plan", "Stick to the line you chose"),
-            ResponseT("adjust_to_new_info", "Change your line to use the new information"),
-            ResponseT("take_more_info", "Slow down and gather more information"),
-            ResponseT("fall_back", "Drop the line you chose and reset"),
-        ),
         lambda f: f.time < 15,
         "the round clock is under 15 seconds after the new information, so only a commitment can still plant",
-        "continue_plan",
         "Time passes and no defender position has changed decisively.",
         {**_COMMON_NOTES},
     ),
@@ -793,15 +802,8 @@ SITUATIONS: dict[str, Situation] = {
          "own_positions", "own_loadout"),
         {"enemy_seen": 5, "clock": 4, "alive_count": 4, "enemy_unknown": 4, "own_utility": 3,
          "enemy_utility": 3, "own_positions": 3, "own_loadout": 1, "bomb_timer": 3, "bomb_location": 1, "defuse_kit": 1},
-        (
-            ResponseT("continue_plan", "Stick to the line you chose"),
-            ResponseT("adjust_to_new_info", "Change your line to use the new information"),
-            ResponseT("take_more_info", "Slow down and gather more information"),
-            ResponseT("fall_back", "Fall back to a deeper position"),
-        ),
         lambda f: f.adv <= -2,
         "the team is outnumbered by two or more after the new information",
-        "fall_back",
         "Time passes and no attacker position has changed decisively.",
         {**_COMMON_NOTES},
     ),
