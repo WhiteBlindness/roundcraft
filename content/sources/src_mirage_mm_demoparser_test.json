@@ -1,0 +1,33 @@
+{
+  "acquisition": {
+    "method": "public_test_corpus",
+    "notes": "File src/parser/test_demo.dem from the LaihoE/demoparser repository (MIT licence), commit 9ddb3739c65664392df6120337374f94511f8ea5.",
+    "retrievedAt": "2026-09-30",
+    "url": "https://github.com/LaihoE/demoparser/blob/9ddb3739c65664392df6120337374f94511f8ea5/src/parser/test_demo.dem"
+  },
+  "demo": {
+    "bytes": 60601900,
+    "localFilename": "src_mirage_mm_demoparser_test.dem",
+    "mapName": "de_mirage",
+    "patchVersion": "13984",
+    "sha256": "84a1a4191302bdd2a3bbb5a727842093744b1fb1a228aeec630369e44b622cb2",
+    "tickrate": 64
+  },
+  "match": {
+    "competition": "valve_matchmaking",
+    "date": null,
+    "teams": null
+  },
+  "parser": {
+    "name": "demoparser2",
+    "normaliserVersion": 1,
+    "version": "0.42.0"
+  },
+  "rights": {
+    "contentLane": "synthetic_only",
+    "licence": "MIT (public parser test corpus); rights in the underlying match recording not established",
+    "provenanceNote": "Valve matchmaking SourceTV recording (de_mirage, 9 playable rounds followed by a CT surrender) shipped as a parser test fixture. The licence covers the parser repository; rights in the underlying match recording are not established. Players are real matchmaking participants: names and Steam IDs are dropped during normalisation and must never be published. Use for synthetic-only cases."
+  },
+  "schemaVersion": 1,
+  "sourceId": "src_mirage_mm_demoparser_test"
+}

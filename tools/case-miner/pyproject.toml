@@ -1,0 +1,27 @@
+[project]
+name = "roundcraft-miner"
+version = "0.1.0"
+description = "Offline editorial tooling that turns CS2 demos into Roundcraft case candidates and drafts."
+requires-python = ">=3.11"
+dependencies = [
+  # CS2 demo parsing (MIT). Pinned: tick/field names are part of the normalisation contract.
+  "demoparser2==0.42.0",
+  # demoparser2 returns pandas DataFrames.
+  "pandas>=2.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+roundcraft-miner = "roundcraft_miner.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["roundcraft_miner*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

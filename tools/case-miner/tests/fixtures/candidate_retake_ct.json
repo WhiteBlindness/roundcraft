@@ -1,0 +1,406 @@
+{
+  "actualLine": "HISTORICAL LINE (what this team actually did; it is not assumed to be the correct line). Over the next 10 s: 2 players moved from Ramp to Connector; one player was killed in Stairs after 10 s. Over the next 20 s the team used 1 smoke and got 1 kill and lost 1 player. Bomb: a player began defusing at A; a player defused the bomb at A. Result: CT won the round (bomb defused); 2 of the team survived.",
+  "candidateId": "cand_c77128f17e15",
+  "category": "post_plant_retake",
+  "decisionT": 62.4,
+  "decisionTick": 96500,
+  "followUp": {
+    "kind": "enemy_spotted",
+    "knowledgeAfter": {
+      "alive": {
+        "enemy": 3,
+        "own": 3
+      },
+      "bomb": {
+        "knowledge": "confirmed",
+        "place": "BombsiteA",
+        "site": "A",
+        "status": "planted"
+      },
+      "clock": {
+        "bombSecondsLeft": 24.5,
+        "roundSecondsLeft": 34.0
+      },
+      "enemies": [
+        {
+          "ageSeconds": 0.5,
+          "pid": "p06",
+          "place": "Palace",
+          "status": "confirmed",
+          "x": -1200,
+          "y": 300
+        },
+        {
+          "pid": "p07",
+          "status": "unknown"
+        },
+        {
+          "pid": "p08",
+          "status": "unknown"
+        }
+      ],
+      "facts": [],
+      "own": [
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": true,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p01",
+          "place": "Ramp",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "CT",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 2,
+            "he": 0,
+            "molotov": 0,
+            "smoke": 1
+          },
+          "x": -300,
+          "y": 200,
+          "z": 0
+        },
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": false,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p02",
+          "place": "Ramp",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "CT",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 1,
+            "he": 0,
+            "molotov": 0,
+            "smoke": 1
+          },
+          "x": -250,
+          "y": 260,
+          "z": 0
+        },
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": false,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p03",
+          "place": "Stairs",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "CT",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 0,
+            "he": 1,
+            "molotov": 0,
+            "smoke": 0
+          },
+          "x": -120,
+          "y": 400,
+          "z": 0
+        }
+      ],
+      "perspective": "CT",
+      "t": 68.9,
+      "tick": 96940,
+      "utilityObserved": []
+    },
+    "newFacts": [
+      {
+        "basis": "spotted by own player",
+        "id": "enemy_seen_palace",
+        "status": "confirmed",
+        "text": "One attacker is spotted in Palace holding an angle on the ramp."
+      },
+      {
+        "basis": "footsteps heard near the ramp",
+        "id": "enemy_ramp_sound",
+        "status": "inferred",
+        "text": "A second attacker is probably close to the ramp."
+      }
+    ],
+    "summary": "An attacker is spotted holding a long angle from Palace.",
+    "t": 68.9,
+    "tick": 96940
+  },
+  "groundTruth": {
+    "demoSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "enemies": [
+      {
+        "pid": "p06",
+        "place": "TicketBooth",
+        "x": -1531,
+        "y": -812
+      },
+      {
+        "pid": "p07",
+        "place": "Jungle",
+        "x": -2040,
+        "y": -1120
+      },
+      {
+        "pid": "p08",
+        "place": "Firebox",
+        "x": -1717,
+        "y": -1330
+      }
+    ],
+    "outcome": {
+      "bombOutcome": "defused",
+      "endReason": "bomb_defused",
+      "enemySurvivors": 2,
+      "ownSurvivors": 2,
+      "perspectiveWon": true,
+      "winner": "CT"
+    },
+    "source": {
+      "contentLane": "synthetic_only",
+      "provenanceNote": "Synthetic test fixture.",
+      "sourceId": "src_fixture_mirage"
+    },
+    "timelineAfter": [
+      {
+        "description": "p01 (CT) detonated a smoke in Connector",
+        "offsetSeconds": 3.1,
+        "t": 65.5,
+        "tick": 96700,
+        "type": "utility"
+      },
+      {
+        "description": "p02 (CT) killed p06 (T) with m4a1 (headshot) in Palace",
+        "offsetSeconds": 7.6,
+        "t": 70.0,
+        "tick": 97000,
+        "type": "kill"
+      },
+      {
+        "description": "p07 (T) killed p03 (CT) with ak47 in Stairs",
+        "offsetSeconds": 10.6,
+        "t": 73.0,
+        "tick": 97200,
+        "type": "kill"
+      },
+      {
+        "description": "p01 began defusing at A",
+        "offsetSeconds": 14.6,
+        "t": 77.0,
+        "tick": 97500,
+        "type": "bomb_defuse_begin"
+      },
+      {
+        "description": "p01 defused the bomb at A",
+        "offsetSeconds": 19.6,
+        "t": 82.0,
+        "tick": 97800,
+        "type": "bomb_defused"
+      }
+    ]
+  },
+  "map": "de_mirage",
+  "perspective": "CT",
+  "playerKnown": {
+    "alive": {
+      "enemy": 3,
+      "own": 3
+    },
+    "bomb": {
+      "knowledge": "confirmed",
+      "place": "BombsiteA",
+      "site": "A",
+      "status": "planted"
+    },
+    "clock": {
+      "bombSecondsLeft": 31.0,
+      "roundSecondsLeft": 40.0
+    },
+    "enemies": [
+      {
+        "ageSeconds": 6.2,
+        "pid": "p06",
+        "place": "Connector",
+        "status": "last_seen",
+        "weaponSeen": "awp",
+        "x": -500,
+        "y": -300
+      },
+      {
+        "pid": "p07",
+        "status": "unknown"
+      },
+      {
+        "pid": "p08",
+        "status": "unknown"
+      }
+    ],
+    "facts": [
+      {
+        "basis": "HUD alive count",
+        "id": "alive_3v3",
+        "status": "confirmed",
+        "text": "3 CT alive against 3 T."
+      },
+      {
+        "basis": "bomb plant announcement and bomb timer HUD",
+        "id": "bomb_planted_a",
+        "status": "confirmed",
+        "text": "The bomb is planted at A; 31 s remain on the bomb timer."
+      },
+      {
+        "basis": "own team inventory",
+        "id": "own_utility",
+        "status": "confirmed",
+        "text": "Your team has 2 smokes, 3 flashes and 1 HE grenade left."
+      },
+      {
+        "basis": "own team positions on the radar",
+        "id": "own_positions",
+        "status": "confirmed",
+        "text": "Your team is positioned: 2 in Ramp, 1 in Stairs."
+      },
+      {
+        "basis": "last spotted by an own player 6 s ago; position may have changed",
+        "id": "last_seen_connector_1",
+        "status": "last_seen",
+        "text": "One attacker was last seen in Connector 6 s ago with an AWP."
+      },
+      {
+        "basis": "not spotted by a living teammate in the last 45 s (or never this round)",
+        "id": "unknown_2",
+        "status": "unknown",
+        "text": "The positions of two attackers are unknown."
+      },
+      {
+        "basis": "public scoreboard: T lost rounds 12, 13 of this half",
+        "id": "econ_enemy_reduced",
+        "status": "inferred",
+        "text": "The attackers have lost 2 rounds in a row, so they are likely on a reduced buy."
+      }
+    ],
+    "own": [
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": true,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p01",
+        "place": "Ramp",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "CT",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 2,
+          "he": 0,
+          "molotov": 0,
+          "smoke": 1
+        },
+        "x": -300,
+        "y": 200,
+        "z": 0
+      },
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p02",
+        "place": "Ramp",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "CT",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 1,
+          "he": 0,
+          "molotov": 0,
+          "smoke": 1
+        },
+        "x": -250,
+        "y": 260,
+        "z": 0
+      },
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p03",
+        "place": "Stairs",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "CT",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 0,
+          "he": 1,
+          "molotov": 0,
+          "smoke": 0
+        },
+        "x": -120,
+        "y": 400,
+        "z": 0
+      }
+    ],
+    "perspective": "CT",
+    "t": 62.4,
+    "tick": 96500,
+    "utilityObserved": []
+  },
+  "reviewNotes": [
+    "Attacker positions are known only from sightings; the third attacker is unaccounted for.",
+    "Whether saving would have been better against a lone AWP angle is disputed."
+  ],
+  "round": 14,
+  "schemaVersion": 1,
+  "score": {
+    "factors": {
+      "information_gap": 0.9,
+      "numbers_balance": 1.0,
+      "time_pressure": 0.7
+    },
+    "total": 0.82
+  },
+  "sourceId": "src_fixture_mirage",
+  "summary": "CT retake on A with 31 s left, 3v3, one attacker last seen in Connector."
+}

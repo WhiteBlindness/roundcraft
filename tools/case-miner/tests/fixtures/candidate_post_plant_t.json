@@ -1,0 +1,382 @@
+{
+  "actualLine": "HISTORICAL LINE (what this team actually did; it is not assumed to be the correct line). Over the next 10 s: 3 players held position in Banana and Apartments; one player was killed in Construction after 5 s. Over the next 20 s the team used no utility and got 1 kill and lost 1 player. Result: T won the round (bomb exploded); 3 of the team survived.",
+  "candidateId": "cand_d9086c66978d",
+  "category": "post_plant_hold",
+  "decisionT": 55.0,
+  "decisionTick": 71000,
+  "followUp": {
+    "kind": "kill",
+    "knowledgeAfter": {
+      "alive": {
+        "enemy": 2,
+        "own": 3
+      },
+      "bomb": {
+        "knowledge": "confirmed",
+        "place": "BombsiteB",
+        "site": "B",
+        "status": "planted"
+      },
+      "clock": {
+        "bombSecondsLeft": 31.0,
+        "roundSecondsLeft": 25.0
+      },
+      "enemies": [
+        {
+          "ageSeconds": 1.0,
+          "pid": "p06",
+          "place": "Coffins",
+          "status": "confirmed",
+          "weaponSeen": "m4a1",
+          "x": 1500,
+          "y": -900
+        },
+        {
+          "pid": "p07",
+          "status": "unknown"
+        }
+      ],
+      "facts": [],
+      "own": [
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": false,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p01",
+          "place": "BombsiteB",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "T",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 0,
+            "he": 0,
+            "molotov": 1,
+            "smoke": 1
+          },
+          "x": 1200,
+          "y": -500,
+          "z": 0
+        },
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": false,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p02",
+          "place": "Banana",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "T",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 2,
+            "he": 0,
+            "molotov": 0,
+            "smoke": 0
+          },
+          "x": 1300,
+          "y": -600,
+          "z": 0
+        },
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": false,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p03",
+          "place": "Construction",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "T",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 0,
+            "he": 1,
+            "molotov": 0,
+            "smoke": 0
+          },
+          "x": 1100,
+          "y": -700,
+          "z": 0
+        }
+      ],
+      "perspective": "T",
+      "t": 60.0,
+      "tick": 71300,
+      "utilityObserved": []
+    },
+    "newFacts": [
+      {
+        "basis": "kill feed",
+        "id": "teammate_down",
+        "status": "confirmed",
+        "text": "One of your players has been eliminated."
+      }
+    ],
+    "summary": "A teammate is eliminated by a defender coming from the CT side.",
+    "t": 60.0,
+    "tick": 71300
+  },
+  "groundTruth": {
+    "demoSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "enemies": [
+      {
+        "pid": "p06",
+        "place": "Graveyard",
+        "x": 2210,
+        "y": -1888
+      },
+      {
+        "pid": "p07",
+        "place": "Library",
+        "x": 2599,
+        "y": -2041
+      }
+    ],
+    "outcome": {
+      "bombOutcome": "exploded",
+      "endReason": "bomb_exploded",
+      "enemySurvivors": 1,
+      "ownSurvivors": 3,
+      "perspectiveWon": true,
+      "winner": "T"
+    },
+    "timelineAfter": [
+      {
+        "description": "p07 (CT) killed p03 (T) with m4a1 in Construction",
+        "offsetSeconds": 5.0,
+        "t": 60.0,
+        "tick": 71300,
+        "type": "kill"
+      },
+      {
+        "description": "p02 (T) killed p07 (CT) with ak47 (headshot) in Library",
+        "offsetSeconds": 11.0,
+        "t": 66.0,
+        "tick": 71800,
+        "type": "kill"
+      },
+      {
+        "description": "the bomb exploded at B",
+        "offsetSeconds": 36.0,
+        "t": 91.0,
+        "tick": 73000,
+        "type": "bomb_exploded"
+      }
+    ]
+  },
+  "map": "de_inferno",
+  "perspective": "T",
+  "playerKnown": {
+    "alive": {
+      "enemy": 2,
+      "own": 4
+    },
+    "bomb": {
+      "knowledge": "confirmed",
+      "place": "BombsiteB",
+      "site": "B",
+      "status": "planted"
+    },
+    "clock": {
+      "bombSecondsLeft": 36.0,
+      "roundSecondsLeft": 30.0
+    },
+    "enemies": [
+      {
+        "ageSeconds": 1.0,
+        "pid": "p06",
+        "place": "Coffins",
+        "status": "confirmed",
+        "weaponSeen": "m4a1",
+        "x": 1500,
+        "y": -900
+      },
+      {
+        "pid": "p07",
+        "status": "unknown"
+      }
+    ],
+    "facts": [
+      {
+        "basis": "HUD alive count",
+        "id": "alive_4v2",
+        "status": "confirmed",
+        "text": "4 T alive against 2 CT."
+      },
+      {
+        "basis": "bomb plant announcement and bomb timer HUD",
+        "id": "bomb_planted_b",
+        "status": "confirmed",
+        "text": "The bomb is planted at B; 36 s remain on the bomb timer."
+      },
+      {
+        "basis": "own team inventory",
+        "id": "own_utility",
+        "status": "confirmed",
+        "text": "Your team has 1 smoke, 3 flashes, 1 molotov and 1 HE grenade left."
+      },
+      {
+        "basis": "spotted by an own living player in the latest frame",
+        "id": "visible_coffins_1",
+        "status": "confirmed",
+        "text": "One defender is visible in Coffins right now with an M4A1."
+      },
+      {
+        "basis": "not spotted by a living teammate in the last 45 s (or never this round)",
+        "id": "unknown_1",
+        "status": "unknown",
+        "text": "The position of one defender is unknown."
+      }
+    ],
+    "own": [
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p01",
+        "place": "BombsiteB",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "T",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 0,
+          "he": 0,
+          "molotov": 1,
+          "smoke": 1
+        },
+        "x": 1200,
+        "y": -500,
+        "z": 0
+      },
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p02",
+        "place": "Banana",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "T",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 2,
+          "he": 0,
+          "molotov": 0,
+          "smoke": 0
+        },
+        "x": 1300,
+        "y": -600,
+        "z": 0
+      },
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p03",
+        "place": "Construction",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "T",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 0,
+          "he": 1,
+          "molotov": 0,
+          "smoke": 0
+        },
+        "x": 1100,
+        "y": -700,
+        "z": 0
+      },
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p04",
+        "place": "Apartments",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "T",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 1,
+          "he": 0,
+          "molotov": 0,
+          "smoke": 0
+        },
+        "x": 900,
+        "y": -400,
+        "z": 0
+      }
+    ],
+    "perspective": "T",
+    "t": 55.0,
+    "tick": 71000,
+    "utilityObserved": []
+  },
+  "reviewNotes": [
+    "The kill-feed follow-up hides which defender made the play."
+  ],
+  "round": 8,
+  "schemaVersion": 1,
+  "score": {
+    "factors": {
+      "information_gap": 0.5,
+      "numbers_balance": 0.9,
+      "time_pressure": 0.4
+    },
+    "total": 0.61
+  },
+  "sourceId": "src_fixture_inferno",
+  "summary": "T post-plant on B, 4v2 with 36 s left."
+}

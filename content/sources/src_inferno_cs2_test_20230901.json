@@ -1,0 +1,33 @@
+{
+  "acquisition": {
+    "method": "public_test_corpus",
+    "notes": "File s2/arsham_infernocs2_1stSept23.dem inside archive s2.7z of the markus-wa/cs-demos-2 test corpus (MIT licence); Git LFS oid sha256 af8227b333cdd881dc9ad49d19d936de04789069ef49b736cd3bf3e6bb37dd43.",
+    "retrievedAt": "2026-09-30",
+    "url": "https://gitlab.com/markus-wa/cs-demos-2 (archive s2.7z, file s2/arsham_infernocs2_1stSept23.dem)"
+  },
+  "demo": {
+    "bytes": 77796463,
+    "localFilename": "src_inferno_cs2_test_20230901.dem",
+    "mapName": "de_inferno",
+    "patchVersion": "13926",
+    "sha256": "ee700e629d47c8ea3be15152a78548d087a2dd11fd49899b67e305e75db1a05b",
+    "tickrate": 64
+  },
+  "match": {
+    "competition": null,
+    "date": "2023-09-01",
+    "teams": null
+  },
+  "parser": {
+    "name": "demoparser2",
+    "normaliserVersion": 1,
+    "version": "0.42.0"
+  },
+  "rights": {
+    "contentLane": "synthetic_only",
+    "licence": "MIT (public parser test corpus); rights in the underlying match recording not established",
+    "provenanceNote": "CS2 limited-test recording (de_inferno, 17 rounds) from a public parser test corpus. The licence covers the corpus; rights in the underlying match recording are not established. The match date is taken from the file name. Player identities are dropped during normalisation and must never be published. Use for synthetic-only cases."
+  },
+  "schemaVersion": 1,
+  "sourceId": "src_inferno_cs2_test_20230901"
+}

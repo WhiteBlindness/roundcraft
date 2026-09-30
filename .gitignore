@@ -28,3 +28,14 @@ src/worker/worker-configuration.d.ts
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Offline case-mining data (raw demos, parsed rounds, candidate bundles, renders)
+data-local/
+*.dem
+*.dem.gz
+*.dem.bz2
+*.dem.zst
+tools/case-miner/.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
