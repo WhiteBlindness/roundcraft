@@ -27,15 +27,18 @@ from .priors import (
     evidence_points,
     followup_class,
     followup_qualities,
+    generic_elapsed,
+    seen_groups,
     order_actions,
     order_qualifiers,
     order_responses,
     stable_hash,
 )
-from .templates import SITUATIONS, Situation
+from .templates import SITUATIONS, Situation, fill
 from .text import (
     break_overlap,
     clock_label,
+    fix_weapon_articles,
     has_identity,
     map_display,
     map_slug,
@@ -46,7 +49,7 @@ from .text import (
     slug,
     truncate,
 )
-from .timeline import render_outcome, render_timeline
+from .timeline import decisive_summary, readable_actual_line, render_outcome, render_timeline, weapon_display
 
 ORIGIN_LABEL = "Synthetic scenario — editorial tactical analysis."
 PROPOSED_RUBRIC_NOTE = (
@@ -153,7 +156,7 @@ def build_facts(candidate: dict[str, Any], f: Features) -> tuple[list[dict[str, 
         if status not in FACT_STATUSES:
             issues.append(f"Mined fact {raw.get('id')!r} had an unrecognised status {status!r}; treated as 'unknown'.")
             status = "unknown"
-        text = scrub(str(raw.get("text", "")).strip())
+        text = fix_weapon_articles(scrub(str(raw.get("text", "")).strip()))
         basis = re.sub(r"\brounds? \d+(?:, \d+)*", "recent rounds", scrub(str(raw.get("basis", "")).strip()))
         if status == "inferred" and basis and "basis" not in text.lower() and len(text) + len(basis) < 470:
             text = f"{text.rstrip('.')}. Basis: {basis.rstrip('.')}."
@@ -187,7 +190,7 @@ def build_facts(candidate: dict[str, Any], f: Features) -> tuple[list[dict[str, 
     if f.perspective == "CT" and f.own_alive > 0:
         # Kits are visible on the scoreboard to teammates, so this is known to the deciding team.
         kit_text = ("No one on your team carries a defuse kit." if f.own_kit == 0 else
-                    f"{f.own_kit} of your {f.own_alive} alive players carry a defuse kit.")
+                    f"{f.own_kit} of your {f.own_alive} alive players {'carries' if f.own_kit == 1 else 'carry'} a defuse kit.")
         derived.append((2, {"id": _ident("defuse_kits", taken, "defuse_kits"), "status": "confirmed", "text": kit_text}))
     if 4 not in classes and f.unknown_enemies > 0 and not any(m[2]["status"] == "unknown" for m in mined):
         derived.append((4, {"id": _ident("unknown_positions", taken, "unknown_positions"), "status": "unknown",
@@ -205,6 +208,47 @@ def build_facts(candidate: dict[str, Any], f: Features) -> tuple[list[dict[str, 
     return facts, issues
 
 
+def specific_title(sit: Situation, f: Features) -> str:
+    """A title that names the actual situation, e.g. '2v2 retake at A on Mirage'."""
+    game = f"{f.own_alive}v{f.enemy_alive}"
+    where = map_display(f.map_name)
+    site = f" at {f.bomb_site}" if f.bomb_site else ""
+    seconds = f"{f.time_left:.0f} s" if f.time_left is not None else None
+    if sit.id == "retake":
+        return f"{game} retake{site} on {where}"
+    if sit.id == "post_plant_hold":
+        return f"{game} post-plant{site} on {where}"
+    if sit.id == "execute_or_default" and seconds and f.time_left is not None and f.time_left <= 20:
+        return f"Plant or save: {game} with {seconds} left on {where}"
+    if sit.id == "execute_or_default" and seconds:
+        ground = " and the bomb on the ground" if f.bomb_status == "dropped" else " and no plant"
+        return f"{game} with {seconds} left{ground} on {where}"
+    if sit.id == "execute_or_default":
+        return f"{game} mid-round read as the attackers on {where}"
+    if sit.id == "hold_or_rotate":
+        return f"{game} hold or rotate as the defenders on {where}"
+    return sit.title.format(map=where)
+
+
+FOCUS_MAX = 80  # publicMetadata.focus limit
+
+
+def focus_for(sit: Situation, f: Features) -> str:
+    """A focus line that matches the situation actually presented (variants of the family default)."""
+    late = f.time_left is not None
+    if sit.id == "execute_or_default" and late and f.time <= 20:
+        focus = "Trying to plant with the clock nearly gone versus saving the weapons"
+    elif sit.id == "execute_or_default" and late and f.time <= 45:
+        focus = "Committing to a plant with the round clock running short"
+    elif sit.id == "retake" and f.time < f.t_low:
+        focus = "Whether a retake can still finish before the bomb explodes"
+    elif sit.id == "post_plant_hold" and f.time < 12:
+        focus = "Staying out of contact while the bomb timer runs out"
+    else:
+        focus = sit.focus
+    return truncate(focus, FOCUS_MAX)
+
+
 def build_brief(candidate: dict[str, Any], f: Features, sit: Situation, ids: dict[str, str],
                 main: MainPrior, evidence: list[Signal], actions_ordered: list[ActionPrior]) -> tuple[dict[str, Any], list[str]]:
     facts, issues = build_facts(candidate, f)
@@ -220,8 +264,8 @@ def build_brief(candidate: dict[str, Any], f: Features, sit: Situation, ids: dic
         "schemaVersion": 1,
         "editionId": ids["editionId"],
         "caseRevision": ids["revision"],
-        "title": sit.title.format(map=map_display(f.map_name)),
-        "focus": sit.focus,
+        "title": specific_title(sit, f),
+        "focus": focus_for(sit, f),
         "origin": "synthetic",
         "facts": facts,
         "actions": actions,
@@ -236,7 +280,8 @@ def build_brief(candidate: dict[str, Any], f: Features, sit: Situation, ids: dic
 # Follow-up (candidate.followUp only)
 # ---------------------------------------------------------------------------
 
-_HEADINGS = (
+_HEADINGS = (  # first match wins: "utility_seen" must read as utility, not as a sighting
+    ("utility", "New enemy utility"),
     ("plant", "The bomb is planted"),
     ("defus", "A defuse begins"),
     ("kill", "A player is eliminated"),
@@ -245,7 +290,6 @@ _HEADINGS = (
     ("seen", "A new sighting"),
     ("heard", "A new sound"),
     ("sound", "A new sound"),
-    ("utility", "Utility is seen"),
 )
 
 
@@ -255,6 +299,34 @@ def _heading(kind: str) -> str:
         if key in kind:
             return heading
     return "The round moves on"
+
+
+NO_FOLLOWUP_ISSUE = ("Follow-up must be authored: the first change after the decision in the source round was the team's own action.")
+INDEPENDENT_FOLLOWUP_ISSUE = (
+    "Follow-up scores are independent of the main call: the schema cannot condition them on the line the player chose, so the "
+    "response labels are call-agnostic and every main line is scored by the same follow-up qualities. A reviewer should judge "
+    "whether the follow-up responses are fair for every main line."
+)
+SHORT_REACTION_SECONDS = 2.0
+
+
+def followup_caveats(follow: dict[str, Any] | None) -> list[str]:
+    """Known issues about how the mined follow-up came about (fields are absent on older candidates)."""
+    if not follow:
+        return []
+    lines: list[str] = []
+    if follow.get("dependsOnOwnMovement") is True:
+        lines.append(
+            "Follow-up depends on the team's own movement: the new information only arrived because the deciding team moved, so a "
+            "player who chose a different main call might not have received it. Confirm it is fair for every main line or author a different one."
+        )
+    window = follow.get("reactionWindowSeconds")
+    if isinstance(window, (int, float)) and not isinstance(window, bool) and window < SHORT_REACTION_SECONDS:
+        lines.append(
+            f"Follow-up reaction window is only {window:g} s: in the source round the situation changed again almost at once, so the "
+            "responses may not be meaningfully playable. Confirm the window is long enough or author a different follow-up."
+        )
+    return lines
 
 
 def build_followup(candidate: dict[str, Any], f: Features, sit: Situation, ids: dict[str, str],
@@ -267,16 +339,26 @@ def build_followup(candidate: dict[str, Any], f: Features, sit: Situation, ids: 
     updates: list[dict[str, str]] = []
     taken: set[str] = set()
     if follow is None:
-        issues.append("No mined follow-up; follow-up needs authoring (a generic, conservative follow-up was generated).")
-        heading = "Time passes"
-        stimulus = sit.generic_followup_stimulus
+        issues.append(NO_FOLLOWUP_ISSUE)
+        heading = "The clock runs down"
+        elapsed = generic_elapsed(f)
         updates.append({"id": "no_new_contact", "status": "unchanged", "text": "No new position has been confirmed."})
         taken.add("no_new_contact")
+        if elapsed is None:
+            stimulus = "Time passes without new contact."
+        else:
+            noun = "bomb timer" if f.time_kind == "bomb" else "round clock"
+            remaining = max(0, int(round(f.time - elapsed)))
+            stimulus = f"About {elapsed} seconds pass without new contact; the {noun} now shows {remaining} s."
+            updates.append({"id": _ident("clock_now", taken, "clock_now"), "status": "changed",
+                            "text": f"About {seconds_phrase(remaining)} now remain on the {noun}."})
     else:
+        issues.extend(followup_caveats(follow))
         heading = _heading(follow.get("kind", ""))
         delta = follow.get("t", 0) - candidate.get("decisionT", 0)
         summary = scrub(str(follow.get("summary", "")).strip())
-        stimulus = f"After about {seconds_phrase(delta)}: {summary}" if delta >= 1 and summary else summary
+        stimulus = (f"About {seconds_phrase(delta)} later, {summary[:1].lower()}{summary[1:]}"
+                    if delta >= 1 and summary else summary)
         for index, fact in enumerate(follow.get("newFacts") or []):
             status = fact.get("status")
             text = scrub(str(fact.get("text", "")).strip())
@@ -336,7 +418,7 @@ _FOLLOWUP_REASONING = {
     "own_loss": "a teammate has been eliminated, which changes the numbers and calls for an adjusted plan",
     "bomb_event": "the state of the bomb has changed, which changes what the plan is for",
     "default": "the change is modest, so adjusting to it is slightly better than repeating the plan unchanged",
-    "no_followup": "no new information was mined, so the proposed answers are close together and only weakly ranked",
+    "no_followup": "no decisive new information arrived, so the answers are scored close together and only weakly ranked",
 }
 
 
@@ -344,6 +426,110 @@ def _followup_reasoning(cls_key: str, sit: Situation) -> str:
     if cls_key == "urgent":
         return f"the state is urgent: {sit.urgent_text}"
     return _FOLLOWUP_REASONING.get(cls_key, _FOLLOWUP_REASONING["default"])
+
+
+_NUMBER_WORDS = {0: "no", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}
+
+
+def _count(n: int, one: str, many: str | None = None) -> str:
+    word = _NUMBER_WORDS.get(n, str(n))
+    return f"{word} {one if n == 1 else (many or one + 's')}"
+
+
+def _own_utility_sentence(f: Features) -> str:
+    kinds = (("smoke", "smoke", "smokes"), ("flash", "flash", "flashes"), ("he", "HE grenade", "HE grenades"),
+             ("molotov", "molotov", "molotovs"), ("decoy", "decoy", "decoys"))
+    present = [_count(f.util.get(k, 0), one, many) for k, one, many in kinds if f.util.get(k, 0)]
+    if not present:
+        return "The team had no utility left."
+    absent = [many for k, _, many in kinds[:4] if not f.util.get(k, 0)]
+    have = present[0] if len(present) == 1 else ", ".join(present[:-1]) + " and " + present[-1]
+    sentence = f"The team had {have}"
+    if absent:
+        sentence += " and no " + (absent[0] if len(absent) == 1 else ", ".join(absent[:-1]) + " or " + absent[-1])
+    return sentence + "."
+
+
+def _kit_sentence(f: Features) -> str:
+    if f.own_kit == 0:
+        return f"No one carried a defuse kit, so a defuse needed about {seconds_phrase(f.defuse_needed)}."
+    if f.own_kit >= f.own_alive:
+        who = "Both players carried defuse kits" if f.own_alive == 2 else f"All {f.own_alive} players carried defuse kits"
+        return f"{who}, so a defuse needed about {seconds_phrase(5)}."
+    return (f"{_count(f.own_kit, 'player')} of {f.own_alive} carried a defuse kit, so a defuse took about {seconds_phrase(5)} for a kit "
+            f"holder and about {seconds_phrase(10)} for anyone else.")
+
+
+def _weapon_name(raw: str) -> str:
+    shown = weapon_display(raw)
+    return re.sub(r"^(?:an?|the) ", "", shown) if shown != raw.lower().replace("_", " ") else raw
+
+
+def _own_players(view: dict[str, Any]) -> list[dict[str, Any]]:
+    return [p for p in view.get("own") or [] if p.get("alive", True)]
+
+
+def _evidence_sentence(s: Signal, f: Features, view: dict[str, Any]) -> str:
+    """One factual sentence for an evidence option, grounded only in the player-known view."""
+    noun = f.enemy_noun
+    if s.id == "side_and_map":
+        return f"You played the {f.perspective} side on {map_display(f.map_name)}."
+    if s.id == "own_health":
+        hp = [int(p["hp"]) for p in _own_players(view) if isinstance(p.get("hp"), (int, float))]
+        if hp:
+            listed = " and ".join(f"{h}" for h in hp) if len(hp) <= 2 else ", ".join(map(str, hp[:-1])) + f" and {hp[-1]}"
+            return f"The players had {listed} health."
+        return "Each player's health and armour were visible to the team."
+    if s.cls == "bomb_timer" and f.time_left is not None:
+        return f"The bomb timer stood near {seconds_phrase(f.time_left)}."
+    if s.cls == "clock" and f.time_left is not None:
+        return f"The round clock stood near {seconds_phrase(f.time_left)}."
+    if s.cls == "alive_count":
+        return f"It was {f.own_alive} players against {f.enemy_alive}."
+    if s.cls == "own_utility":
+        return _own_utility_sentence(f)
+    if s.cls == "defuse_kit":
+        return _kit_sentence(f)
+    if s.cls == "enemy_seen":
+        groups = seen_groups(f)
+        index = int(s.id.rsplit("_", 1)[-1]) - 1
+        if 0 <= index < len(groups):
+            enemy, count = groups[index]
+            who = _count(count, noun)
+            kind = "confirmed" if enemy.status == "confirmed" else "last-seen"
+            age = ("current" if enemy.age is None or enemy.age < 1.5 else f"about {seconds_phrase(enemy.age)} old")
+            return f"The {kind} position of {who} in {enemy.place} was {age}."
+    if s.cls == "enemy_unknown":
+        return f"{_count(f.unknown_enemies, noun).capitalize()} could not be placed."
+    if s.cls == "bomb_location":
+        where = f"at {f.bomb_site}" if f.bomb_site else (f"in {f.bomb_place}" if f.bomb_place else "on site")
+        return f"The bomb was planted {where}."
+    if s.cls == "enemy_utility" and f.observed_enemy_utility:
+        names = {"smoke": "smoke", "flash": "flash", "he": "HE grenade", "molotov": "molotov", "decoy": "decoy"}
+        counts: dict[str, int] = {}
+        for kind in f.observed_enemy_utility:
+            counts[kind] = counts.get(kind, 0) + 1
+        parts = [_count(n, names.get(k, k), names.get(k, k) + ("es" if k == "flash" else "s")) for k, n in sorted(counts.items())]
+        return f"The {noun}s had already used {' and '.join(parts) if len(parts) < 3 else ', '.join(parts[:-1]) + ' and ' + parts[-1]}."
+    if s.cls == "own_positions":
+        places: dict[str, int] = {}
+        for p in _own_players(view):
+            place = pretty_place(p.get("place"))
+            if place:
+                places[place] = places.get(place, 0) + 1
+        if places:
+            return "The team's players stood as follows: " + ", ".join(f"{_NUMBER_WORDS.get(n, n)} in {pl}" for pl, n in places.items()) + "."
+    if s.cls == "own_loadout":
+        weapons: dict[str, int] = {}
+        for p in _own_players(view):
+            raw = p.get("primary") or p.get("activeWeapon")
+            if raw:
+                weapons[_weapon_name(str(raw))] = weapons.get(_weapon_name(str(raw)), 0) + 1
+        if weapons:
+            listed = ", ".join(_count(n, w) for w, n in weapons.items())
+            armoured = sum(1 for p in _own_players(view) if (p.get("armor") or 0) > 0)
+            return f"The team carried {listed}; {armoured} of {len(_own_players(view))} wore armour."
+    return "This was part of what the team could see at the decision point."
 
 
 def build_reveal(candidate: dict[str, Any], f: Features, sit: Situation, ids: dict[str, str], main: MainPrior,
@@ -355,37 +541,45 @@ def build_reveal(candidate: dict[str, Any], f: Features, sit: Situation, ids: di
     follow = candidate.get("followUp")
     actual = _HISTORICAL_PREFIX.sub("", scrub(str(candidate.get("actualLine", "")).strip()))
     if actual:
-        round_action = f"In the source round, {_lower_first(actual)}"
+        extra = "" if "defus" in actual.lower() else decisive_summary(candidate)
+        round_action = f"In the source round, {_lower_first(readable_actual_line(actual, candidate, extra))}"
     else:
         round_action = "The source round's line was not recorded for this decision point."
         issues.append("candidate.actualLine is empty; the comparison has no historical line.")
     if follow:
         material = f"The information that arrived after the decision: {scrub(str(follow.get('summary', '')).strip())}"
     else:
-        material = "No decisive new information was mined between the decision point and the outcome."
-    outcome = render_outcome(candidate, f, winner_only=bool(events and raw_actions))
-    round_followup = (
-        "After the decision the source round continued: " + " ".join(raw_actions[:3])
-        if raw_actions else "The mined data records no further events after the decision point."
-    )
-    if outcome:
-        round_followup = f"{round_followup} {outcome}"
+        material = "No separate new information is recorded between the decision point and the outcome."
+    outcome = render_outcome(candidate, f)
+    if raw_actions:
+        round_followup = "After the decision the source round continued: " + " ".join(raw_actions[:2])
+        if outcome:
+            round_followup = f"{round_followup} {outcome}"
+    else:
+        round_followup = "No further events are recorded after the decision point." + (f" {outcome}" if outcome else "")
 
     best_response = max(sit.responses, key=lambda r: qualities[r.id])
-    why = lead.template.why
+    why = fill(lead.template.why, f)
     if f.time_left is not None:
         why += (f" Here, {f.own_alive} players faced {f.enemy_alive} with about {seconds_phrase(f.time_left)} left.")
     else:
         why += f" Here, {f.own_alive} players faced {f.enemy_alive}."
-    alt_text = f"The closest alternative was {second.template.alt}."
+    alt_text = f"The closest alternative was {fill(second.template.alt, f)}."
 
     weights = {s.id: lead.template.evidence_weights.get(s.cls, sit.evidence_weights.get(s.cls, 1)) for s in evidence}
-    reviewed = sorted(evidence, key=lambda s: (-weights[s.id], s.id))[:3]
+    ordered_evidence = sorted(evidence, key=lambda s: (-weights[s.id], s.id))
     review_entries = []
-    for s in reviewed:
-        explanation = sit.evidence_notes.get(s.cls, "This signal bears on the decision.")
-        extra = _evidence_specific(s, f)
-        review_entries.append({"evidenceId": s.id, "explanation": f"{explanation} {extra}".strip()})
+    for s in ordered_evidence:  # one entry for EVERY evidence option the player could pick
+        note = sit.evidence_notes.get(s.cls, "")
+        review_entries.append({"evidenceId": s.id,
+                               "explanation": truncate(f"{_evidence_sentence(s, f, candidate['playerKnown'])} {note}".strip(), 1200)})
+
+    if cls_key == "no_followup":
+        followup_review = (f"No decisive new information arrived, so the answers are scored close together; the best-supported "
+                           f"answer was: {best_response.label}.")
+    else:
+        followup_review = (f"The proposed best answer to the new information was: {best_response.label}. "
+                           f"Reasoning: {_followup_reasoning(cls_key, sit)}.")
 
     reveal = {
         "schemaVersion": 1,
@@ -395,54 +589,26 @@ def build_reveal(candidate: dict[str, Any], f: Features, sit: Situation, ids: di
                        "roundFollowup": truncate(round_followup, 1200)},
         "debrief": {
             "whyItWorks": truncate(why, 1200),
-            "cost": lead.template.cost,
-            "assumption": lead.template.assumption,
-            "breaksWhen": lead.template.breaks,
+            "cost": fill(lead.template.cost, f),
+            "assumption": fill(lead.template.assumption, f),
+            "breaksWhen": fill(lead.template.breaks, f),
             "evidenceReview": review_entries,
-            "followupReview": truncate(
-                f"The proposed best answer to the new information was: {best_response.label}. "
-                f"Reasoning: {_followup_reasoning(cls_key, sit)}.", 1200),
+            "followupReview": truncate(followup_review, 1200),
             "strongestAlternative": truncate(alt_text, 1200),
-            "counterfactual": {"changedFact": lead.template.cf_fact, "effect": lead.template.cf_effect},
+            "counterfactual": {"changedFact": fill(lead.template.cf_fact, f), "effect": fill(lead.template.cf_effect, f)},
             "method": (
-                "Synthetic scenario inspired by a decision point in a recorded demo. The situation was rebuilt from anonymised "
-                "game data, the options and reasoning are editorial templates, and the source round's line is shown for comparison "
+                "Synthetic scenario inspired by a decision point in a recorded round. The situation was rebuilt from anonymised "
+                "game data, the options and reasoning are editorial, and the source round's line is shown for comparison "
                 "only: it is not treated as the correct answer, and this is not a reconstruction of the match."
             ),
             "sources": [{
                 "label": "Roundcraft editorial analysis",
-                "detail": "Demo-grounded synthetic scenario. No match, team or player is identified.",
+                "detail": "Synthetic scenario based on a recorded round. No match, team or player is identified.",
             }],
         },
         "principle": sit.principle,
     }
     return reveal, issues
-
-
-def _evidence_specific(s: Signal, f: Features) -> str:
-    if s.cls == "bomb_timer" and f.time_left is not None:
-        return f"Here the timer stood near {seconds_phrase(f.time_left)}."
-    if s.cls == "clock" and f.time_left is not None:
-        return f"Here the round clock stood near {seconds_phrase(f.time_left)}."
-    if s.cls == "alive_count":
-        return f"Here it was {f.own_alive} against {f.enemy_alive}."
-    if s.cls == "own_utility":
-        n = f.util_total
-        return f"Here the team held {_plural(n, 'utility item')}."
-    if s.cls == "enemy_seen":
-        index = int(s.id.rsplit("_", 1)[-1]) - 1
-        places = [e for e in sorted(f.known_enemies, key=lambda e: (e.age if e.age is not None else 0.0, e.place or "")) if e.place]
-        uniq: list[Any] = []
-        for e in places:
-            if all(e.place != o.place for o in uniq):
-                uniq.append(e)
-        if 0 <= index < len(uniq) and uniq[index].age is not None:
-            if uniq[index].age < 1.5:
-                return "That sighting was current."
-            return f"That sighting was about {seconds_phrase(uniq[index].age)} old."
-    if s.cls == "enemy_unknown":
-        return f"Here {_plural(f.unknown_enemies, f.enemy_noun)} could not be placed."
-    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -641,6 +807,7 @@ def build_case(candidate: dict[str, Any], *, case_id: str | None = None) -> dict
 
     issues: list[str] = [scrub(str(note)) for note in candidate.get("reviewNotes") or []]
     issues += brief_issues + followup_issues + reveal_issues
+    issues.append(INDEPENDENT_FOLLOWUP_ISSUE)
     issues += [
         "The option set (actions, qualifiers, follow-up responses) is a template for this situation family, not derived from the demo; "
         "a reviewer must confirm every option is playable on this map at this moment and that no defensible line is missing.",
@@ -670,7 +837,7 @@ def build_case(candidate: dict[str, Any], *, case_id: str | None = None) -> dict
                 "case_number": PLACEHOLDER_CASE_NUMBER,
                 "edition_date_utc": PLACEHOLDER_EDITION_DATE,
                 "estimated_minutes": 6,
-                "focus": sit.focus,
+                "focus": focus_for(sit, f),
                 "origin_label": ORIGIN_LABEL,
             },
         },

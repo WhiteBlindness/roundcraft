@@ -9,6 +9,7 @@ from typing import Any
 from .templates import SITUATIONS
 from .features import extract_features
 from .priors import compute_main_prior
+from .case_draft import INDEPENDENT_FOLLOWUP_ISSUE, NO_FOLLOWUP_ISSUE, followup_caveats
 
 
 def _bullets(items: list[str]) -> str:
@@ -80,6 +81,11 @@ def render_review(candidate_path: Path, candidate: dict[str, Any], case: dict[st
     add("## Disputed assumptions and known issues")
     add("")
     add(_bullets(case["editorial"]["knownIssues"]))
+    add("")
+    add("### Follow-up assumptions to dispute")
+    add("")
+    caveats = [NO_FOLLOWUP_ISSUE] if not follow else followup_caveats(follow)
+    add(_bullets([*caveats, INDEPENDENT_FOLLOWUP_ISSUE]))
     add("")
     add("## Alternative plausible lines (from the template, in proposed rank order)")
     add("")

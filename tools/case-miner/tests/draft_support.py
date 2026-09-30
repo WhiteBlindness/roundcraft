@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 FIXTURES = Path(__file__).parent / "fixtures"
-FIXTURE_NAMES = ("candidate_retake_ct", "candidate_post_plant_t", "candidate_ct_hold_nofollowup")
+FIXTURE_NAMES = ("candidate_retake_ct", "candidate_post_plant_t", "candidate_ct_hold_nofollowup", "candidate_ct_hold_two_alive")
 
 
 def load_fixture(name: str) -> dict:

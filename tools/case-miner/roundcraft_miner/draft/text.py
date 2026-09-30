@@ -33,13 +33,17 @@ def slug(value: str, *, max_len: int = 40) -> str:
     return cleaned[:max_len].strip("_") or "x"
 
 
-_PLACE_FIXES = {"Topof": "Top of", "Bottomof": "Bottom of", "Outof": "Out of"}
+_PLACE_FIXES = {"Topof": "Top of", "Bottomof": "Bottom of", "Outof": "Out of", "Snipers Nest": "Sniper's Nest"}
 
 
 def pretty_place(place: str | None) -> str | None:
     """'BombsiteA' -> 'Bombsite A', 'CTSpawn' -> 'CT Spawn'. Idempotent on spaced names."""
     if not place:
         return None
+    compact = re.sub(r"\s+", "", place.strip())
+    site = re.fullmatch(r"(?i)bombsite([AB])", compact)
+    if site:
+        return f"{site.group(1).upper()} site"
     text = place.strip().replace("_", " ")
     text = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text)
     text = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", text)
@@ -47,6 +51,11 @@ def pretty_place(place: str | None) -> str | None:
     for wrong, right in _PLACE_FIXES.items():
         text = text.replace(wrong, right)
     return re.sub(r"\s{2,}", " ", text).strip() or None
+
+
+def fix_weapon_articles(text: str) -> str:
+    """'with a Dual Berettas' -> 'with Dual Berettas' (plural weapon names take no article)."""
+    return re.sub(r"\b([Aa]n?) (Dual Berettas)\b", r"\2", text)
 
 
 def map_display(map_name: str) -> str:

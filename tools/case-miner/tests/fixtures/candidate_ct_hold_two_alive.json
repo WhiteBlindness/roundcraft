@@ -1,0 +1,285 @@
+{
+  "actualLine": "HISTORICAL LINE (what this team actually did; it is not assumed to be the correct line). Over the next 10 s: 5 players held position in BombsiteA, Ramp and Market. Over the next 20 s the team used no utility and took no fight. Result: T won the round (t win elimination); 0 of the team survived.",
+  "candidateId": "cand_fixture_ct_two_alive",
+  "category": "rotation_call",
+  "decisionT": 38.0,
+  "decisionTick": 30500,
+  "followUp": {
+    "kind": "enemy_spotted",
+    "t": 44.0,
+    "tick": 30900,
+    "summary": "An attacker appears in Top of Mid.",
+    "newFacts": [
+      {
+        "id": "visible_topofmid_1",
+        "status": "confirmed",
+        "text": "One attacker is visible in Top of Mid right now.",
+        "basis": "spotted by an own living player"
+      }
+    ],
+    "knowledgeAfter": {
+      "alive": {
+        "own": 2,
+        "enemy": 3
+      },
+      "bomb": {
+        "knowledge": "unknown",
+        "status": "carried"
+      },
+      "clock": {
+        "bombSecondsLeft": null,
+        "roundSecondsLeft": 56.0
+      },
+      "enemies": [
+        {
+          "pid": "p06",
+          "status": "confirmed",
+          "place": "TopofMid",
+          "ageSeconds": 0.0,
+          "weaponSeen": "AK-47"
+        },
+        {
+          "pid": "p07",
+          "status": "unknown"
+        },
+        {
+          "pid": "p08",
+          "status": "unknown"
+        }
+      ],
+      "facts": [
+        {
+          "basis": "HUD alive count",
+          "id": "alive_2v3",
+          "status": "confirmed",
+          "text": "2 CT alive against 3 T."
+        },
+        {
+          "basis": "HUD round clock",
+          "id": "clock",
+          "status": "confirmed",
+          "text": "The bomb has not been planted; about 62 s remain on the round clock."
+        },
+        {
+          "basis": "not spotted by a living teammate in the last 45 s (or never this round)",
+          "id": "unknown_3",
+          "status": "unknown",
+          "text": "The positions of three attackers are unknown."
+        },
+        {
+          "id": "visible_topofmid_1",
+          "status": "confirmed",
+          "text": "One attacker is visible in Top of Mid right now.",
+          "basis": "x"
+        }
+      ],
+      "own": [
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": false,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p01",
+          "place": "BombsiteA",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "CT",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 0,
+            "he": 0,
+            "molotov": 0,
+            "smoke": 0
+          },
+          "x": 100,
+          "y": 100,
+          "z": 0
+        },
+        {
+          "activeWeapon": "ak47",
+          "alive": true,
+          "armor": 100,
+          "defuser": false,
+          "equipValue": 4500,
+          "hasC4": false,
+          "helmet": true,
+          "hp": 100,
+          "money": 1200,
+          "pid": "p02",
+          "place": "Ramp",
+          "primary": "ak47",
+          "secondary": "glock",
+          "side": "CT",
+          "spottedBy": [],
+          "utility": {
+            "decoy": 0,
+            "flash": 0,
+            "he": 0,
+            "molotov": 0,
+            "smoke": 0
+          },
+          "x": 200,
+          "y": 300,
+          "z": 0
+        }
+      ],
+      "perspective": "CT",
+      "t": 38.0,
+      "tick": 30500,
+      "utilityObserved": []
+    },
+    "dependsOnOwnMovement": true,
+    "reactionWindowSeconds": 1.2
+  },
+  "groundTruth": {
+    "demoSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "enemies": [
+      {
+        "pid": "p06",
+        "place": "Kitchen",
+        "x": 3100,
+        "y": -2222
+      }
+    ],
+    "outcome": {
+      "bombOutcome": "not_planted",
+      "endReason": "t_win_elimination",
+      "enemySurvivors": 2,
+      "ownSurvivors": 0,
+      "perspectiveWon": false,
+      "winner": "T"
+    },
+    "timelineAfter": []
+  },
+  "map": "de_mirage",
+  "perspective": "CT",
+  "playerKnown": {
+    "alive": {
+      "own": 2,
+      "enemy": 3
+    },
+    "bomb": {
+      "knowledge": "unknown",
+      "status": "carried"
+    },
+    "clock": {
+      "bombSecondsLeft": null,
+      "roundSecondsLeft": 62.0
+    },
+    "enemies": [
+      {
+        "pid": "p06",
+        "status": "unknown"
+      },
+      {
+        "pid": "p07",
+        "status": "unknown"
+      },
+      {
+        "pid": "p08",
+        "status": "unknown"
+      }
+    ],
+    "facts": [
+      {
+        "basis": "HUD alive count",
+        "id": "alive_2v3",
+        "status": "confirmed",
+        "text": "2 CT alive against 3 T."
+      },
+      {
+        "basis": "HUD round clock",
+        "id": "clock",
+        "status": "confirmed",
+        "text": "The bomb has not been planted; about 62 s remain on the round clock."
+      },
+      {
+        "basis": "not spotted by a living teammate in the last 45 s (or never this round)",
+        "id": "unknown_3",
+        "status": "unknown",
+        "text": "The positions of three attackers are unknown."
+      }
+    ],
+    "own": [
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p01",
+        "place": "BombsiteA",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "CT",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 0,
+          "he": 0,
+          "molotov": 0,
+          "smoke": 0
+        },
+        "x": 100,
+        "y": 100,
+        "z": 0
+      },
+      {
+        "activeWeapon": "ak47",
+        "alive": true,
+        "armor": 100,
+        "defuser": false,
+        "equipValue": 4500,
+        "hasC4": false,
+        "helmet": true,
+        "hp": 100,
+        "money": 1200,
+        "pid": "p02",
+        "place": "Ramp",
+        "primary": "ak47",
+        "secondary": "glock",
+        "side": "CT",
+        "spottedBy": [],
+        "utility": {
+          "decoy": 0,
+          "flash": 0,
+          "he": 0,
+          "molotov": 0,
+          "smoke": 0
+        },
+        "x": 200,
+        "y": 300,
+        "z": 0
+      }
+    ],
+    "perspective": "CT",
+    "t": 38.0,
+    "tick": 30500,
+    "utilityObserved": []
+  },
+  "reviewNotes": [
+    "Whether the mid sighting was a fake is unknown."
+  ],
+  "round": 3,
+  "schemaVersion": 1,
+  "score": {
+    "factors": {
+      "information_gap": 0.9,
+      "numbers_balance": 0.5,
+      "time_pressure": 0.2
+    },
+    "total": 0.55
+  },
+  "sourceId": "src_fixture_mirage",
+  "summary": "Synthetic two-alive CT hold with no utility and no known enemy."
+}

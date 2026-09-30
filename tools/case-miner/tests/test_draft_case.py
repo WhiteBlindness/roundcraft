@@ -102,7 +102,7 @@ def test_no_followup_records_known_issue(clone):
     candidate = load_fixture("candidate_ct_hold_nofollowup")
     assert candidate["followUp"] is None
     case = build_case(candidate)
-    assert any("No mined follow-up; follow-up needs authoring" in issue for issue in case["editorial"]["knownIssues"])
+    assert any("Follow-up must be authored: the first change after the decision in the source round was the team's own action." in issue for issue in case["editorial"]["knownIssues"])
     assert case["followup"]["type"] == "new_information"
     assert len(case["followup"]["responses"]) >= 2
 

@@ -8,12 +8,13 @@ explanation that ends up in editorial.notes.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import combinations
 from typing import Any
 
 from .features import Features, extract_features
 from .templates import (
+    available_qualifiers,
     FOLLOWUP_QUALITY,
     POOR_CAP,
     TIER_ORDER,
@@ -67,6 +68,8 @@ def _quality(ratings: tuple[int, int], weights: tuple[int, int], caps: list[int]
 
 
 def action_label(action: ActionT, f: Features) -> str:
+    if action.label_unplanted and f.bomb_status != "planted":
+        return action.label_unplanted
     return action.label.format(place=f.place) if f.place else action.label_no_place
 
 
@@ -116,7 +119,7 @@ def compute_main_prior(sit: Situation, f: Features) -> MainPrior:
             caps.append(POOR_CAP)
             cap_reasons.append(f"cap {POOR_CAP}: poor-tier line")
         scored: list[tuple[int, int, QualPrior]] = []
-        for index, qual in enumerate(action.qualifiers):
+        for index, qual in enumerate(available_qualifiers(action, f)):
             score, reasons = qual.base, []
             for rule in qual.rules:
                 if rule.test(f):
@@ -177,6 +180,29 @@ class Signal:
     detail: str = ""  # player-known specifics for the reveal explanation
 
 
+_COUNT_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
+
+
+def seen_groups(f: Features) -> list[tuple[Any, int]]:
+    """Known enemy positions grouped by place, freshest first: [(freshest sighting there, how many there)]."""
+    seen = sorted(
+        [e for e in f.known_enemies if e.place],
+        key=lambda e: (e.age if e.age is not None else 0.0, e.place or ""),
+    )
+    groups: list[tuple[Any, int]] = []
+    for enemy in seen:
+        for index, (first, count) in enumerate(groups):
+            # Only sightings of the same kind and similar age merge: a fresh sighting and a 13 s old one in the
+            # same place are two different pieces of evidence, not "two attackers spotted".
+            same_read = first.status == enemy.status and abs((enemy.age or 0.0) - (first.age or 0.0)) <= 3.0
+            if first.place == enemy.place and same_read:
+                groups[index] = (first, count + 1)
+                break
+        else:
+            groups.append((enemy, 1))
+    return groups
+
+
 def available_signals(sit: Situation, f: Features) -> list[Signal]:
     """Player-known signals the evidence options can be chosen from, in situation priority order."""
     noun = f.enemy_noun.capitalize()
@@ -187,18 +213,11 @@ def available_signals(sit: Situation, f: Features) -> list[Signal]:
         pool["clock"] = [Signal("round_clock", "clock", "Round clock")]
     pool["alive_count"] = [Signal("alive_count", "alive_count", "Alive count")]
     pool["own_utility"] = [Signal("own_utility", "own_utility", "Own utility")]
-    seen = sorted(
-        [e for e in f.known_enemies if e.place],
-        key=lambda e: (e.age if e.age is not None else 0.0, e.place or ""),
-    )
-    unique_places: list[Any] = []
-    for enemy in seen:
-        if all(enemy.place != other.place for other in unique_places):
-            unique_places.append(enemy)
     pool["enemy_seen"] = []
-    for index, enemy in enumerate(unique_places[:2], start=1):
-        verb = "confirmed" if enemy.status == "confirmed" else "last seen"
-        pool["enemy_seen"].append(Signal(f"enemy_seen_{index}", "enemy_seen", f"{noun} {verb} in {enemy.place}"))
+    for index, (enemy, count) in enumerate(seen_groups(f)[:2], start=1):
+        verb = "spotted" if enemy.status == "confirmed" else "last seen"
+        subject = noun if count == 1 else f"{_COUNT_WORDS.get(count, str(count))} {f.enemy_noun}s".capitalize()
+        pool["enemy_seen"].append(Signal(f"enemy_seen_{index}", "enemy_seen", f"{subject} {verb} in {enemy.place}"))
     if f.unknown_enemies > 0:
         pool["enemy_unknown"] = [Signal("enemy_unknown", "enemy_unknown", f"Unknown {f.enemy_noun} positions")]
     if f.bomb_status == "planted" and (f.bomb_place or f.bomb_site):
@@ -252,10 +271,26 @@ def evidence_explain(sit: Situation, evidence: list[Signal]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+GENERIC_ELAPSED_SECONDS = 8
+
+
+def generic_elapsed(f: Features) -> int | None:
+    """Seconds the generic follow-up lets pass (None without a clock); shorter when the clock is nearly out."""
+    if f.time_left is None:
+        return None
+    return GENERIC_ELAPSED_SECONDS if f.time_left >= 10 else max(1, int(f.time_left // 2))
+
+
 def followup_class(sit: Situation, before: Features, followup: dict[str, Any] | None, candidate: dict[str, Any]) -> tuple[str, str, Features | None]:
     """Return (class, explanation, features after)."""
     if followup is None:
-        return "no_followup", "no mined follow-up: conservative generic qualities", None
+        elapsed = generic_elapsed(before)
+        if elapsed is not None:
+            later = replace(before, time_left=max(0.0, before.time - elapsed))
+            if sit.urgent_test(later):
+                return ("urgent", f"no follow-up was available; after {elapsed} s of the clock running down the state is urgent: "
+                        f"{sit.urgent_text}", later)
+        return "no_followup", "no follow-up available: conservative generic qualities", None
     after_candidate = {
         "playerKnown": followup["knowledgeAfter"],
         "perspective": candidate.get("perspective"),

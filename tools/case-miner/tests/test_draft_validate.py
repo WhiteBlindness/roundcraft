@@ -32,7 +32,7 @@ def test_parse_validator_output():
 
 
 @needs_node
-@pytest.mark.parametrize("name", ["candidate_retake_ct", "candidate_post_plant_t", "candidate_ct_hold_nofollowup"])
+@pytest.mark.parametrize("name", ["candidate_retake_ct", "candidate_post_plant_t", "candidate_ct_hold_nofollowup", "candidate_ct_hold_two_alive"])
 def test_generated_draft_passes_every_hard_validator_invariant(name, candidate_dir, temp_repo):
     candidate_path = candidate_dir(name)
     path, report = draft_case(candidate_path, out_dir=temp_repo)
