@@ -9,6 +9,10 @@ scripts/content/                  validator, generator, preview, editorial schem
 migrations/NNNN_publish_*.sql     generated, append-only, never edited
 ```
 
+## Where drafts come from
+
+Drafts can be written by hand or generated from real CS2 demos by the offline case miner in [`tools/case-miner/`](../tools/case-miner/README.md): it registers a demo with a provenance manifest (`content/sources/`), mines ranked decision candidates, separates what the deciding team could know from the demo's ground truth, and writes a `draft` case plus a reviewer packet. Generated drafts are demo-grounded synthetic cases (`origin: synthetic`): the round inspires the scenario, but the case never claims to reproduce the match and never names players or teams. Their options, debrief and rubric are heuristic proposals listed in `editorial.notes` and `editorial.knownIssues`; they follow exactly the same review workflow below.
+
 ## Case file format
 
 ```jsonc
