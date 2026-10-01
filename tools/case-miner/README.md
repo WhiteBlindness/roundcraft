@@ -106,7 +106,7 @@ Open `data-local/candidates/<source>/<candidate>/review.md`. It has the summary,
 
 ## Review packets
 
-`case packet [case-id ...]` writes `content/review/<case-id>/README.md` plus both diagrams for every case listed in `content/review/questions.json` (or the ids given). A packet is what a CS2 reviewer reads instead of the demo: the brief as players see it, the recent timeline, every proposed line scored with `npm run content:score`, the follow-up and its caveats, what happened next, assumptions and questions. Packets carry sides only, never identities; the writer refuses to save one that contains a pid or Steam ID. The ranked queue is [`docs/content-review-queue.md`](../../docs/content-review-queue.md).
+`case packet [case-id ...]` writes `content/review/<case-id>/README.md` plus both diagrams for every case listed in `content/review/questions.json` (or the ids given). A packet is what a CS2 reviewer reads instead of the demo or the case JSON. It has seven sections: situation, what the deciding team knew, the main decision and how it scores, the follow-up with its timing and score matrix, what actually happened (descriptive only), questions, and an approval form. Packets are derived from the case file and never change a score. They carry sides only, never identities, and the writer refuses to save one that contains a pid or Steam ID. The reviewer handoff index is [`content/review/README.md`](../../content/review/README.md), and the ranked queue is [`docs/content-review-queue.md`](../../docs/content-review-queue.md).
 
 ## Tests
 

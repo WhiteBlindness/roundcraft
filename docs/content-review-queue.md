@@ -4,18 +4,20 @@ The ten mined drafts under `content/cases/` all pass the validator, but that onl
 
 Every case here is `draft`. The options, rubric and debrief are proposals from the draft generator, and no case has had human tactical review. Only a named human CS2 reviewer can move a case to `tactically_reviewed`, as the pipeline in [`content/README.md`](../content/README.md) describes.
 
+The reviewer handoff for the first three cases is [`content/review/README.md`](../content/review/README.md).
+
 ## How to review one case (5–10 minutes)
 
-1. Open the packet, `content/review/<case-id>/README.md`. It holds:
-   - the player-known and ground-truth diagrams;
-   - the brief exactly as a player sees it;
-   - the last 20 s of the source round;
-   - every proposed line with its score under the production 50/20/30 model;
-   - the follow-up, its caveats and the follow-up matrix: how each answer scores after each locked line;
-   - what happened next;
-   - the assumptions and the questions only a reviewer can answer.
+1. Open the packet, `content/review/<case-id>/README.md`. It has seven sections:
+   1. situation;
+   2. what the deciding team knew;
+   3. the main decision and how it scores;
+   4. the follow-up, its timing and score matrix;
+   5. what actually happened;
+   6. questions;
+   7. an approval form.
 2. Optionally play it: run `npm run content:preview -- <case-id>`, then `npm run dev`, and open Today. Each preview makes that case today's case locally. It never touches production.
-3. Answer the questions in the packet. Record the verdict in the case file's `editorial.reviewers` as `approved` or `changes_requested`, with notes. The packet includes the exact snippet.
+3. Fill in the approval form. The owner records the verdict in the case file's `editorial.reviewers` as `approved` or `changes_requested`, with notes.
 
 Packets are regenerated with `roundcraft-miner case packet` from `content/review/questions.json`, which holds the summary, assumptions and questions for each case.
 
