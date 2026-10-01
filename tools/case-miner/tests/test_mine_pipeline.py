@@ -99,7 +99,7 @@ def test_ground_truth_is_separate_from_player_known(data_root):
     assert any("historical line is not assumed" in note.lower() for note in ct["reviewNotes"])
     assert any("comms" in note.lower() for note in ct["reviewNotes"])
     # no player names anywhere: the fixture has none, and descriptions use pids only
-    assert all("p0" in e["description"] or "bomb" in e["description"] for e in truth["timelineAfter"])
+    assert all("p0" in e["description"] or "bomb" in e["description"] for e in truth["timelineAfter"] if e["type"] != "round_end")
     # the actual line describes players only in aggregate, never by pid
     assert not any(pid in ct["actualLine"] for pid in s.T_PIDS + s.CT_PIDS)
     assert not any(pid in ct["summary"] for pid in s.T_PIDS + s.CT_PIDS)
@@ -108,3 +108,51 @@ def test_ground_truth_is_separate_from_player_known(data_root):
 def test_mine_source_fails_clearly_without_a_parsed_match(data_root):
     with pytest.raises(FileNotFoundError):
         mine_source("src_missing")
+
+
+def test_timeline_after_runs_to_the_round_end_with_a_readable_end_event(data_root):
+    _install(_fixture())
+    ct = next(c for c in map(read_json, mine_source(SOURCE_ID)) if c["perspective"] == "CT" and c["category"] == "post_plant")
+    after = ct["groundTruth"]["timelineAfter"]
+    assert after[-1]["type"] == "round_end" and after[-1]["description"] == "The bomb explodes."
+    assert [e["type"] for e in after[:-1]] == ["kill", "bomb_exploded"]  # past the old 20 s window, up to the end
+    assert after[-1]["tick"] >= after[-2]["tick"] and after[-1]["offsetSeconds"] > after[-2]["offsetSeconds"] - 1e-9
+    assert "p0" not in after[-1]["description"]
+
+
+def test_timeline_after_is_capped_at_twenty_events_and_keeps_kills_over_utility():
+    from roundcraft_miner.mine.pipeline import _timeline_after, describe_round_end
+
+    events = [s.utility_event(46.0 + i * 0.5, "flash", "p01", s.A_SITE) for i in range(30)]
+    events += [s.kill(62.0, "p02", "p07"), s.kill(63.0, "p03", "p08")]
+    round_ = s.make_round(1, events=events, winner="CT", end_reason="ct_win_elimination")
+    match = s.make_match([round_])
+    after = _timeline_after(match, round_, s.tick_of(45), 45.0)
+    assert len(after) == 21 and after[-1]["type"] == "round_end"
+    assert [e["type"] for e in after].count("kill") == 2
+    assert [e["tick"] for e in after] == sorted(e["tick"] for e in after)
+    assert describe_round_end(round_) == "The defenders win: all attackers eliminated."
+    for reason, winner, text in (
+        ("t_win_elimination", "T", "The attackers win: all defenders eliminated."),
+        ("bomb_defused", "CT", "The bomb is defused."),
+        ("target_bombed", "T", "The bomb explodes."),
+        ("time_ran_out", "CT", "Time runs out."),
+    ):
+        assert describe_round_end({"endReason": reason, "winner": winner}) == text
+
+
+def test_review_notes_flag_movement_dependence_and_short_reaction_windows():
+    from roundcraft_miner.mine.knowledge import knowledge_view
+    from roundcraft_miner.mine.pipeline import _review_notes
+
+    round_ = s.make_round(1)
+    view = knowledge_view(s.make_match([round_]), round_, s.tick_of(30), "CT")
+    base = {"kind": "enemy_spotted"}
+    moved = "The follow-up sighting exists because the source team moved into position; a team that chose another line would not see it at this moment."
+    quick = "The follow-up information arrives less than 2 s before the next kill, leaving almost no time to react."
+    notes = _review_notes("post_plant", view, {**base, "dependsOnOwnMovement": True, "reactionWindowSeconds": 1.5}, {})
+    assert moved in notes and quick in notes
+    notes = _review_notes("post_plant", view, {**base, "dependsOnOwnMovement": False, "reactionWindowSeconds": 2.0}, {})
+    assert moved not in notes and quick not in notes
+    notes = _review_notes("post_plant", view, {**base, "dependsOnOwnMovement": False, "reactionWindowSeconds": None}, {})
+    assert moved not in notes and quick not in notes

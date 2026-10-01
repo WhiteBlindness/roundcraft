@@ -102,7 +102,7 @@ def test_no_followup_records_known_issue(clone):
     candidate = load_fixture("candidate_ct_hold_nofollowup")
     assert candidate["followUp"] is None
     case = build_case(candidate)
-    assert any("No mined follow-up; follow-up needs authoring" in issue for issue in case["editorial"]["knownIssues"])
+    assert any("Follow-up must be authored: the first change after the decision in the source round was the team's own action." in issue for issue in case["editorial"]["knownIssues"])
     assert case["followup"]["type"] == "new_information"
     assert len(case["followup"]["responses"]) >= 2
 
@@ -291,8 +291,10 @@ def test_best_followup_response_is_not_always_first(retake, clone):
         variant = clone(retake)
         variant["candidateId"] = f"cand_{index:012x}"
         case = build_case(variant)
-        qualities = {r["responseId"]: r["quality"] for r in case["rubric"]["followup"]["responses"]}
-        best = max(qualities, key=qualities.get)
+        # The strongest line after the update is the one whose "stay with it" cell scores highest.
+        staying = {r["responseId"]: r["quality"] for r in case["rubric"]["followup"]["responses"]
+                   if r["responseId"] == f"now_{r['actionId']}"}
+        best = max(staying, key=staying.get)
         assert case["followup"]["responses"][0]["id"] != best
         firsts.add(case["followup"]["responses"][0]["id"])
     assert len(firsts) >= 2
@@ -315,14 +317,26 @@ def test_priors_follow_the_state(retake, clone):
     assert leader(late) == "save_weapons"
 
 
-def test_followup_alignment_scores(retake, clone):
-    spotted = build_case(retake)
-    q = {r["responseId"]: r["quality"] for r in spotted["rubric"]["followup"]["responses"]}
-    assert q["adjust_to_new_info"] == max(q.values())
+def _followup_cells(case):
+    return {(c["actionId"], c["responseId"].removeprefix("now_")): c["quality"] for c in case["rubric"]["followup"]["responses"]}
+
+
+def test_followup_scores_follow_the_locked_line(retake, clone):
+    cells = _followup_cells(build_case(retake))
+    # The update leaves the grouped retake strongest: staying with it beats every reversal.
+    assert cells[("group_retake", "group_retake")] == max(cells[("group_retake", now)] for now in
+                                                          ("take_information", "split_retake", "save_weapons", "group_retake"))
+    # The same answer scores differently after different locked lines.
+    assert cells[("group_retake", "group_retake")] > cells[("save_weapons", "group_retake")] > cells[("save_weapons", "split_retake")]
+    # A weaker call corrected towards the strongest line beats holding on to it.
+    assert cells[("take_information", "group_retake")] > cells[("take_information", "take_information")]
+
     urgent = clone(retake)
     urgent["followUp"]["knowledgeAfter"]["clock"]["bombSecondsLeft"] = 4.0
-    q = {r["responseId"]: r["quality"] for r in build_case(urgent)["rubric"]["followup"]["responses"]}
-    assert q["fall_back"] == max(q.values())
+    cells = _followup_cells(build_case(urgent))
+    # With 4 s left no retake can finish: a retaker does best to save, and a saver to stay saved.
+    assert max(cells[("group_retake", now)] for now in ("group_retake", "save_weapons")) == cells[("group_retake", "save_weapons")]
+    assert cells[("save_weapons", "save_weapons")] == max(cells.values())
 
 
 # --- determinism and disclosure ----------------------------------------------------------------------
@@ -410,14 +424,15 @@ def test_situation_family_from_category_and_bomb_state(retake, clone):
 
 def test_template_prose_never_copies_option_labels():
     """Debrief/principle/response templates must not share 6-word runs with the brief labels they refer to."""
-    from roundcraft_miner.draft.templates import SITUATIONS
+    from roundcraft_miner.draft.templates import SITUATIONS, now_label
 
     for sit in SITUATIONS.values():
         banned = _grams(sit.title.format(map="Mirage")) | _grams(sit.focus)
         for action in sit.actions:
             for label in (action.label.format(place="Connector"), action.label_no_place, *(q.label for q in action.qualifiers)):
                 banned |= _grams(label)
-        prose = [sit.principle, *sit.evidence_notes.values(), *(r.label for r in sit.responses)]
+        prose = [sit.principle, *sit.evidence_notes.values(), *(now_label(action.id, "Connector") for action in sit.actions),
+                  *(now_label(action.id, None) for action in sit.actions)]
         for action in sit.actions:
             prose += [action.why, action.cost, action.assumption, action.breaks, f"The closest alternative was {action.alt}.",
                       action.cf_fact, action.cf_effect]

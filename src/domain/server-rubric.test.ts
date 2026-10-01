@@ -8,7 +8,7 @@ import {
 } from './server-rubric'
 
 const rubric = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   caseRevision: 'case_revision_001',
   rubricRevision: 'rubric_revision_001',
   dimensions: [
@@ -22,6 +22,12 @@ const rubric = {
       ratings: { timing: 4, trade: 3 },
       caps: [],
     },
+    {
+      actionId: 'hold_b',
+      qualifierId: 'quiet',
+      ratings: { timing: 1, trade: 2 },
+      caps: [],
+    },
   ],
   evidence: [
     {
@@ -29,15 +35,35 @@ const rubric = {
       evidenceIds: ['utility', 'bomb_location'],
       points: 16,
     },
+    {
+      actionId: 'hold_b',
+      evidenceIds: ['utility', 'bomb_location'],
+      points: 8,
+    },
   ],
   followup: {
     type: 'new_information',
     responses: [
-      { responseId: 'keep_original', quality: 58 },
-      { responseId: 'change_mid', quality: 92 },
+      { actionId: 'regroup_a', responseId: 'keep_original', quality: 92 },
+      { actionId: 'regroup_a', responseId: 'change_mid', quality: 58 },
+      { actionId: 'hold_b', responseId: 'keep_original', quality: 20 },
+      { actionId: 'hold_b', responseId: 'change_mid', quality: 85 },
     ],
   },
 } as const
+
+const regroupQuiet = {
+  action_id: 'regroup_a',
+  qualifier_id: 'quiet',
+  evidence_ids: ['bomb_location', 'utility'] as [string, string],
+  confidence_id: 'fairly_sure',
+}
+
+const respond = (responseId: string) => ({
+  case_revision: 'case_revision_001',
+  type: 'new_information' as const,
+  response_id: responseId,
+})
 
 describe('server rubric', () => {
   it('produces deterministic scoring input from frozen cells', () => {
@@ -55,7 +81,7 @@ describe('server rubric', () => {
         {
           case_revision: 'case_revision_001',
           type: 'new_information',
-          response_id: 'change_mid',
+          response_id: 'keep_original',
         },
       ),
     ).toEqual({
@@ -92,11 +118,43 @@ describe('server rubric', () => {
           ...rubric.followup,
           responses: [
             {
-              responseId: 'keep_original',
+              actionId: 'regroup_a',
+              responseId: 'change_mid',
               quality: 58,
               sharedConsensus: true,
             },
-            rubric.followup.responses[1],
+            ...rubric.followup.responses.slice(2),
+          ],
+        },
+      }),
+    ).toThrow()
+  })
+
+  it('scores the same follow-up response against the main action it follows', () => {
+    const parsed = serverRubricSchema.parse(rubric)
+    const holdQuiet = { ...regroupQuiet, action_id: 'hold_b' }
+
+    expect(scoringInputFor(parsed, regroupQuiet, respond('keep_original'))?.followupQuality).toBe(92)
+    expect(scoringInputFor(parsed, holdQuiet, respond('keep_original'))?.followupQuality).toBe(20)
+    expect(scoringInputFor(parsed, regroupQuiet, respond('change_mid'))?.followupQuality).toBe(58)
+    expect(scoringInputFor(parsed, holdQuiet, respond('change_mid'))?.followupQuality).toBe(85)
+  })
+
+  it('rejects the version 1 shape whose follow-up ignores the main action', () => {
+    expect(() =>
+      serverRubricSchema.parse({
+        ...rubric,
+        schemaVersion: 1,
+      }),
+    ).toThrow()
+    expect(() =>
+      serverRubricSchema.parse({
+        ...rubric,
+        followup: {
+          type: 'new_information',
+          responses: [
+            { responseId: 'keep_original', quality: 58 },
+            { responseId: 'change_mid', quality: 92 },
           ],
         },
       }),
@@ -163,5 +221,20 @@ describe('rubricCoversMainAnswer', () => {
     } as unknown as PublicFollowup
 
     expect(rubricCoversMainAnswer(serverRubricSchema.parse(rubric), answer, extended)).toBe(false)
+  })
+
+  it('rejects a main action whose follow-up cells are missing', () => {
+    const partial = serverRubricSchema.parse({
+      ...rubric,
+      followup: {
+        type: 'new_information',
+        responses: rubric.followup.responses.filter(
+          ({ actionId, responseId }) => !(actionId === 'hold_b' && responseId === 'change_mid'),
+        ),
+      },
+    })
+
+    expect(rubricCoversMainAnswer(partial, answer, followup)).toBe(true)
+    expect(rubricCoversMainAnswer(partial, { ...answer, action_id: 'hold_b' }, followup)).toBe(false)
   })
 })

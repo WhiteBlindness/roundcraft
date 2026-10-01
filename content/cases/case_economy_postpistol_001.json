@@ -190,7 +190,7 @@
     "principle": "When you have intelligence about the opponent equipment, use it. A force buy that exploits a known vulnerability is stronger than a safe eco that ignores the information."
   },
   "rubric": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "caseRevision": "cr_economy_postpistol_001",
     "rubricRevision": "rr_economy_postpistol_001",
     "dimensions": [{ "id": "economy_management", "weight": 60 }, { "id": "information_use", "weight": 40 }],
@@ -242,9 +242,15 @@
     "followup": {
       "type": "new_information",
       "responses": [
-        { "responseId": "keep_plan", "quality": 50 },
-        { "responseId": "upgrade_force", "quality": 88 },
-        { "responseId": "bait_aggression", "quality": 70 }
+        { "actionId": "force_buy", "responseId": "keep_plan", "quality": 50 },
+        { "actionId": "force_buy", "responseId": "upgrade_force", "quality": 88 },
+        { "actionId": "force_buy", "responseId": "bait_aggression", "quality": 70 },
+        { "actionId": "full_eco", "responseId": "keep_plan", "quality": 50 },
+        { "actionId": "full_eco", "responseId": "upgrade_force", "quality": 88 },
+        { "actionId": "full_eco", "responseId": "bait_aggression", "quality": 70 },
+        { "actionId": "half_buy", "responseId": "keep_plan", "quality": 50 },
+        { "actionId": "half_buy", "responseId": "upgrade_force", "quality": 88 },
+        { "actionId": "half_buy", "responseId": "bait_aggression", "quality": 70 }
       ]
     }
   }

@@ -26,7 +26,8 @@
     "db:migrate:local": "wrangler d1 migrations apply roundcraft-prod --local",
     "content:validate": "node --no-warnings=ExperimentalWarning --import ./scripts/content/register.mjs scripts/content/validate.ts",
     "content:build": "node --no-warnings=ExperimentalWarning --import ./scripts/content/register.mjs scripts/content/build.ts",
-    "content:preview": "node --no-warnings=ExperimentalWarning --import ./scripts/content/register.mjs scripts/content/preview.ts"
+    "content:preview": "node --no-warnings=ExperimentalWarning --import ./scripts/content/register.mjs scripts/content/preview.ts",
+    "content:score": "node --no-warnings=ExperimentalWarning --import ./scripts/content/register.mjs scripts/content/score-lines.ts"
   },
   "dependencies": {
     "hono": "^4.13.5",

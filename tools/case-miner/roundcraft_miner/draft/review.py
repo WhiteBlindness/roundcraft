@@ -9,6 +9,7 @@ from typing import Any
 from .templates import SITUATIONS
 from .features import extract_features
 from .priors import compute_main_prior
+from .case_draft import FOLLOWUP_MATRIX_ISSUE, NO_FOLLOWUP_ISSUE, followup_caveats
 
 
 def _bullets(items: list[str]) -> str:
@@ -81,6 +82,11 @@ def render_review(candidate_path: Path, candidate: dict[str, Any], case: dict[st
     add("")
     add(_bullets(case["editorial"]["knownIssues"]))
     add("")
+    add("### Follow-up assumptions to dispute")
+    add("")
+    caveats = [NO_FOLLOWUP_ISSUE] if not follow else followup_caveats(follow)
+    add(_bullets([*caveats, FOLLOWUP_MATRIX_ISSUE]))
+    add("")
     add("## Alternative plausible lines (from the template, in proposed rank order)")
     add("")
     add("| action | qualifiers | proposed tier | best line quality |")
@@ -89,11 +95,15 @@ def render_review(candidate_path: Path, candidate: dict[str, Any], case: dict[st
         quals = "; ".join(f"{q.label} ({q.quality:g})" for q in action.qualifiers)
         add(f"| {action.label} | {quals} | {action.tier} ({action.tier_reason}) | {action.best_quality:g} |")
     add("")
-    add("## Proposed follow-up qualities")
+    add("## Proposed follow-up matrix (locked action × line now)")
     add("")
-    for response in case["rubric"]["followup"]["responses"]:
-        label = next(r["label"] for r in case["followup"]["responses"] if r["id"] == response["responseId"])
-        add(f"- {label}: {response['quality']}")
+    responses = case["followup"]["responses"]
+    labels = {a["id"]: a["label"] for a in case["brief"]["actions"]}
+    cells = {(c["actionId"], c["responseId"]): c["quality"] for c in case["rubric"]["followup"]["responses"]}
+    add("| locked \\ now | " + " | ".join(r["label"] for r in responses) + " |")
+    add("| --- |" + " --- |" * len(responses))
+    for action in case["brief"]["actions"]:
+        add(f"| {labels[action['id']]} | " + " | ".join(str(cells[(action["id"], r["id"])]) for r in responses) + " |")
     add("")
     add("## Validation")
     add("")

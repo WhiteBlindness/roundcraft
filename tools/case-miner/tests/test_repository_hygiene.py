@@ -59,3 +59,33 @@ def test_mined_drafts_stay_drafts_and_synthetic() -> None:
         if any("candidateId" in str(ref.get("detail", "")) or "cand_" in str(ref) for ref in references):
             assert case["editorial"]["status"] == "draft", path
             assert case["origin"] == "synthetic", path
+
+
+REVIEW_DIR = paths.REPO_ROOT / "content" / "review"
+PID = re.compile(r"\bp\d{2} \((T|CT)\)|\bp\d{2} (killed|planted|began|detonated|threw)")
+MODEL_NAMES = re.compile(r"\b(claude|opus|sonnet|haiku|fable|gpt|gemini)\b", re.IGNORECASE)
+
+
+def test_review_packets_carry_no_identities() -> None:
+    for path in sorted(REVIEW_DIR.glob("*/*")):
+        text = path.read_text(encoding="utf-8")
+        assert not STEAM_ID.search(text), path
+        assert not PID.search(text), path
+
+
+def test_review_questions_point_at_real_drafts() -> None:
+    questions_file = REVIEW_DIR / "questions.json"
+    if not questions_file.exists():
+        return
+    questions = json.loads(questions_file.read_text(encoding="utf-8"))
+    for case_id, entry in questions.items():
+        assert (paths.cases_dir() / f"{case_id}.json").exists(), case_id
+        assert entry["recommendation"] in {"KEEP", "REVIEW FIRST", "NEEDS TACTICAL DECISION", "DROP"}, case_id
+        assert entry["questions"], case_id
+
+
+def test_no_model_is_ever_recorded_as_a_reviewer() -> None:
+    for path in sorted(paths.cases_dir().glob("*.json")):
+        editorial = json.loads(path.read_text(encoding="utf-8")).get("editorial", {})
+        for reviewer in editorial.get("reviewers", []):
+            assert not MODEL_NAMES.search(str(reviewer.get("name", ""))), path

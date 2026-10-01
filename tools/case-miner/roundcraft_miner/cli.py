@@ -9,6 +9,7 @@
     roundcraft-miner candidate show <candidate-id>
     roundcraft-miner candidate render <candidate-id>
     roundcraft-miner case draft <candidate-id> [--case-id case_x] [--overwrite] [--no-validate]
+    roundcraft-miner case packet [case-id ...]             human tactical-review packets
 
 Nothing here publishes anything. Drafts land in content/cases/ with status "draft"
 and go through the normal content pipeline (validate → human review → build).
@@ -84,7 +85,7 @@ def _render_candidate_file(candidate_path: Path, match: dict | None = None, view
 def cmd_mine(args: argparse.Namespace) -> int:
     from .mine.pipeline import mine_source
 
-    written = mine_source(args.source_id, min_score=args.min_score)
+    written = mine_source(args.source_id, min_score=args.min_score, cap=args.cap)
     print(f"Wrote {len(written)} candidates for {args.source_id}")
     return 0
 
@@ -94,7 +95,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     from .parse.normalise import parse_source
 
     match_path = parse_source(args.source_id)
-    written = mine_source(args.source_id, min_score=args.min_score)
+    written = mine_source(args.source_id, min_score=args.min_score, cap=args.cap)
     from .render.svg import build_map_view
 
     match = read_json(match_path)
@@ -149,6 +150,14 @@ def cmd_case_draft(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_case_packet(args: argparse.Namespace) -> int:
+    from .review_packet import build_packets
+
+    for path in build_packets(args.case_ids or None):
+        print(f"Wrote {path}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="roundcraft-miner", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -172,6 +181,8 @@ def build_parser() -> argparse.ArgumentParser:
         command = sub.add_parser(name, help=help_text)
         command.add_argument("source_id")
         command.add_argument("--min-score", type=float, default=0.0)
+        command.add_argument("--cap", type=int, default=None,
+                             help="candidates kept per round and side (default 2); raise it to inspect every detection")
         command.set_defaults(func=func)
 
     candidates = sub.add_parser("candidates", help="browse mined candidates").add_subparsers(dest="action", required=True)
@@ -195,6 +206,9 @@ def build_parser() -> argparse.ArgumentParser:
     draft.add_argument("--overwrite", action="store_true")
     draft.add_argument("--no-validate", action="store_true")
     draft.set_defaults(func=cmd_case_draft)
+    packet = case.add_parser("packet", help="write human review packets under content/review/ (defaults to every case in questions.json)")
+    packet.add_argument("case_ids", nargs="*")
+    packet.set_defaults(func=cmd_case_packet)
     return parser
 
 

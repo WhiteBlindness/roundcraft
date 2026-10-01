@@ -216,6 +216,7 @@ _PLACE_OVERRIDES = {
     "UnderA": "Under A",
     "LowerTunnel": "Lower Tunnel",
     "UpperTunnel": "Upper Tunnel",
+    "SnipersNest": "Sniper's Nest",
 }
 
 UNNAMED_PLACE = "an unnamed area"
@@ -242,24 +243,52 @@ def number_word(n: int, *, capitalise: bool = False) -> str:
     return word.capitalize() if capitalise else word
 
 
-_GUNS = {
-    name.lower()
-    for name in (
-        "AK-47", "M4A4", "M4A1-S", "Galil AR", "FAMAS", "SG 553", "AUG", "AWP", "SSG 08", "SCAR-20", "G3SG1",
-        "MAC-10", "MP9", "MP7", "MP5-SD", "UMP-45", "P90", "PP-Bizon", "Nova", "XM1014", "Sawed-Off", "MAG-7",
-        "M249", "Negev", "Glock-18", "USP-S", "P2000", "P250", "Five-SeveN", "Tec-9", "CZ75-Auto",
-        "Desert Eagle", "Dual Berettas", "R8 Revolver",
-    )
+# Demo weapon ids (kill events) -> the display name used everywhere else (frames, loadouts, facts).
+_WEAPON_NAMES = {
+    "ak47": "AK-47", "m4a1": "M4A4", "m4a1_silencer": "M4A1-S", "m4a1_silencer_off": "M4A1-S",
+    "awp": "AWP", "ssg08": "SSG 08", "galilar": "Galil AR", "famas": "FAMAS", "aug": "AUG",
+    "sg556": "SG 553", "g3sg1": "G3SG1", "scar20": "SCAR-20",
+    "mac10": "MAC-10", "mp9": "MP9", "mp7": "MP7", "mp5sd": "MP5-SD", "ump45": "UMP-45", "p90": "P90",
+    "bizon": "PP-Bizon", "nova": "Nova", "xm1014": "XM1014", "sawedoff": "Sawed-Off", "mag7": "MAG-7",
+    "m249": "M249", "negev": "Negev",
+    "glock": "Glock-18", "usp_silencer": "USP-S", "usp_silencer_off": "USP-S", "hkp2000": "P2000",
+    "p250": "P250", "fiveseven": "Five-SeveN", "tec9": "Tec-9", "cz75a": "CZ75-Auto",
+    "deagle": "Desert Eagle", "elite": "Dual Berettas", "revolver": "R8 Revolver",
 }
+
+_WEAPON_CLASSES = {
+    "rifle": ("AK-47", "M4A4", "M4A1-S", "Galil AR", "FAMAS", "AUG", "SG 553"),
+    "sniper": ("AWP", "SSG 08", "G3SG1", "SCAR-20"),
+    "smg": ("MAC-10", "MP9", "MP7", "MP5-SD", "UMP-45", "P90", "PP-Bizon"),
+    "heavy": ("Nova", "XM1014", "Sawed-Off", "MAG-7", "M249", "Negev"),
+    "pistol": ("Glock-18", "USP-S", "P2000", "P250", "Five-SeveN", "Tec-9", "CZ75-Auto", "Desert Eagle", "Dual Berettas", "R8 Revolver"),
+}
+_CLASS_OF = {name.lower(): cls for cls, names in _WEAPON_CLASSES.items() for name in names}
+_GUNS = set(_CLASS_OF)
 _AN_PREFIXES = ("AK", "AWP", "AUG", "M4", "M249", "MP", "SSG", "SG", "UMP", "XM", "R8")
+
+
+def weapon_display(weapon: str | None) -> str | None:
+    """Demo weapon id ('ak47') or display name ('AK-47') -> display name; None for empty input.
+    Unknown weapons (knives, grenades, the bomb) come back unchanged."""
+    if not weapon:
+        return None
+    return _WEAPON_NAMES.get(weapon.lower(), weapon)
+
+
+def weapon_class(weapon: str | None) -> str | None:
+    """'rifle' | 'sniper' | 'smg' | 'heavy' | 'pistol', or None for anything that is not a known gun."""
+    name = weapon_display(weapon)
+    return _CLASS_OF.get(name.lower()) if name else None
 
 
 def weapon_phrase(weapon: str | None) -> str | None:
     """'an AWP' / 'a Glock-18'; None for knives, grenades, the bomb or anything that is not a known gun."""
-    if not weapon or weapon.lower() not in _GUNS:
+    name = weapon_display(weapon)
+    if not name or name.lower() not in _GUNS:
         return None
-    article = "an" if weapon.startswith(_AN_PREFIXES) else "a"
-    return f"{article} {weapon}"
+    article = "an" if name.startswith(_AN_PREFIXES) else "a"
+    return f"{article} {name}"
 
 
 def side_word(side: Side, *, plural: bool = True) -> str:
@@ -293,3 +322,30 @@ def fit_text(text: str, *, limit: int = 200, minimum: int = 8) -> str:
     if len(text) < minimum:
         text = text.ljust(minimum, ".")
     return text
+
+
+# ---------------------------------------------------------------------------
+# Match structure (public round history)
+# ---------------------------------------------------------------------------
+
+
+def halftime_round_number(match: Match) -> int | None:
+    """Number of the first round after the half-time side swap, read from the pids' sides; None when the
+    parsed rounds never show a swap. Only the first swap counts: later swaps are overtime, not half-time."""
+    previous: dict[str, str] | None = None
+    for round_ in match["rounds"]:
+        if not round_["frames"]:
+            continue
+        sides = {p["pid"]: p["side"] for p in round_["frames"][0]["players"]}
+        if previous is not None:
+            shared = [pid for pid in sides if pid in previous]
+            swapped = sum(1 for pid in shared if sides[pid] != previous[pid])
+            if shared and swapped * 2 > len(shared):
+                return round_["number"]
+        previous = sides
+    return None
+
+
+def is_pistol_round(match: Match, round_: Round) -> bool:
+    """The first round of a half: round 1, or the first round after the half-time swap."""
+    return round_["number"] == 1 or round_["number"] == halftime_round_number(match)

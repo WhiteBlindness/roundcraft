@@ -11,8 +11,9 @@ written verbatim into editorial.notes so every rubric value can be traced to the
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from .features import Features
@@ -33,6 +34,50 @@ class QualT:
     label: str
     base: int  # rank score before rules
     rules: tuple[Rule, ...] = ()
+    # Physical-possibility requirements. When one is not met, `fallback` (a variant of the same idea that
+    # is possible in this state) is offered instead, so a brief never proposes "use utility" to a team
+    # that has none, "rotate two and leave one" to a team of two, or "the known position" when no
+    # enemy position is known.
+    min_utility: int = 0  # own utility items needed
+    min_own_alive: int = 0  # own players alive needed
+    needs_known_enemy: bool = False  # a fresh enough known (confirmed/last_seen) enemy position is needed
+    fallback: "QualT | None" = None
+    label_two: str | None = None  # wording when exactly two own players are alive
+
+
+def _satisfied(q: QualT, f: Any) -> bool:
+    return not (
+        (q.min_utility and f.util_total < q.min_utility)
+        or (q.min_own_alive and f.own_alive < q.min_own_alive)
+        or (q.needs_known_enemy and f.place is None)
+    )
+
+
+def resolve_qualifier(q: QualT, f: Any) -> QualT:
+    """Follow the fallback chain until a qualifier that is possible in this state is found."""
+    current = q
+    while not _satisfied(current, f) and current.fallback is not None:
+        current = current.fallback
+    if current.label_two and f.own_alive == 2:
+        current = replace(current, label=current.label_two)
+    return current
+
+
+def available_qualifiers(action: "ActionT", f: Any) -> tuple[QualT, ...]:
+    """Qualifiers that are possible in this state: fallbacks applied, duplicates (by id or label) dropped."""
+    seen_ids: set[str] = set()
+    seen_labels: set[str] = set()
+    result: list[QualT] = []
+    for q in action.qualifiers:
+        resolved = resolve_qualifier(q, f)
+        if resolved.id in seen_ids or resolved.label in seen_labels:
+            continue
+        seen_ids.add(resolved.id)
+        seen_labels.add(resolved.label)
+        result.append(resolved)
+    if len(result) < 2:  # the schema needs two per action: keep the original options rather than break it
+        return tuple(action.qualifiers)
+    return tuple(result)
 
 
 @dataclass(frozen=True)
@@ -53,12 +98,17 @@ class ActionT:
     evidence_weights: dict[str, int] = field(default_factory=dict)
     cap_rules: tuple[Rule, ...] = ()
     applies: Cond | None = None  # action is offered only when this holds (>= 3 actions are always kept)
+    label_unplanted: str | None = None  # label used while the bomb is not planted
 
 
-@dataclass(frozen=True)
-class ResponseT:
-    id: str
-    label: str
+_OPTIONAL = re.compile(r"\[\[(.*?)\]\]")
+
+
+def fill(text: str, f: Any) -> str:
+    """Render template prose: `[[...]]` clauses talk about the team's own utility as a plan in itself, so they are
+    dropped when the team has fewer than two items (a single grenade cannot carry "take space with utility")."""
+    has_utility = f.util_total >= 2
+    return _OPTIONAL.sub(lambda m: m.group(1) if has_utility else "", text)
 
 
 @dataclass(frozen=True)
@@ -71,10 +121,8 @@ class Situation:
     actions: tuple[ActionT, ...]
     evidence_priority: tuple[str, ...]
     evidence_weights: dict[str, int]
-    responses: tuple[ResponseT, ...]
     urgent_test: Cond
     urgent_text: str
-    urgent_best: str  # response id that is best when the follow-up state is urgent
     generic_followup_stimulus: str
     evidence_notes: dict[str, str]  # signal class -> reveal explanation
 
@@ -90,17 +138,58 @@ TIER_RATINGS: dict[str, tuple[tuple[int, int], ...]] = {
 TIER_ORDER = ("poor", "fair", "good", "best")
 POOR_CAP = 35
 
-# Follow-up quality by class -> response id (0..100). "urgent" is resolved per situation.
-FOLLOWUP_QUALITY: dict[str, dict[str, int]] = {
-    "position_info": {"continue_plan": 60, "adjust_to_new_info": 92, "take_more_info": 55, "fall_back": 30},
-    "enemy_loss": {"continue_plan": 90, "adjust_to_new_info": 75, "take_more_info": 45, "fall_back": 25},
-    "own_loss": {"continue_plan": 45, "adjust_to_new_info": 88, "take_more_info": 50, "fall_back": 55},
-    "bomb_event": {"continue_plan": 55, "adjust_to_new_info": 90, "take_more_info": 45, "fall_back": 35},
-    "default": {"continue_plan": 70, "adjust_to_new_info": 88, "take_more_info": 55, "fall_back": 40},
-    "no_followup": {"continue_plan": 75, "adjust_to_new_info": 70, "take_more_info": 55, "fall_back": 40},
+# Follow-up: the player answers "what is your line now?" with one of the main actions, phrased for the
+# moment after the new information (labels stay short so they never repeat a brief label). The rubric scores
+# every (locked action, line now) cell: the value of the line now under the post-update state, minus the cost
+# of switching away from the locked line. Switching costs time and position; it costs more the further the new
+# line is from the old one on the passive -> holding -> active scale.
+NOW_LABELS: dict[str, str] = {
+    "group_retake": "Go into the retake together now",
+    "split_retake": "Retake now from two sides",
+    "take_information": "Hold off and keep gathering information",
+    "save_weapons": "Save the weapons from here",
+    "hold_crossfire": "Keep holding the bomb from crossfires",
+    "play_the_clock": "Hide and let the bomb timer run",
+    "contest_known": "Keep pushing towards {place}",
+    "cut_the_route": "Move to cut off the retake",
+    "commit_execute": "Execute on the site now",
+    "default_take_info": "Keep playing slowly for information",
+    "fake_and_rotate": "Fake here and rotate away",
+    "lurk_to_pull": "Keep the lurk going to pull a rotation",
+    "save_weapons_t": "Save the weapons from here",
+    "hold_setup": "Keep the current setup",
+    "rotate_to_info": "Keep a player moving towards {place}",
+    "gather_information": "Hold and take more information",
+    "fall_back_for_retake": "Fall back and set up for a retake",
 }
-URGENT_QUALITY_BEST = 90
-URGENT_QUALITY_OTHERS = {"adjust_to_new_info": 55, "continue_plan": 25, "take_more_info": 15, "fall_back": 30}
+POSTURE: dict[str, int] = {  # 0 passive, 1 holding, 2 active
+    "save_weapons": 0, "save_weapons_t": 0, "play_the_clock": 0, "fall_back_for_retake": 0,
+    "take_information": 1, "hold_crossfire": 1, "cut_the_route": 1, "default_take_info": 1, "hold_setup": 1,
+    "gather_information": 1,
+    "group_retake": 2, "split_retake": 2, "contest_known": 2, "commit_execute": 2, "fake_and_rotate": 2,
+    "lurk_to_pull": 2, "rotate_to_info": 2,
+}
+# Without a named place, a "{place}" label falls back to this wording (it must keep pointing at the ORIGINAL
+# target: after the update the latest contact may be somewhere else).
+NOW_LABELS_NO_PLACE: dict[str, str] = {
+    "contest_known": "Keep pushing towards the earlier contact",
+    "rotate_to_info": "Keep a player moving towards the earlier contact",
+}
+SWITCH_COST_BY_DISTANCE = (10, 20, 30)  # posture steps between the locked line and the line now
+
+
+def now_label(action_id: str, place: str | None) -> str:
+    """The follow-up wording of a line, anchored to the place named in the brief."""
+    label = NOW_LABELS[action_id]
+    if "{place}" not in label:
+        return label
+    return label.format(place=place) if place else NOW_LABELS_NO_PLACE[action_id]
+
+
+def switch_cost(locked: str, now: str) -> int:
+    if locked == now:
+        return 0
+    return SWITCH_COST_BY_DISTANCE[abs(POSTURE[locked] - POSTURE[now])]
 
 
 def _r(test: Cond, value: Any, text: str) -> Rule:
@@ -121,15 +210,17 @@ _RETAKE_ACTIONS = (
                 _r(lambda f: f.util_total >= 2 and f.place is not None, 2, "+2 when >=2 utility items and a known position exist"),
                 _r(lambda f: f.util_total == 0, -2, "-2 when the team has no utility"),
                 _r(lambda f: f.util_total == 1, -1, "-1 with a single utility item: it cannot both clear the position and cover the defuse"),
-            )),
+            ), min_utility=2, needs_known_enemy=True, fallback=QualT(
+                "clear_by_trading", "Clear the known position together and trade the first contact", 1,
+                needs_known_enemy=True, fallback=QualT("clear_site_together", "Clear the site together and trade the first contact", 1))),
             QualT("stack_keep_utility", "Move as one stack and keep utility for the defuse", 1, (
                 _r(lambda f: f.util_total >= 3, 1, "+1 when >=3 utility items can be split between clearing and the defuse"),
                 _r(lambda f: f.util_total == 0, -2, "-2 when there is no utility to keep"),
-            )),
+            ), min_utility=1, fallback=QualT("stack_and_trade", "Move as one stack and trade every contact", 1)),
             QualT("probe_then_commit", "Send one player ahead to probe while the rest follow", 0, (
                 _r(lambda f: f.info_level < 0.5, 2, "+2 when fewer than half of the enemies are located"),
                 _r(lambda f: f.time < f.t_high, -1, "-1 when the clock is short (probing spends seconds)"),
-            )),
+            ), label_two="Send one player ahead to probe while the other follows"),
         ),
         tier_rules=(
             _r(lambda f: f.time < f.t_low, "poor", "bomb timer < defuse duration + 7 s: a committed retake cannot finish"),
@@ -138,11 +229,11 @@ _RETAKE_ACTIONS = (
             _r(lambda f: True, "best", "numbers level or better, or -1 with a comfortable clock: group retake is the proposed lead"),
         ),
         default_tier="best",
-        why="Arriving as one group keeps every defender within trade distance, so a single attacker cannot win an isolated duel, and it lets utility and the defuse be covered at the same time.",
+        why="The case for arriving as one group is that every defender stays within trade distance, so a single attacker cannot win an isolated duel[[, and utility and the defuse can be covered at the same time]].",
         cost="It commits the whole team to one line of approach, which is predictable and gives the attackers time to set up crossfires on it.",
         assumption="The remaining time is enough to clear the site and finish the defuse, and the known information is not a fake.",
         breaks="The timer runs too short for a defuse after the clear, or the attackers hold two angles that the group cannot clear at once.",
-        alt="to retake as one group, trading a predictable approach for trade spacing and shared utility",
+        alt="to retake as one group, trading a predictable approach for trade spacing[[ and shared utility]]",
         cf_fact="The bomb timer is far shorter than a defuse needs.",
         cf_effect="No committed retake could finish, and saving the weapons becomes the stronger line.",
         evidence_weights={"enemy_seen": 5, "own_utility": 4},
@@ -172,7 +263,7 @@ _RETAKE_ACTIONS = (
             _r(lambda f: True, "good", "clock comfortable and numbers level or better: a defensible alternative"),
         ),
         default_tier="good",
-        why="Two simultaneous entrances force the attackers to cover more angles than they can hold, and either group can trade the other.",
+        why="The case for two simultaneous entrances is that the attackers must cover more angles than they can hold, and either group can trade the other.",
         cost="Each group is smaller and further from the other, so a lost first duel cannot always be traded.",
         assumption="Both entrances are reachable within the clock and the two groups can arrive within a second or two of each other.",
         breaks="The groups arrive at different times, or the attackers stack one entrance so one group meets the whole team.",
@@ -288,7 +379,7 @@ _POST_PLANT_ACTIONS = (
             QualT("save_utility_for_defuse", "Save utility to deny the defuse", 1, (
                 _r(lambda f: f.util_total >= 2, 1, "+1 with >=2 utility items to spend on the defuse"),
                 _r(lambda f: f.util_total == 0, -2, "-2 with no utility"),
-            )),
+            ), min_utility=1, fallback=QualT("crossfire_on_bomb", "Hold a crossfire on the bomb", 1)),
         ),
         tier_rules=(
             _r(lambda f: f.time < 12, "best", "bomb timer under 12 s: surviving out of contact is enough"),
@@ -313,7 +404,9 @@ _POST_PLANT_ACTIONS = (
             QualT("flash_entry", "Entry with a flash while the others trade", 1, (
                 _r(lambda f: f.util["flash"] >= 1, 1, "+1 when the team still has a flash"),
                 _r(lambda f: f.util["flash"] == 0, -2, "-2 with no flash"),
-            )),
+            ), min_utility=1, label_two="Entry with a flash while the other trades",
+                fallback=QualT("wide_swing_entry", "Entry with a wide swing while the others trade", 1,
+                               label_two="Entry with a wide swing while the other trades")),
             QualT("peek_together", "Peek together to trade", 1, ()),
         ),
         tier_rules=(
@@ -372,11 +465,11 @@ _EXECUTE_ACTIONS = (
             QualT("full_utility_take", "Use utility together to take space", 1, (
                 _r(lambda f: f.util_total >= 3, 1, "+1 with >=3 utility items"),
                 _r(lambda f: f.util_total == 0, -2, "-2 with no utility"),
-            )),
+            ), min_utility=2, fallback=QualT("hit_together_trade", "Hit the site together and trade each entry", 1)),
             QualT("hold_back_for_post_plant", "Keep some utility back for the post-plant", 0, (
                 _r(lambda f: f.util_total >= 4, 2, "+2 with >=4 utility items (enough to split)"),
                 _r(lambda f: f.util_total <= 1, -1, "-1 with almost no utility"),
-            )),
+            ), min_utility=2, fallback=QualT("plant_then_crossfire", "Plant quickly and set up crossfires", 0)),
         ),
         tier_rules=(
             _r(lambda f: f.adv <= -2 and f.time < 25, "good", "outnumbered by 2+ with under 25 s: an attempt is a live but long-shot line"),
@@ -387,12 +480,12 @@ _EXECUTE_ACTIONS = (
             _r(lambda f: True, "fair", "plenty of clock and little information: committing early spends the options"),
         ),
         default_tier="fair",
-        why="With limited clock, taking space with utility while the defence is unsettled is the most reliable way to plant in time.",
-        cost="It spends the team's utility and options at once, leaving little for the post-plant.",
+        why="With limited clock, taking space[[ with utility]] while the defence is unsettled is the most reliable way to plant in time.",
+        cost="It spends the team's[[ utility and]] options at once, leaving little for the post-plant.",
         assumption="The defenders cannot rotate enough players to the site before the plant.",
         breaks="The defence stacks the chosen site and has its own utility ready for the execute.",
-        alt="to commit to an execute now, spending utility and options at once for a plant before the clock runs low",
-        cf_fact="The defenders are known to have stacked the target site.",
+        alt="to commit to an execute now, spending[[ utility and]] options at once for a plant before the clock runs low",
+        cf_fact="The defenders are known to be stacked on the site you would hit.",
         cf_effect="The execute meets a full defence, and taking information or faking becomes stronger.",
         evidence_weights={"clock": 5, "own_utility": 5, "alive_count": 4},
     ),
@@ -407,7 +500,9 @@ _EXECUTE_ACTIONS = (
             QualT("probe_nearest_contact", "Probe the nearest known contact", 0, (
                 _r(lambda f: f.place is not None, 2, "+2 when a known enemy position exists to probe"),
                 _r(lambda f: f.place is None, -1, "-1 when there is nothing known to probe"),
-            )),
+            ), needs_known_enemy=True, fallback=QualT(
+                "probe_with_one", "Probe with one player while the others hold", 0,
+                label_two="Probe with one player while the other holds")),
         ),
         tier_rules=(
             _r(lambda f: f.time < 25, "poor", "under 25 s on the round clock: too late to gather information"),
@@ -434,7 +529,7 @@ _EXECUTE_ACTIONS = (
             QualT("fake_with_utility", "Sell the fake with utility", 1, (
                 _r(lambda f: f.util_total >= 3, 1, "+1 with >=3 utility items"),
                 _r(lambda f: f.util_total < 2, -1, "-1 with fewer than 2 utility items"),
-            )),
+            ), min_utility=1, fallback=QualT("fake_with_presence", "Sell the fake with noise and a brief peek", 1)),
             QualT("quiet_early_rotate", "Fake quietly and rotate early", 0, ()),
         ),
         tier_rules=(
@@ -444,10 +539,10 @@ _EXECUTE_ACTIONS = (
         ),
         default_tier="fair",
         why="A convincing fake pulls defenders to one site and makes the second entry a numbers advantage.",
-        cost="It spends clock and utility on a site the team does not intend to take.",
+        cost="It spends clock[[ and utility]] on a site the team does not intend to take.",
         assumption="The defenders react to the fake and rotate late enough to matter.",
-        breaks="The defenders hold their positions and the team arrives at the real site with too little clock and utility.",
-        alt="to fake one site and rotate, spending clock and utility to pull defenders out of position",
+        breaks="The defenders hold their positions and the team arrives at the real site with too little clock[[ and utility]].",
+        alt="to fake one site and rotate, spending clock[[ and utility]] to pull defenders out of position",
         applies=lambda f: f.own_alive >= 3,
         cf_fact="The defenders are known to hold their positions without rotating.",
         cf_effect="The fake gains nothing, and a direct execute becomes stronger.",
@@ -520,7 +615,7 @@ _HOLD_ACTIONS = (
             QualT("delay_with_utility", "Use utility to delay the first contact", 0, (
                 _r(lambda f: f.util_total >= 3, 1, "+1 with >=3 utility items"),
                 _r(lambda f: f.util_total == 0, -2, "-2 with no utility"),
-            )),
+            ), min_utility=1, fallback=QualT("delay_with_angles", "Delay with off-angles instead of utility", 0)),
         ),
         tier_rules=(
             _r(lambda f: f.time < 30, "best", "under 30 s on the round clock: attackers must commit, so the setup is set"),
@@ -542,11 +637,11 @@ _HOLD_ACTIONS = (
         label="Rotate a player towards {place}",
         label_no_place="Rotate a player towards the most recent information",
         qualifiers=(
-            QualT("rotate_one", "Rotate one player and keep the rest in place", 1, ()),
+            QualT("rotate_one", "Rotate one player and keep the rest in place", 1, (),
+                  label_two="Rotate one player and keep the other in place"),
             QualT("rotate_two", "Rotate two players and leave one behind", 0, (
                 _r(lambda f: f.own_alive >= 4, 1, "+1 with four or more players"),
-                _r(lambda f: f.own_alive <= 2, -2, "-2 with two or fewer players"),
-            )),
+            ), min_own_alive=3, fallback=QualT("rotate_together", "Rotate the whole group together", 0)),
         ),
         tier_rules=(
             _r(lambda f: f.place is not None and f.info_level >= 0.5 and f.time >= 30, "best", "a fresh sighting and enough clock: shifting weight to it is the proposed lead"),
@@ -592,6 +687,7 @@ _HOLD_ACTIONS = (
         id="fall_back_for_retake",
         label="Fall back and play for the retake",
         label_no_place="Fall back and play for the retake",
+        label_unplanted="Fall back and play for a retake if they plant",
         qualifiers=(
             QualT("fall_back_together", "Fall back together and regroup", 1, ()),
             QualT("fall_back_and_hold_angle", "Fall back but hold one angle", 0, (
@@ -624,15 +720,12 @@ def _situation(
     actions: tuple[ActionT, ...],
     priority: tuple[str, ...],
     weights: dict[str, int],
-    responses: tuple[ResponseT, ...],
     urgent_test: Cond,
     urgent_text: str,
-    urgent_best: str,
     generic: str,
     notes: dict[str, str],
 ) -> Situation:
-    return Situation(sid, title, focus, principle, dims, actions, priority, weights, responses, urgent_test,
-                     urgent_text, urgent_best, generic, notes)
+    return Situation(sid, title, focus, principle, dims, actions, priority, weights, urgent_test, urgent_text, generic, notes)
 
 
 _COMMON_NOTES = {
@@ -661,15 +754,8 @@ SITUATIONS: dict[str, Situation] = {
          "bomb_location", "enemy_utility", "own_positions", "own_loadout"),
         {"bomb_timer": 5, "alive_count": 4, "enemy_seen": 4, "own_utility": 3, "defuse_kit": 3, "enemy_unknown": 3,
          "bomb_location": 2, "enemy_utility": 2, "own_positions": 2, "own_loadout": 1, "clock": 3},
-        (
-            ResponseT("continue_plan", "Continue the chosen retake unchanged"),
-            ResponseT("adjust_to_new_info", "Adjust the retake to the new information"),
-            ResponseT("take_more_info", "Pause and take more information first"),
-            ResponseT("fall_back", "Fall back and save the weapons"),
-        ),
         lambda f: f.time < f.t_low or f.adv <= -2,
         "the bomb timer is below the defuse duration plus travel allowance, or the team is outnumbered by two or more",
-        "fall_back",
         "Time passes and the retake has not yet made decisive contact.",
         {**_COMMON_NOTES},
     ),
@@ -684,15 +770,8 @@ SITUATIONS: dict[str, Situation] = {
          "enemy_utility", "own_positions", "own_loadout"),
         {"bomb_timer": 5, "alive_count": 4, "enemy_seen": 4, "own_utility": 3, "enemy_unknown": 3,
          "bomb_location": 2, "enemy_utility": 2, "own_positions": 3, "own_loadout": 1, "clock": 3, "defuse_kit": 1},
-        (
-            ResponseT("continue_plan", "Keep the current positions"),
-            ResponseT("adjust_to_new_info", "Adjust positions to the new information"),
-            ResponseT("take_more_info", "Stay hidden and take more information"),
-            ResponseT("fall_back", "Fall back away from contact"),
-        ),
         lambda f: f.adv <= -2,
         "the team is outnumbered by two or more after the new information",
-        "fall_back",
         "Time passes and the defenders have not yet made decisive contact.",
         {**_COMMON_NOTES},
     ),
@@ -707,15 +786,8 @@ SITUATIONS: dict[str, Situation] = {
          "own_positions", "own_loadout"),
         {"clock": 5, "alive_count": 4, "enemy_seen": 4, "own_utility": 4, "enemy_unknown": 3,
          "enemy_utility": 2, "own_positions": 2, "own_loadout": 1, "bomb_timer": 3, "bomb_location": 1, "defuse_kit": 1},
-        (
-            ResponseT("continue_plan", "Continue the chosen plan"),
-            ResponseT("adjust_to_new_info", "Adjust the plan to the new information"),
-            ResponseT("take_more_info", "Slow down and take more information"),
-            ResponseT("fall_back", "Abandon the plan and reset"),
-        ),
         lambda f: f.time < 15,
         "the round clock is under 15 seconds after the new information, so only a commitment can still plant",
-        "continue_plan",
         "Time passes and no defender position has changed decisively.",
         {**_COMMON_NOTES},
     ),
@@ -730,15 +802,8 @@ SITUATIONS: dict[str, Situation] = {
          "own_positions", "own_loadout"),
         {"enemy_seen": 5, "clock": 4, "alive_count": 4, "enemy_unknown": 4, "own_utility": 3,
          "enemy_utility": 3, "own_positions": 3, "own_loadout": 1, "bomb_timer": 3, "bomb_location": 1, "defuse_kit": 1},
-        (
-            ResponseT("continue_plan", "Keep the current setup"),
-            ResponseT("adjust_to_new_info", "Adjust the setup to the new information"),
-            ResponseT("take_more_info", "Hold and take more information"),
-            ResponseT("fall_back", "Fall back to a deeper position"),
-        ),
         lambda f: f.adv <= -2,
         "the team is outnumbered by two or more after the new information",
-        "fall_back",
         "Time passes and no attacker position has changed decisively.",
         {**_COMMON_NOTES},
     ),

@@ -122,7 +122,7 @@
     "principle": "When new information invalidates the route assumption, refresh the decision before committing the remaining time."
   },
   "rubric": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "caseRevision": "case_revision_smoke_001",
     "rubricRevision": "rubric_smoke_001",
     "dimensions": [{ "id": "route_logic", "weight": 60 }, { "id": "utility_timing", "weight": 40 }],
@@ -198,7 +198,14 @@
     ],
     "followup": {
       "type": "new_information",
-      "responses": [{ "responseId": "keep_original", "quality": 70 }, { "responseId": "change_mid", "quality": 90 }]
+      "responses": [
+        { "actionId": "a", "responseId": "keep_original", "quality": 70 },
+        { "actionId": "a", "responseId": "change_mid", "quality": 90 },
+        { "actionId": "b", "responseId": "keep_original", "quality": 88 },
+        { "actionId": "b", "responseId": "change_mid", "quality": 66 },
+        { "actionId": "c", "responseId": "keep_original", "quality": 35 },
+        { "actionId": "c", "responseId": "change_mid", "quality": 75 }
+      ]
     }
   }
 }

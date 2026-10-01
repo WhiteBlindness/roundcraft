@@ -36,6 +36,7 @@ from .knowledge import knowledge_view
 from .scoring import relevant_clock, score_candidate
 
 TIMELINE_WINDOW_S = 20.0
+TIMELINE_AFTER_MAX_EVENTS = 20  # real events; the round_end pseudo-event comes on top
 ACTUAL_LINE_MOVE_S = 10.0
 STALE_NOTE_AFTER_S = 8.0
 
@@ -107,6 +108,48 @@ def _timeline(match: dict[str, Any], round_: dict[str, Any], lo: int, hi: int, d
                 }
             )
     return out
+
+
+_END_REASONS = {
+    "t_win_elimination": "The attackers win: all defenders eliminated.",
+    "ct_win_elimination": "The defenders win: all attackers eliminated.",
+    "bomb_defused": "The bomb is defused.",
+    "target_bombed": "The bomb explodes.",
+    "bomb_exploded": "The bomb explodes.",
+    "time_ran_out": "Time runs out.",
+    "target_saved": "Time runs out.",
+}
+
+
+def describe_round_end(round_: dict[str, Any]) -> str:
+    reason = str(round_.get("endReason"))
+    if reason in _END_REASONS:
+        return _END_REASONS[reason]
+    winner = round_.get("winner")
+    return f"The {'attackers' if winner == 'T' else 'defenders'} win the round." if winner in ("T", "CT") else "The round ends."
+
+
+def _timeline_after(match: dict[str, Any], round_: dict[str, Any], tick: int, decision_t: float) -> list[dict[str, Any]]:
+    """Everything after the decision until the round ends, at most TIMELINE_AFTER_MAX_EVENTS real events
+    (utility is dropped first, latest first) and a final round_end pseudo-event. Reviewer-only, pid wording."""
+    events = _timeline(match, round_, tick, 10**12, decision_t, include_lo=False)
+    if len(events) > TIMELINE_AFTER_MAX_EVENTS:
+        important = [e for e in events if e["type"] != "utility"]
+        room = max(0, TIMELINE_AFTER_MAX_EVENTS - len(important))
+        keep_util = [e for e in events if e["type"] == "utility"][:room]
+        events = sorted(important[:TIMELINE_AFTER_MAX_EVENTS] + keep_util, key=lambda e: (e["tick"], e["type"]))
+    end_tick = max([round_["endTick"], tick] + [e["tick"] for e in events])
+    end_t = tick_t(match, round_, end_tick)
+    events.append(
+        {
+            "tick": end_tick,
+            "t": end_t,
+            "offsetSeconds": round(end_t - decision_t, 2),
+            "type": "round_end",
+            "description": describe_round_end(round_),
+        }
+    )
+    return events
 
 
 def _outcome(match: dict[str, Any], round_: dict[str, Any], perspective: str) -> dict[str, Any]:
@@ -227,6 +270,11 @@ def _review_notes(category: str, view: dict[str, Any], followup: dict[str, Any] 
         notes.append("The enemy economy is inferred from the public round history; the actual buy is not known to the team.")
     if abs(view["alive"]["own"] - view["alive"]["enemy"]) >= 3:
         notes.append("The alive counts are lopsided, so the state may already be decided in practice.")
+    if followup is not None and followup.get("dependsOnOwnMovement"):
+        notes.append("The follow-up sighting exists because the source team moved into position; a team that chose another line would not see it at this moment.")
+    reaction = followup.get("reactionWindowSeconds") if followup else None
+    if reaction is not None and reaction < 2:
+        notes.append("The follow-up information arrives less than 2 s before the next kill, leaving almost no time to react.")
     if followup is None:
         notes.append("No material follow-up was found 3-25 s after the decision; a follow-up would have to be authored by hand.")
     else:
@@ -253,7 +301,7 @@ def build_candidate(match: dict[str, Any], manifest: dict[str, Any] | None, roun
         "enemies": [p for p in players if p["side"] == other_side(perspective)],
         "bomb": true_bomb_state(round_, tick),
         "timelineBefore": _timeline(match, round_, tick - window, tick, t0, include_lo=True),
-        "timelineAfter": _timeline(match, round_, tick, tick + window, t0, include_lo=False),
+        "timelineAfter": _timeline_after(match, round_, tick, t0),
         "outcome": _outcome(match, round_, perspective),
         "detectorDetail": decision.get("detail", {}),
     }
@@ -283,7 +331,8 @@ def build_candidate(match: dict[str, Any], manifest: dict[str, Any] | None, roun
     }
 
 
-def mine_match(match: dict[str, Any], manifest: dict[str, Any] | None = None, *, min_score: float = 0.0) -> list[Candidate]:
+def mine_match(match: dict[str, Any], manifest: dict[str, Any] | None = None, *, min_score: float = 0.0,
+               cap: int | None = None) -> list[Candidate]:
     rounds = {r["number"]: r for r in match["rounds"]}
     built = []
     for decision in detect_decisions(match):
@@ -293,7 +342,7 @@ def mine_match(match: dict[str, Any], manifest: dict[str, Any] | None = None, *,
         {"round": c["round"], "tick": c["decisionTick"], "t": c["decisionT"], "perspective": c["perspective"], "category": c["category"], "score": c["score"]["total"], "candidate": c}
         for c in built
     ]
-    kept = dedupe_and_cap(ranked)
+    kept = dedupe_and_cap(ranked) if cap is None else dedupe_and_cap(ranked, cap=cap)
     result = [item["candidate"] for item in kept if item["score"] >= min_score]
     return sorted(result, key=lambda c: (-c["score"]["total"], c["round"], c["decisionTick"], c["perspective"], c["category"]))
 
@@ -313,7 +362,7 @@ def _index_row(candidate: Candidate) -> dict[str, Any]:
     }
 
 
-def mine_source(source_id: str, *, min_score: float = 0.0) -> list[Path]:
+def mine_source(source_id: str, *, min_score: float = 0.0, cap: int | None = None) -> list[Path]:
     match_path = paths.parsed_dir(source_id) / "match.json"
     if not match_path.exists():
         raise FileNotFoundError(f"Parsed match missing: {match_path}")
@@ -321,7 +370,7 @@ def mine_source(source_id: str, *, min_score: float = 0.0) -> list[Path]:
     manifest_path = paths.manifests_dir() / f"{source_id}.json"
     manifest = read_json(manifest_path) if manifest_path.exists() else None
 
-    candidates = mine_match(match, manifest, min_score=min_score)
+    candidates = mine_match(match, manifest, min_score=min_score, cap=cap)
     out_dir = paths.candidates_dir(source_id)
     written = []
     for candidate in candidates:

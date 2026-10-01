@@ -94,10 +94,28 @@ Provenance and rights
 - [ ] Origin is honest. Synthetic cases claim nothing about real matches; background reading goes in `editorial.references`, not in the reveal as if it were the source.
 - [ ] No real players or teams appear unless rights are recorded in `editorial.rights`.
 
+## Follow-up scoring
+
+The follow-up is worth 30 of the 100 points and is judged against the line the player locked. The rubric (`schemaVersion: 2`) therefore keys every follow-up cell by main action:
+
+```jsonc
+"followup": {
+  "type": "new_information",
+  "responses": [
+    { "actionId": "retake", "responseId": "keep_retaking", "quality": 100 },   // a sound line the update leaves sound
+    { "actionId": "retake", "responseId": "save_now", "quality": 20 },         // abandoning it
+    { "actionId": "save", "responseId": "keep_retaking", "quality": 70 },      // correcting a weaker call
+    { "actionId": "save", "responseId": "save_now", "quality": 25 }            // holding on to it
+  ]
+}
+```
+
+`economy_risk` pairs carry `actionId` the same way. The qualifier does not change the follow-up score: execution detail is scored in the main call. Write the cells row by row: when is staying with this line coherent, when is changing justified, and does the new information really support a reversal? `npm run content:score -- <case-id>` prints each locked line against every answer, the named stress lines (a good call kept or needlessly reversed, a weak call corrected or kept, a plausible alternative kept) and the follow-up checks below.
+
 ## Validator rules (errors unless noted)
 
-Payloads parse with the domain schemas · one revision id across the four payloads and `editorial.revision` · `brief.editionId` matches the edition · every main cell references a published action and one of its qualifiers, and every published action × qualifier has a cell · every action has all 10 evidence pairs exactly once · follow-up rubric matches the published responses (or posture × priority pairs) and its type · reveal evidence ids exist in the brief · **every** main answer × evidence pair × follow-up answer is scoreable, with components in range and summing to 0–100 · at least one main line reaches Best-supported (quality 90 or more) · no 6-word sequence shared between the brief and the follow-up or reveal · origin honesty · status gating (reviewer approval, schedule, fixture never ready) · no overlapping official windows · unique identifiers across files.
-Warnings: best-scoring action is the first listed, fewer than two defensible actions, no `inferred`/`unknown` fact, `last_seen` fact without an age, flat follow-up scores, a single review, unresolved change requests, known issues on a ready case.
+Payloads parse with the domain schemas · one revision id across the four payloads and `editorial.revision` · `brief.editionId` matches the edition · every main cell references a published action and one of its qualifiers, and every published action × qualifier has a cell · every action has all 10 evidence pairs exactly once · follow-up rubric has exactly one cell per published action × follow-up answer (response, or posture × priority pair), matches the follow-up type, and does not score every answer the same after every action · reveal evidence ids exist in the brief · **every** main answer × evidence pair × follow-up answer is scoreable, with components in range and summing to 0–100 · at least one main line reaches Best-supported (quality 90 or more) · no 6-word sequence shared between the brief and the follow-up or reveal · origin honesty · status gating (reviewer approval, schedule, fixture never ready) · no overlapping official windows · unique identifiers across files.
+Warnings: best-scoring action is the first listed, fewer than two defensible actions, no `inferred`/`unknown` fact, `last_seen` fact without an age, a locked action whose follow-up answers differ by less than 20 points, a follow-up answer that scores high and nearly the same after actions of clearly different quality, a single review, unresolved change requests, known issues on a ready case.
 
 ## Runtime requirement
 

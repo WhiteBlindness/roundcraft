@@ -169,7 +169,7 @@ describe('generated fixture SQL against a real D1 database', () => {
     // Middle pressure (second action) and regroup (first action) both reach Best-supported.
     const middle = await play(
       { action_id: 'b', qualifier_id: 'q3', evidence_ids: ['e4', 'e5'] },
-      'change_mid',
+      'keep_original',
     )
     const regroup = await play(
       { action_id: 'a', qualifier_id: 'q1', evidence_ids: ['e1', 'e2'] },
@@ -182,12 +182,25 @@ describe('generated fixture SQL against a real D1 database', () => {
       expect(run.body.data.reveal).not.toBeNull()
     }
     expect(middle.body.data.result).toMatchObject({
-      total: 97,
-      components: { main: 50, evidence: 20, followup: 27 },
+      total: 96,
+      components: { main: 50, evidence: 20, followup: 26 },
     })
     expect(regroup.body.data.result).toMatchObject({
       total: 92,
       components: { main: 45, evidence: 20, followup: 27 },
+    })
+  })
+
+  it('scores the same follow-up answer against the main line it follows', async () => {
+    // "Change to pressure middle" corrects a regroup (above: 27/30) but is a needless answer for a team already in middle.
+    const middleChange = await play(
+      { action_id: 'b', qualifier_id: 'q3', evidence_ids: ['e4', 'e5'] },
+      'change_mid',
+    )
+
+    expect(middleChange.body.data.result).toMatchObject({
+      total: 90,
+      components: { main: 50, evidence: 20, followup: 20 },
     })
   })
 

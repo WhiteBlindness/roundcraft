@@ -96,6 +96,7 @@ def make_round(
     flip_sides: bool = False,
     utility: dict[str, dict] | None = None,
     weapons: dict[str, str] | None = None,
+    overrides: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """`positions[pid]` is a (x, y, place) tuple or a callable t -> tuple.
 
@@ -131,6 +132,11 @@ def make_round(
             )
         frames.append({"tick": tick_of(t), "t": t, "bombPlanted": plant_t is not None and t >= plant_t, "players": players})
     end_tick = tick_of(duration)
+    for pid, changes in (overrides or {}).items():  # e.g. {"p08": {"hp": 96, "armor": 0, "secondary": None}}
+        for frame in frames:
+            for p in frame["players"]:
+                if p["pid"] == pid and p["alive"]:
+                    p.update(changes)
     if flip_sides:
         for frame in frames:
             for p in frame["players"]:

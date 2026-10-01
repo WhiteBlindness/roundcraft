@@ -195,6 +195,7 @@ class KnownBomb(TypedDict):
     place: NotRequired[str | None]
     site: NotRequired[str | None]
     ageSeconds: NotRequired[float]
+    carrierPid: NotRequired[str]  # CT view only: the enemy sighted carrying the bomb (never put into fact text)
 
 
 class ObservedUtility(TypedDict):
@@ -233,6 +234,9 @@ class FollowUp(TypedDict):
     summary: str  # player-known wording of what changed
     newFacts: list[DerivedFact]
     knowledgeAfter: KnowledgeView
+    # Reviewer flags; they never change which event is chosen as the follow-up.
+    dependsOnOwnMovement: NotRequired[bool]  # the sighting/utility is only observable because the team moved
+    reactionWindowSeconds: NotRequired[float | None]  # follow-up tick -> next kill of the round (None: no later kill)
 
 
 class Score(TypedDict):
